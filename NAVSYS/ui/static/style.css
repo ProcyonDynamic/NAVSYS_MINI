@@ -1,0 +1,131 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f6f8;
+  color: #1f2937;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  border-bottom: 1px solid #d1d5db;
+  padding: 14px 20px;
+}
+
+.brand {
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.brand a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.meta {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.container {
+  max-width: 980px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.card {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+
+h1 {
+  margin-top: 0;
+}
+
+h2 {
+  margin-top: 24px;
+  font-size: 18px;
+}
+
+label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+input, textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+button, .navbtn {
+  display: inline-block;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  text-decoration: none;
+  color: #111827;
+  font-size: 14px;
+}
+
+button:disabled {
+  opacity: 0.6;
+}
+
+.navgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.statusbox {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.checklist label {
+  font-weight: normal;
+  margin-top: 8px;
+}
+
+code {
+  background: #eef2f7;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+}

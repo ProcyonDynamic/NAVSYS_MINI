@@ -1,0 +1,21 @@
+{
+  "crew_id": "crew_0b9142",
+  "name": "Edouard Kouimov",
+  "rank": "3rd Officer",
+  "documents": [
+    {
+      "doc_id": "passport_e67c8a",
+      "doc_type": "PASSPORT",
+      "doc_subtype": "",
+      "document_number": "29930192038",
+      "country": "GREECE",
+      "issue_date": "11-03-2024",
+      "expiry_date": "11-03-1034",
+      "is_primary": false,
+      "status": "ACTIVE",
+      "source_file": "",
+      "confidence": "",
+      "notes": ""
+    }
+  ]
+}

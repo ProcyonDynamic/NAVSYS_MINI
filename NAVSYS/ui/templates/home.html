@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NAVSYS Mini</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">NAVSYS MINI</div>
+    <div class="meta">UTC: {{ utc_now }}</div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1>Unified Shell</h1>
+      <p>USB Root: <code>{{ usb_root }}</code></p>
+      <div class="navgrid">
+        <a class="navbtn" href="/navwarn">NavWarn Mini</a>
+        <a class="navbtn" href="/astranav">AstraNav Mini</a>
+        <a class="navbtn" href="/portalis">Portalis Mini</a>
+        <a class="navbtn" href="/reports">Reports</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

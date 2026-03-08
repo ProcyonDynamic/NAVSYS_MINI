@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>NavWarn Mini</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><a href="/">NAVSYS MINI</a></div>
+    <div class="meta">UTC: {{ utc_now }}</div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1>NavWarn Mini</h1>
+      <p>USB Root: <code>{{ usb_root }}</code></p>
+
+      <form method="post">
+        <label>NAVAREA</label>
+        <input name="navarea" type="text" value="{{ form.navarea }}" placeholder="IV / V / VI / XII">
+
+        <label>Warning ID</label>
+        <input name="warning_id" type="text" value="{{ form.warning_id }}" placeholder="NAVAREA IV 123/26">
+
+        <label>Title</label>
+        <input name="title" type="text" value="{{ form.title }}" placeholder="Operations Area">
+
+        <label>Ship Latitude</label>
+        <input name="ship_lat" type="text" value="{{ form.ship_lat }}" placeholder="24.0000">
+
+        <label>Ship Longitude</label>
+        <input name="ship_lon" type="text" value="{{ form.ship_lon }}" placeholder="-94.0000">
+
+        <label>Route CSV Path</label>
+        <input name="route_csv_path" type="text" value="{{ form.route_csv_path }}" placeholder="D:\NAVSYS_USB\data\ROUTE\route.csv">
+
+        <label>Source Kind</label>
+        <input name="source_kind" type="text" value="{{ form.source_kind }}" placeholder="MANUAL / WEB / NAVAREA / NAVTEX">
+
+        <label>Raw Warning Text</label>
+        <textarea name="raw_text" rows="10" placeholder="Paste warning text here...">{{ form.raw_text }}</textarea>
+
+        <div class="row">
+          <button type="submit" name="action" value="preview">Extract Preview</button>
+          <button type="submit" name="action" value="process">Process Warning</button>
+        </div>
+      </form>
+
+      {% if errors %}
+      <div class="statusbox">
+        <strong>Errors</strong>
+        <ul>
+          {% for e in errors %}
+          <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if preview_geom %}
+      <div class="statusbox">
+        <strong>Preview Geometry:</strong> {{ preview_geom }}<br><br>
+        <pre>{{ preview_vertices }}</pre>
+      </div>
+      {% endif %}
+
+      {% if result %}
+      <div class="statusbox">
+        <strong>Process Result</strong><br><br>
+        OK: {{ result.ok }}<br>
+        Warning ID: {{ result.warning_id }}<br>
+        Geom Type: {{ result.geom_type }}<br>
+        Vertex Count: {{ result.vertex_count }}<br>
+        Ship Distance NM: {{ result.ship_distance_nm }}<br>
+        Route Distance NM: {{ result.route_distance_nm }}<br>
+        Effective Distance NM: {{ result.distance_nm }}<br>
+        Band: {{ result.band }}<br>
+        Plot CSV: <code>{{ result.plot_csv_path }}</code><br>
+        NS-01 CSV: <code>{{ result.daily_ns01_csv_path }}</code><br>
+        NS-01 TXT: <code>{{ result.daily_ns01_txt_path }}</code>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

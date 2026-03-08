@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>AstraNav Mini</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><a href="/">NAVSYS MINI</a></div>
+    <div class="meta">UTC: {{ utc_now }}</div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1>AstraNav Mini</h1>
+      <p>USB Root: <code>{{ usb_root }}</code></p>
+
+      <form method="post">
+        <label>UTC Time</label>
+        <input name="time_utc" type="text" value="{{ form.time_utc }}" placeholder="2026-03-06T22:00:00Z">
+
+        <label>Latitude</label>
+        <input name="lat" type="text" value="{{ form.lat }}" placeholder="24.0000">
+
+        <label>Longitude</label>
+        <input name="lon" type="text" value="{{ form.lon }}" placeholder="-94.0000">
+
+        <label>Body Kind</label>
+        <input name="body_kind" type="text" value="{{ form.body_kind }}" placeholder="SUN / STAR / PLANET">
+
+        <label>Body Name</label>
+        <input name="body_name" type="text" value="{{ form.body_name }}" placeholder="Sun">
+
+        <label>Instrument Mode</label>
+        <input name="instrument_mode" type="text" value="{{ form.instrument_mode }}" placeholder="GYRO_1 / GYRO_2 / MAGNETIC">
+
+        <label>Instrument Label</label>
+        <input name="instrument_label" type="text" value="{{ form.instrument_label }}" placeholder="Gyro 1 / Gyro 2 / Magnetic Compass">
+
+        <label>Observed Bearing (for NSC-01)</label>
+        <input name="observed_bearing_deg" type="text" value="{{ form.observed_bearing_deg }}" placeholder="230.0">
+
+        <label>Observed Ho (for NSC-02)</label>
+        <input name="observed_ho_deg" type="text" value="{{ form.observed_ho_deg }}" placeholder="27.70">
+
+        <label>Variation (manual for now)</label>
+        <input name="variation_deg" type="text" value="{{ form.variation_deg }}" placeholder="1.5">
+
+        <label>Deviation Card CSV Path</label>
+        <input name="deviation_card_csv_path" type="text" value="{{ form.deviation_card_csv_path }}" placeholder="D:\NAVSYS_USB\data\ASTRANAV\deviation_card.csv">
+
+        <div class="row">
+          <button type="submit" name="action" value="nsc01">Compute NSC-01</button>
+          <button type="submit" name="action" value="nsc02">Compute NSC-02</button>
+        </div>
+      </form>
+
+      {% if errors %}
+      <div class="statusbox">
+        <strong>Errors</strong>
+        <ul>
+          {% for e in errors %}
+          <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if sky %}
+      <div class="statusbox">
+        <strong>Skyfield Result</strong><br><br>
+        Zn: {{ "%.2f"|format(sky.zn_deg) }}°<br>
+        Hc: {{ "%.2f"|format(sky.hc_deg) if sky.hc_deg is not none else "" }}°
+      </div>
+      {% endif %}
+
+      {% if nsc01_report %}
+      <div class="statusbox">
+        <strong>NSC-01 Preview</strong>
+        <pre>{{ nsc01_report }}</pre>
+      </div>
+      {% endif %}
+
+      {% if nsc02_report %}
+      <div class="statusbox">
+        <strong>NSC-02 Preview</strong>
+        <pre>{{ nsc02_report }}</pre>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

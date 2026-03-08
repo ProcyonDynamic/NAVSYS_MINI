@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Portalis Mini</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><a href="/">NAVSYS MINI</a></div>
+    <div class="meta">UTC: {{ utc_now }}</div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1>Portalis Mini</h1>
+      <p>USB Root: <code>{{ usb_root }}</code></p>
+
+      <form method="post">
+        <h2>Vessel</h2>
+        <input name="ship_name" type="text" value="{{ state.vessel.ship_name }}" placeholder="Ship Name">
+        <input name="imo" type="text" value="{{ state.vessel.imo }}" placeholder="IMO">
+        <input name="call_sign" type="text" value="{{ state.vessel.call_sign }}" placeholder="Call Sign">
+        <input name="flag" type="text" value="{{ state.vessel.flag }}" placeholder="Flag">
+
+        <h2>Voyage</h2>
+        <input name="voyage_no" type="text" value="{{ state.voyage.voyage_no }}" placeholder="Voyage No">
+        <input name="departure_port" type="text" value="{{ state.voyage.departure_port }}" placeholder="Departure Port">
+        <input name="arrival_port" type="text" value="{{ state.voyage.arrival_port }}" placeholder="Arrival Port">
+        <input name="eta" type="text" value="{{ state.voyage.eta }}" placeholder="ETA">
+
+        <h2>Documents</h2>
+        {% for doc in state.documents %}
+        <div class="statusbox">
+          <input name="doc_{{ loop.index0 }}_name" type="text" value="{{ doc.doc_name }}" placeholder="Document Name">
+
+          <div class="checklist">
+            <label><input type="checkbox" name="doc_{{ loop.index0 }}_required" {% if doc.required %}checked{% endif %}> Required</label>
+            <label><input type="checkbox" name="doc_{{ loop.index0 }}_filled" {% if doc.filled %}checked{% endif %}> Filled</label>
+            <label><input type="checkbox" name="doc_{{ loop.index0 }}_printed" {% if doc.printed %}checked{% endif %}> Printed</label>
+            <label><input type="checkbox" name="doc_{{ loop.index0 }}_signed" {% if doc.signed %}checked{% endif %}> Signed</label>
+            <label><input type="checkbox" name="doc_{{ loop.index0 }}_recorded" {% if doc.recorded %}checked{% endif %}> Recorded</label>
+            <label><input type="checkbox" name="doc_{{ loop.index0 }}_sent" {% if doc.sent %}checked{% endif %}> Sent</label>
+          </div>
+
+          <label>Notes</label>
+          <input name="doc_{{ loop.index0 }}_notes" type="text" value="{{ doc.notes }}" placeholder="Notes">
+        </div>
+        {% endfor %}
+
+        <div class="row">
+          <button type="submit" name="action" value="save_portalis">Save Portalis State</button>
+        </div>
+      </form>
+
+      <h2>Crew</h2>
+
+      <div class="statusbox">
+        <form method="post">
+          <input name="crew_name" placeholder="Crew Name">
+          <input name="crew_rank" placeholder="Rank">
+          <button name="action" value="create_crew">Add Crew</button>
+        </form>
+      </div>
+
+      {% for c in crew %}
+      <div class="statusbox">
+        <strong><a href="/portalis?crew_id={{ c.crew_id }}{% if selected_port_name %}&port_name={{ selected_port_name }}{% endif %}">{{ c.name }}</a></strong> — {{ c.rank }}
+        <br>
+        Crew ID: <code>{{ c.crew_id }}</code>
+        <br>
+        Documents: {{ c.documents_count }}
+      </div>
+      {% endfor %}
+
+      {% if selected_crew %}
+      <h2>Selected Crew</h2>
+      <div class="statusbox">
+        <strong>{{ selected_crew.name }}</strong> — {{ selected_crew.rank }}
+        <br>
+        Crew ID: <code>{{ selected_crew.crew_id }}</code>
+      </div>
+
+      <div class="statusbox">
+        <form method="post">
+          <input type="hidden" name="crew_id" value="{{ selected_crew.crew_id }}">
+
+          <label>Document Type</label>
+          <input name="doc_type" placeholder="PASSPORT / SEAMAN_BOOK / COC / ENDORSEMENT / CONTRACT">
+
+          <label>Subtype</label>
+          <input name="doc_subtype" placeholder="II/2, Panama, etc">
+
+          <label>Document Number</label>
+          <input name="document_number" placeholder="Document Number">
+
+          <label>Country / Authority</label>
+          <input name="country" placeholder="Country / Authority">
+
+          <label>Issue Date</label>
+          <input name="issue_date" placeholder="YYYY-MM-DD">
+
+          <label>Expiry Date</label>
+          <input name="expiry_date" placeholder="YYYY-MM-DD">
+
+          <label>Source File</label>
+          <input name="source_file" placeholder="docs/passport_001.pdf">
+
+          <label>Confidence</label>
+          <input name="confidence" placeholder="0.97">
+
+          <label>Status</label>
+          <input name="doc_status" placeholder="ACTIVE / EXPIRED / SUPERSEDED / PENDING">
+
+          <label><input type="checkbox" name="is_primary"> Is Primary</label>
+
+          <label>Notes</label>
+          <input name="doc_notes" placeholder="Notes">
+
+          <div class="row">
+            <button type="submit" name="action" value="add_crew_document">Add Document</button>
+          </div>
+        </form>
+      </div>
+
+      {% if selected_crew.documents %}
+      <h2>Document Registry</h2>
+      {% for d in selected_crew.documents %}
+      <div class="statusbox">
+        <strong>{{ d.doc_type }}</strong>{% if d.doc_subtype %} — {{ d.doc_subtype }}{% endif %}
+        <br>
+        Number: {{ d.document_number }}
+        <br>
+        Country: {{ d.country }}
+        <br>
+        Issue: {{ d.issue_date }} | Expiry: {{ d.expiry_date }}
+        <br>
+        Status: {{ d.status }} | Primary: {{ d.is_primary }}
+        <br>
+        Source: <code>{{ d.source_file }}</code>
+        <br>
+        Confidence: {{ d.confidence }}
+        {% if d.notes %}
+        <br>
+        Notes: {{ d.notes }}
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endif %}
+
+      <h2>Port Requirements</h2>
+
+      <div class="statusbox">
+        {% if ports %}
+        <strong>Known Ports</strong><br>
+        {% for p in ports %}
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}port_name={{ p }}">{{ p }}</a>{% if not loop.last %} | {% endif %}
+        {% endfor %}
+        <br><br>
+        {% endif %}
+
+        <form method="post">
+          <label>Port Name</label>
+          <input name="port_name" value="{{ port_form.port_name }}" placeholder="Houston">
+
+          <label>Country</label>
+          <input name="port_country" value="{{ port_form.country }}" placeholder="USA">
+
+          <label>Required Documents (one per line)</label>
+          <textarea name="required_docs_text" rows="6" placeholder="Crew List&#10;Maritime Declaration of Health">{{ port_form.required_docs }}</textarea>
+
+          <label>Non-Standard Forms (one per line)</label>
+          <textarea name="non_standard_forms_text" rows="4" placeholder="Terminal safety checklist">{{ port_form.non_standard_forms }}</textarea>
+
+          <label>Certificate Requirements (one per line)</label>
+          <textarea name="certificate_requirements_text" rows="4" placeholder="Registry Certificate">{{ port_form.certificate_requirements }}</textarea>
+
+          <label>Notes</label>
+          <textarea name="port_notes" rows="4" placeholder="Special arrival note">{{ port_form.notes }}</textarea>
+
+          <div class="row">
+            <button type="submit" name="action" value="save_port_requirements">Save Port Requirements</button>
+          </div>
+        </form>
+      </div>
+
+      {% if selected_port %}
+      <div class="statusbox">
+        <strong>Selected Port:</strong> {{ selected_port.port_name if selected_port.port_name else selected_port_name }}<br>
+        Country: {{ selected_port.country }}<br><br>
+
+        <strong>Required Documents</strong>
+        <ul>
+          {% for x in selected_port.required_docs %}
+          <li>{{ x }}</li>
+          {% endfor %}
+        </ul>
+
+        <strong>Non-Standard Forms</strong>
+        <ul>
+          {% for x in selected_port.non_standard_forms %}
+          <li>{{ x }}</li>
+          {% endfor %}
+        </ul>
+
+        <strong>Certificate Requirements</strong>
+        <ul>
+          {% for x in selected_port.certificate_requirements %}
+          <li>{{ x }}</li>
+          {% endfor %}
+        </ul>
+
+        {% if selected_port.notes %}
+        <strong>Notes</strong><br>
+        {{ selected_port.notes }}
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if cert_check %}
+
+      <h3>Certificate Validation</h3>
+
+      <div class="statusbox">
+
+      {% for name, ok in cert_check %}
+
+      {% if ok %}
+      ✔ {{ name }}  
+      {% else %}
+      ⚠ Missing: {{ name }}
+      {% endif %}
+      <br>
+
+      {% endfor %}
+
+      </div>
+
+      {% endif %}
+
+      <h2>Certificate Registry</h2>
+
+      <div class="statusbox">
+        <form method="post">
+          <label>Certificate Name</label>
+          <input type="text" name="cert_name" placeholder="Safety Equipment Certificate">
+
+          <label>Certificate Number</label>
+          <input type="text" name="cert_number">
+
+          <label>Issuer</label>
+          <input type="text" name="cert_issuer" placeholder="Class / Flag">
+
+          <label>Issue Date</label>
+          <input type="text" name="cert_issue_date" placeholder="YYYY-MM-DD">
+
+          <label>Expiry Date</label>
+          <input type="text" name="cert_expiry_date" placeholder="YYYY-MM-DD">
+
+          <label>Notes</label>
+          <textarea name="cert_notes"></textarea>
+
+          <div class="row">
+            <button type="submit" name="action" value="save_certificate">Save Certificate</button>
+          </div>
+        </form>
+      </div>
+
+      {% if certificates %}
+      <h3>Registered Certificates</h3>
+      <div class="statusbox">
+        {% for c in certificates %}
+        <strong>{{ c.name }}</strong><br>
+        Number: {{ c.number }}<br>
+        Issuer: {{ c.issuer }}<br>
+        Issue: {{ c.issue_date }}<br>
+        Expiry: {{ c.expiry_date }}<br>
+        {% if c.notes %}
+        Notes: {{ c.notes }}<br>
+        {% endif %}
+        <hr>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <h2>Document Generator</h2>
+
+      <div class="statusbox">
+        <form method="post">
+          <div class="row">
+            <button type="submit" name="action" value="generate_crew_list">Generate Crew List</button>
+            <button type="submit" name="action" value="generate_health_decl">Generate Health Declaration</button>
+            <button type="submit" name="action" value="generate_port_checklist">Generate Port Checklist</button>
+          </div>
+        </form>
+      </div>
+
+      {% if generated_paths %}
+      <div class="statusbox">
+        <strong>Generated File(s)</strong><br><br>
+        {% for p in generated_paths %}
+          <code>{{ p }}</code><br>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if generated_preview %}
+      <div class="statusbox">
+        <strong>Generated Preview</strong>
+        <pre>{{ generated_preview }}</pre>
+      </div>
+      {% endif %}
+
+      {% if saved %}
+      <div class="statusbox">
+        <strong>Status:</strong> Saved successfully.
+      </div>
+      {% endif %}
+
+      {% if errors %}
+      <div class="statusbox">
+        <strong>Errors</strong>
+        <ul>
+          {% for e in errors %}
+          <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

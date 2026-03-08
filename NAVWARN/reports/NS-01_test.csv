@@ -1,0 +1,2 @@
+Seq,Form,Time_UTC,Run_ID,NAVAREA,Warning_ID,Type,PSN_Lat,PSN_Lon,Dist_NM,Band,Plotted,Source_Kind,Source_URL,Status,Notes
+1,NS-01,2026-03-05T20:01:00Z,TEST,V,NAVAREA V TEST,POINT,24.354500,-94.972000,57.3,AMBER,NO,MANUAL,,OK,

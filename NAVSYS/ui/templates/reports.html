@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Reports</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><a href="/">NAVSYS MINI</a></div>
+    <div class="meta">UTC: {{ utc_now }}</div>
+  </div>
+
+  <div class="container">
+    <div class="card">
+      <h1>Reports</h1>
+      <p>USB Root: <code>{{ usb_root }}</code></p>
+
+      <ul>
+        <li>NS-01 NavWarn Register</li>
+        <li>NSC-01 Compass / Gyro Error</li>
+        <li>NSC-02 LOP Report</li>
+        <li>Portalis outputs (future)</li>
+      </ul>
+
+      <div class="statusbox">
+        <strong>Status:</strong> Reports hub scaffold only.
+      </div>
+    </div>
+  </div>
+</body>
+</html>

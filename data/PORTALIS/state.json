@@ -1,0 +1,67 @@
+{
+  "vessel": {
+    "ship_name": "",
+    "imo": "",
+    "call_sign": "",
+    "flag": "",
+    "gross_tonnage": "",
+    "deadweight": "",
+    "loa": "",
+    "beam": "",
+    "summer_draft": "",
+    "manager": "",
+    "operator": ""
+  },
+  "voyage": {
+    "voyage_no": "",
+    "departure_port": "",
+    "arrival_port": "",
+    "eta": "",
+    "etb": "",
+    "etc": "",
+    "cargo_summary": "",
+    "port_history": ""
+  },
+  "documents": [
+    {
+      "doc_name": "Crew List",
+      "required": false,
+      "filled": false,
+      "printed": false,
+      "signed": false,
+      "recorded": false,
+      "sent": false,
+      "notes": ""
+    },
+    {
+      "doc_name": "Maritime Declaration of Health",
+      "required": false,
+      "filled": false,
+      "printed": false,
+      "signed": false,
+      "recorded": false,
+      "sent": false,
+      "notes": ""
+    },
+    {
+      "doc_name": "Port Requirement Checklist",
+      "required": false,
+      "filled": false,
+      "printed": false,
+      "signed": false,
+      "recorded": false,
+      "sent": false,
+      "notes": ""
+    },
+    {
+      "doc_name": "Certificate Pack",
+      "required": false,
+      "filled": false,
+      "printed": false,
+      "signed": false,
+      "recorded": false,
+      "sent": false,
+      "notes": ""
+    }
+  ]
+}
