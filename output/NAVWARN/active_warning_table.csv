@@ -1,0 +1,2 @@
+warning_id,navarea,state,source_warning_id,cancel_targets,last_updated_utc,plotted,plot_ref
+TEST001,IV,ACTIVE,TEST001,,2026-03-11T23:33:25Z,YES,output\NAVWARN\plots\jrc_userchart_20260311_233325Z.csv

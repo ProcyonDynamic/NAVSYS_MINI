@@ -27,6 +27,19 @@ from .route_distance import (
     min_distance_vertices_to_route_waypoints,
 )
 
+from .interpreter import interpret_warning
+
+from .active_warning_table import (
+    ActiveWarningRecord,
+    upsert_warning_record,
+    mark_cancelled_targets,
+)
+
+class WarningState:
+    ACTIVE = "ACTIVE"
+    CANCELLED = "CANCELLED"
+    DUPLICATE = "DUPLICATE"
+    REFERENCE = "REFERENCE"
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -39,6 +52,29 @@ def _utc_run_id() -> str:
 def _yyyymmdd_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%d")
 
+
+def _load_existing_warning_ids(csv_path: Path) -> set[str]:
+    ids: set[str] = set()
+
+    if not csv_path.exists():
+        return ids
+
+    try:
+        import csv
+
+        with csv_path.open("r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+
+            for row in reader:
+                wid = row.get("Warning_ID", "")
+                wid = " ".join(wid.upper().split())
+                if wid:
+                    ids.add(wid)
+
+    except Exception:
+        return set()
+
+    return ids
 
 def process_warning_text(
     *,
@@ -87,6 +123,20 @@ def process_warning_text(
     run_id = _utc_run_id()
     created_utc = _utc_now_iso()
     yyyymmdd = _yyyymmdd_utc()
+    
+    root = Path(output_root)
+    plots_dir = root / "NAVWARN" / "plots"
+    reports_dir = root / "NAVWARN" / "reports"
+
+    plots_dir.mkdir(parents=True, exist_ok=True)
+    reports_dir.mkdir(parents=True, exist_ok=True)
+
+    daily_ns01_csv = reports_dir / f"NS-01_navwarn_register_{yyyymmdd}.csv"
+    daily_ns01_txt = reports_dir / f"NS-01_navwarn_register_{yyyymmdd}.txt"
+    plot_csv = plots_dir / f"jrc_userchart_{run_id}.csv"
+
+    active_table_csv = root / "NAVWARN" / "active_warning_table.csv"
+    
 
     root = Path(output_root)
     plots_dir = root / "NAVWARN" / "plots"
@@ -98,6 +148,110 @@ def process_warning_text(
     daily_ns01_csv = reports_dir / f"NS-01_navwarn_register_{yyyymmdd}.csv"
     daily_ns01_txt = reports_dir / f"NS-01_navwarn_register_{yyyymmdd}.txt"
     plot_csv = plots_dir / f"jrc_userchart_{run_id}.csv"
+    
+    active_table_csv = root / "NAVWARN" / "active_warning_table.csv"
+    
+    # ----------------------------------------------
+    # Structural interpretation
+    # ----------------------------------------------
+
+    src_ref = None
+    if source_title or source_url:
+        src_ref = SourceRef(
+            title=source_title,
+            url=source_url,
+            retrieved_utc=created_utc,
+        )
+
+    draft_struct, interp = interpret_warning(
+        warning_id=warning_id,
+        navarea=navarea,
+        source_kind=source_kind,
+        title=title,
+        body=raw_text,
+        run_id=run_id,
+        created_utc=created_utc,
+        source_ref=src_ref,
+        operator_name=operator_name,
+        operator_watch="",
+        operator_notes="",
+    )
+
+    # ----------------------------------------------
+    # Duplicate detection
+    # ----------------------------------------------
+
+    existing_ids = _load_existing_warning_ids(daily_ns01_csv)
+
+    normalized_warning_id = " ".join(warning_id.upper().split())
+    is_duplicate = normalized_warning_id in existing_ids
+
+    if is_duplicate:
+        return {
+            "ok": True,
+            "state": WarningState.DUPLICATE,
+            "status": "DUPLICATE_WARNING",
+            "warning_id": warning_id,
+        }
+
+    # ----------------------------------------------
+    # Semantic branching
+    # ----------------------------------------------
+
+    if interp.is_reference_message:
+        
+        upsert_warning_record(
+            active_table_csv,
+            ActiveWarningRecord(
+            warning_id=warning_id,
+            navarea=navarea,
+            state="REFERENCE",
+            source_warning_id=warning_id,
+            cancel_targets=";".join(interp.cancellation_targets),
+            last_updated_utc=created_utc,
+            plotted="NO",
+            plot_ref="",
+            ),
+        )
+        
+        return {
+            "ok": True,
+            "state": WarningState.REFERENCE,
+            "status": "REFERENCE_BULLETIN",
+            "warning_id": warning_id,
+            "cancel_targets": interp.cancellation_targets,
+        }
+
+    if interp.is_cancellation:
+        
+        upsert_warning_record(
+            active_table_csv,
+            ActiveWarningRecord(
+            warning_id=warning_id,
+            navarea=navarea,
+            state="CANCELLED",
+            source_warning_id=warning_id,
+            cancel_targets=";".join(interp.cancellation_targets),
+            last_updated_utc=created_utc,
+            plotted="NO",
+            plot_ref="",
+            ),
+        )
+
+        mark_cancelled_targets(
+            active_table_csv,
+            interp.cancellation_targets,
+            created_utc,
+        )
+        
+        return {
+            "ok": True,
+            "state": WarningState.CANCELLED,
+            "status": "CANCELLATION_WARNING",
+            "warning_id": warning_id,
+            "cancel_targets": interp.cancellation_targets,
+        }
+
 
     # 1) Extract vertices + infer geometry
     verts, geom_type = extract_vertices_and_geom(raw_text)
@@ -257,6 +411,21 @@ def process_warning_text(
         generated_utc=created_utc,
         operator_name=operator_name,
         vessel_name=vessel_name,
+    )
+    
+    
+    upsert_warning_record(
+        active_table_csv,
+        ActiveWarningRecord(
+            warning_id=warning_id,
+            navarea=navarea,
+            state="ACTIVE",
+            source_warning_id=warning_id,
+            cancel_targets="",
+            last_updated_utc=created_utc,
+            plotted="YES",
+            plot_ref=str(plot_csv),
+        ),
     )
 
     return {
