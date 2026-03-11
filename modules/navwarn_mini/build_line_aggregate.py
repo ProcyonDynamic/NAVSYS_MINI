@@ -9,6 +9,8 @@ from .models import (
     TextObject,
 )
 
+from .plot_policy_defaults import resolve_plot_policy
+
 
 def _color_for_band(band: str, *, red_color_no: int, amber_color_no: int) -> int:
     if band == "RED":
@@ -65,15 +67,15 @@ def _ensure_area_closed(vertices: List[Tuple[float, float]]) -> List[Tuple[float
 def build_line_aggregate(
     w: WarningClassified,
     *,
-    enable_text: bool = True,
-    title_text_size: int = 16,
-    body_text_size: int = 14,
-    red_color_no: int = 9,
-    amber_color_no: int = 2,
+    enable_text: bool | None = None,
+    title_text_size: int | None = None,
+    body_text_size: int | None = None,
+    red_color_no: int | None = None,
+    amber_color_no: int | None = None,
     gap_color_no: int = 5,
-    main_width: int = 3,
+    main_width: int | None = None,
     gap_width: int = 1,
-    main_line_type: int = 1,
+    main_line_type: int | None = None,
     gap_line_type: int = 3,
 ) -> LineAggregateObject:
     """
@@ -98,6 +100,24 @@ def build_line_aggregate(
         raise ValueError(f"Cannot build plot object for status={w.status}: {w.errors}")
 
     band = w.band
+    policy_override = {
+        "enable_text": enable_text,
+        "title_text_size": title_text_size,
+        "body_text_size": body_text_size,
+        "red_color_no": red_color_no,
+        "amber_color_no": amber_color_no,
+        "main_width": main_width,
+        "main_line_type": main_line_type,
+    }
+    policy = resolve_plot_policy(band=band, override=policy_override)
+
+    enable_text = policy["enable_text"]
+    title_text_size = policy["title_text_size"]
+    body_text_size = policy["body_text_size"]
+    red_color_no = policy["red_color_no"]
+    amber_color_no = policy["amber_color_no"]
+    main_width = policy["main_width"]
+    main_line_type = policy["main_line_type"]
     main_color = _color_for_band(band, red_color_no=red_color_no, amber_color_no=amber_color_no)
 
     geom_type = w.geometry.geom_type

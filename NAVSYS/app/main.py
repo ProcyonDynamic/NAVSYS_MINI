@@ -6,6 +6,9 @@ import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
 
+from modules.navwarn_mini.bulletin_splitter import split_navarea_bulletin
+from modules.navwarn_mini.txt_ingester_helper import split_txt_blocks
+
 def get_usb_root() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).resolve().parent
@@ -25,6 +28,23 @@ def log_startup_error(exc: Exception) -> None:
         )
     except Exception:
         pass
+
+def log_startup_paths():
+    import sys
+    from pathlib import Path
+
+    try:
+        p = Path(sys.executable).parent / "navsys_startup_paths.txt"
+        p.write_text(
+            f"USB_ROOT={USB_ROOT}\n"
+            f"TEMPLATES_DIR={TEMPLATES_DIR}\n"
+            f"STATIC_DIR={STATIC_DIR}\n"
+            f"templates_exists={TEMPLATES_DIR.exists()}\n"
+            f"static_exists={STATIC_DIR.exists()}\n",
+            encoding="utf-8",
+        )
+    except Exception as e:
+        Path("navsys_startup_error.txt").write_text(str(e))
 
 import webbrowser
 from datetime import datetime, timezone
@@ -146,9 +166,12 @@ def navwarn():
         "preview_vertices": "",
         "result": None,
         "errors": [],
+        "results": [],
     }
 
     if request.method == "POST":
+        
+        
         action = request.form.get("action", "").strip()
 
         form = {
@@ -163,27 +186,58 @@ def navwarn():
         }
         ctx["form"] = form
 
+        txt_file = request.files.get("warning_txt")
+        if txt_file and txt_file.filename and txt_file.filename.lower().endswith(".txt"):
+            uploaded_text = txt_file.read().decode("utf-8", errors="replace")
+            if uploaded_text.strip():
+                form["raw_text"] = uploaded_text.strip()
+        
         try:
             if action == "preview":
-                verts, geom = extract_vertices_and_geom(form["raw_text"])
+                blocks = split_navarea_bulletin(form["raw_text"])
+                preview_text = blocks[0]["raw_text"] if blocks else form["raw_text"]
+
+                verts, geom = extract_vertices_and_geom(preview_text)
                 ctx["preview_geom"] = geom
                 ctx["preview_vertices"] = preview_vertices_dm(verts)
 
+                
             elif action == "process":
-                res = process_warning_text(
-                    raw_text=form["raw_text"],
-                    navarea=form["navarea"] or "IV",
-                    ship_lat=_to_float_or_none(form["ship_lat"]),
-                    ship_lon=_to_float_or_none(form["ship_lon"]),
-                    output_root=str(USB_ROOT),
-                    warning_id=form["warning_id"],
-                    title=form["title"],
-                    source_kind=form["source_kind"],
-                    route_csv_path=form["route_csv_path"] or None,
-                )
-                ctx["result"] = res
+                blocks = split_navarea_bulletin(form["raw_text"])
 
-                verts, geom = extract_vertices_and_geom(form["raw_text"])
+                # Fallback: if no NAVAREA headers found, treat whole text as one warning
+                if not blocks:
+                    blocks = [{
+                    "warning_id": form["warning_id"],
+                    "raw_text": form["raw_text"],
+                }]
+
+                results = []
+                all_errors = []
+
+                for block in blocks:
+                    res = process_warning_text(
+                        raw_text=block["raw_text"],
+                        navarea=form["navarea"] or "IV",
+                        ship_lat=_to_float_or_none(form["ship_lat"]),
+                        ship_lon=_to_float_or_none(form["ship_lon"]),
+                        output_root=str(USB_ROOT),
+                        warning_id=block["warning_id"] or form["warning_id"],
+                        title=form["title"],
+                        source_kind=form["source_kind"],
+                        route_csv_path=form["route_csv_path"] or None,
+                    )
+                    results.append(res)
+
+                    if not res.get("ok", False):
+                        all_errors.extend(res.get("errors", []))
+
+                ctx["results"] = results
+                ctx["result"] = results[0] if results else None
+                ctx["errors"] = all_errors
+
+                preview_text = blocks[0]["raw_text"] if blocks else form["raw_text"]
+                verts, geom = extract_vertices_and_geom(preview_text)
                 ctx["preview_geom"] = geom
                 ctx["preview_vertices"] = preview_vertices_dm(verts)
 
@@ -489,24 +543,16 @@ def reports():
 
 
 if __name__ == "__main__":
-    url = "http://127.0.0.1:5000/"
     try:
-        webbrowser.open(url)
-    except Exception:
-        pass
+        log_startup_paths()
 
-    app.run(host="127.0.0.1", port=5000, debug=False)
-    
-    
-    if __name__ == "__main__":
+        url = "http://127.0.0.1:5000/"
         try:
-            url = "http://127.0.0.1:5000/"
-            try:
-                webbrowser.open(url)
-            except Exception:
-                pass
+            webbrowser.open(url)
+        except Exception:
+            pass
 
-            app.run(host="127.0.0.1", port=5000, debug=False)
-        except Exception as e:
-            log_startup_error(e)
-            raise
+        app.run(host="127.0.0.1", port=5000, debug=False)
+    except Exception as e:
+        log_startup_error(e)
+        raise
