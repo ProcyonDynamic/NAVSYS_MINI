@@ -25,9 +25,9 @@
   "documents": [
     {
       "doc_name": "Crew List",
-      "required": false,
+      "required": true,
       "filled": false,
-      "printed": false,
+      "printed": true,
       "signed": false,
       "recorded": false,
       "sent": false,
@@ -55,9 +55,9 @@
     },
     {
       "doc_name": "Certificate Pack",
-      "required": false,
-      "filled": false,
-      "printed": false,
+      "required": true,
+      "filled": true,
+      "printed": true,
       "signed": false,
       "recorded": false,
       "sent": false,
