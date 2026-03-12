@@ -260,10 +260,23 @@ def process_warning_text(
             "warning_id": warning_id,
             "cancel_targets": interp.cancellation_targets,
         }
+    
+    if interp.warning_type == "MODU":
+        coords = []
+        for block in interp.structure.geometry_blocks:
+            block_coords = block.extracted.get("coords", [])
+            if isinstance(block_coords, list):
+                coords.extend(block_coords)
 
+        if coords:
+            first = coords[0]
+            verts = [(first.lat, first.lon)]
+            geom_type = "POINT"
+        else:
+            verts, geom_type = extract_vertices_and_geom(raw_text)
+    else:
+        verts, geom_type = extract_vertices_and_geom(raw_text)
 
-    # 1) Extract vertices + infer geometry
-    verts, geom_type = extract_vertices_and_geom(raw_text)
     if not verts:
         return {
             "ok": False,
