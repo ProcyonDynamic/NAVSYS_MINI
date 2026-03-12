@@ -1,2 +1,3 @@
 warning_id,navarea,state,source_warning_id,cancel_targets,last_updated_utc,plotted,plot_ref
 NAVAREA IV TEST,IV,ACTIVE,NAVAREA IV TEST,,2026-03-11T23:43:40Z,YES,D:\NAVSYS_USB\NAVWARN\plots\jrc_userchart_20260311_234340Z.csv
+NAVAREA IV 20260312_001427Z,IV,ACTIVE,NAVAREA IV 20260312_001427Z,,2026-03-12T00:14:27Z,YES,D:\NAVSYS_USB\NAVWARN\plots\jrc_userchart_20260312_001427Z.csv

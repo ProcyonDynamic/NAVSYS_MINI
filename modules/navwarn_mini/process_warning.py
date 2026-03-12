@@ -76,6 +76,14 @@ def _load_existing_warning_ids(csv_path: Path) -> set[str]:
 
     return ids
 
+
+def _safe_name(value: str) -> str:
+    value = value.strip().upper()
+    value = value.replace("NAVAREA ", "")
+    value = value.replace("/", "_")
+    value = value.replace(" ", "_")
+    return value
+
 def process_warning_text(
     *,
     raw_text: str,
@@ -133,7 +141,8 @@ def process_warning_text(
 
     daily_ns01_csv = reports_dir / f"NS-01_navwarn_register_{yyyymmdd}.csv"
     daily_ns01_txt = reports_dir / f"NS-01_navwarn_register_{yyyymmdd}.txt"
-    plot_csv = plots_dir / f"jrc_userchart_{run_id}.csv"
+    safe_warning = _safe_name(warning_id) if warning_id.strip() else "UNNAMED"
+    plot_csv = plots_dir / f"jrc_{safe_warning}_{run_id}.csv"
 
     active_table_csv = root / "NAVWARN" / "active_warning_table.csv"
     
