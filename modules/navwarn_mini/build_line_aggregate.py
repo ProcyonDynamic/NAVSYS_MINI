@@ -68,6 +68,7 @@ def build_line_aggregate(
     w: WarningClassified,
     *,
     enable_text: bool | None = None,
+    text_objects_override: List[TextObject] | None = None,
     title_text_size: int | None = None,
     body_text_size: int | None = None,
     red_color_no: int | None = None,
@@ -148,7 +149,9 @@ def build_line_aggregate(
 
     # Text objects (optional)
     text_objects: List[TextObject] = []
-    if enable_text:
+    if text_objects_override is not None:
+        text_objects = list(text_objects_override)
+    elif enable_text:
         anchor_lat, anchor_lon = _compute_anchor_point(w)
 
         # Title near anchor
@@ -161,6 +164,22 @@ def build_line_aggregate(
                 text=w.warning_id.strip() if w.warning_id.strip() else w.title.strip(),
             )
         )
+
+        # Body slightly offset in latitude (about 0.3 NM ~ 0.005 deg)
+        body_lat = anchor_lat - (0.3 / 60.0)
+        body_text = w.body.strip()
+        if body_text:
+            if len(body_text) > 240:
+                body_text = body_text[:237] + "..."
+            text_objects.append(
+                TextObject(
+                    lat=body_lat,
+                    lon=anchor_lon,
+                    rotation_deg=0.0,
+                    size=body_text_size,
+                    text=body_text,
+                )
+            )
 
         # Body slightly offset in latitude (about 0.3 NM ~ 0.005 deg)
         body_lat = anchor_lat - (0.3 / 60.0)

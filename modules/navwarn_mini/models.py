@@ -97,3 +97,36 @@ class LineAggregateObject:
     default_color_no: int
     vertices: List[StyledVertex]
     text_objects: List[TextObject]
+    
+    
+# ---------------------------------------------------------------------------
+# Offshore / platform object model
+# ---------------------------------------------------------------------------
+
+
+
+@dataclass(frozen=True)
+class OffshoreObject:
+    platform_id: Optional[str]
+    platform_name: Optional[str]
+    platform_type: Optional[str]
+    match_status: str
+    identity_confidence: float
+    tce_thread_id: Optional[str]
+    geometry: Geometry
+    source_warning_id: str
+    source_navarea: str
+
+
+@dataclass(frozen=True)
+class PlatformRegistryEntry:
+    platform_id: str
+    platform_name: Optional[str]
+    platform_type: Optional[str]
+    current_geometry: Geometry
+    last_seen_utc: str
+    first_seen_utc: str
+    last_warning_id: str
+    aliases: List[str]
+    state: str
+    tce_thread_id: str

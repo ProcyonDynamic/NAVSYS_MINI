@@ -73,3 +73,26 @@ DRILLING OPERATIONS IN AREA BOUNDED BY
     assert first["ok"] is True
     assert second["ok"] is True
     assert second["status"] == "DUPLICATE_WARNING"
+    
+    
+from pathlib import Path
+from navwarn_mini.process_warning import process_warning_text
+
+
+def test_process_single_modu_forces_point(tmp_path: Path):
+    result = process_warning_text(
+        raw_text="MODU OCEAN TITAN DRILLING AT 24 10.2N 092 33.1W",
+        navarea="IV",
+        ship_lat=None,
+        ship_lon=None,
+        output_root=str(tmp_path),
+        warning_id="NAVAREA IV 123/26",
+        title="MODU OCEAN TITAN",
+        source_kind="MANUAL",
+        operator_name="TEST",
+    )
+
+    assert result["ok"] is True
+    assert result["geom_type"] == "POINT"
+    assert result["vertex_count"] == 1
+    assert result["plot_csv_path"] is not None

@@ -6,6 +6,7 @@ from typing import Dict, List, Optional, Tuple
 
 from .models import Geometry, LatLon, Validity, WarningDraft
 
+from modules.navwarn_mini.coord_repair import repair_split_coords
 
 WarningType = str
 PhrasePattern = str
@@ -65,6 +66,7 @@ class InterpretationResult:
     cancellation_targets: List[str]
     is_cancellation: bool
     is_reference_message: bool
+    platform_name: Optional[str]
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +103,11 @@ _WARNING_TYPE_RULES: list[tuple[WarningType, tuple[str, ...]]] = [
     ("GENERAL_HAZARD", ("HAZARD", "DANGEROUS", "CAUTION", "MARINERS ARE ADVISED")),
 ]
 
+# Offshore / platform family that should always behave as point objects
+_PLATFORM_TYPES = {
+    "MODU",
+    "DRILLING",
+}
 
 # ---------------------------------------------------------------------------
 # Regexes
@@ -143,6 +150,10 @@ _WARNING_ID_ANYWHERE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_PLATFORM_NAME_RE = re.compile(
+    r"\b(MODU|DRILLING\s+RIG|SEMI[-\s]?SUBMERSIBLE|JACK[-\s]?UP)\s+([A-Z0-9\- ]{3,40})",
+    re.IGNORECASE,
+)
 
 # ---------------------------------------------------------------------------
 # Text normalization
@@ -151,6 +162,8 @@ _WARNING_ID_ANYWHERE_RE = re.compile(
 def normalize_text(text: str) -> str:
     if not text:
         return ""
+
+    text = repair_split_coords(text)
 
     cleaned = text.replace("\u2013", "-").replace("\u2014", "-").replace("\u2212", "-")
     cleaned = cleaned.replace("\u00b0", " ")
@@ -165,7 +178,6 @@ def normalize_text(text: str) -> str:
     cleaned = re.sub(r"(\d{1,3})\s*[-/]\s*(\d{1,2}(?:\.\d+)?)\s*([NSEW])", r"\1 \2 \3", cleaned)
 
     return cleaned
-
 
 # ---------------------------------------------------------------------------
 # Coordinate detection
@@ -382,6 +394,18 @@ def extract_cancellation_targets(structure: WarningStructure) -> List[str]:
             deduped.append(t)
     return deduped
 
+def extract_platform_name(text: str) -> Optional[str]:
+    match = _PLATFORM_NAME_RE.search(text)
+    if not match:
+        return None
+
+    name = match.group(2).strip()
+
+    # remove trailing noise words
+    name = re.sub(r"\b(OPERATING|DRILLING|AT|IN|LOCATED)\b.*$", "", name).strip()
+
+    return name if len(name) >= 3 else None
+
 
 # ---------------------------------------------------------------------------
 # Geometry builder
@@ -392,7 +416,17 @@ def build_geometry(
     coords: List[LatLon],
     phrase_pattern: PhrasePattern,
     implied_geom: Optional[str],
+    warning_type: WarningType,
 ) -> Geometry:
+    
+    # Offshore installations behave as annotated point objects
+    if warning_type in _PLATFORM_TYPES and coords:
+        return Geometry(
+            geom_type="POINT",
+            vertices=coords[:1],
+            closed=False,
+        )
+    
     if implied_geom == "AREA":
         return Geometry(geom_type="AREA", vertices=coords, closed=True)
 
@@ -480,8 +514,13 @@ def interpret_warning(
 
     coords = collect_structure_coordinates(structure, combined)
     validity = parse_validity(combined, structure=structure)
-    geometry = build_geometry(coords=coords, phrase_pattern=phrase_pattern, implied_geom=implied_geom)
-
+    platform_name = extract_platform_name(combined)
+    geometry = build_geometry(
+        coords=coords,
+        phrase_pattern=phrase_pattern,
+        implied_geom=implied_geom,
+        warning_type=warning_type,
+    )
     cancellation_targets = extract_cancellation_targets(structure)
     is_cancellation = (
         warning_type == "CANCELLATION"
@@ -537,6 +576,7 @@ def interpret_warning(
         cancellation_targets=cancellation_targets,
         is_cancellation=is_cancellation,
         is_reference_message=is_reference_message,
+        platform_name=platform_name,
     )
 
     return draft, result

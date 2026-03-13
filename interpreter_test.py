@@ -59,3 +59,35 @@ DRILLING OPERATIONS IN AREA BOUNDED BY
     assert len(result.structure.geometry_blocks) >= 1
     assert result.geometry.geom_type == "AREA"
     assert len(result.geometry.vertices) >= 3
+    
+from navwarn_mini.interpreter import interpret_warning
+
+
+def test_interpret_modu_classification():
+    draft, result = interpret_warning(
+        warning_id="NAVAREA IV 123/26",
+        navarea="IV",
+        source_kind="MANUAL",
+        title="",
+        body="MODU OCEAN TITAN DRILLING AT 24 10.2N 092 33.1W",
+        run_id="TESTRUN",
+        created_utc="2026-03-13T00:00:00Z",
+    )
+
+    assert result.warning_type == "MODU"
+    assert len(result.geometry.vertices) >= 1
+
+
+def test_interpret_drilling_classification():
+    draft, result = interpret_warning(
+        warning_id="NAVAREA IV 124/26",
+        navarea="IV",
+        source_kind="MANUAL",
+        title="",
+        body="DRILLING RIG VALARIS DS-10 AT 24 18.0N 092 40.5W",
+        run_id="TESTRUN",
+        created_utc="2026-03-13T00:00:00Z",
+    )
+
+    assert result.warning_type in ("MODU", "DRILLING")
+    assert len(result.geometry.vertices) >= 1

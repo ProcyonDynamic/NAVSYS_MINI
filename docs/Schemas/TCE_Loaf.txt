@@ -1,0 +1,488 @@
+=== SCHEMA INJECTION: TCE SIX-SLICE CONTEXT ENVELOPE v0.1 ===
+
+Purpose:
+Define a universal meaning structure for NAVSYS modules and future cognition layers
+(NavWarn, Portalis, AstraNav, Nova, Astra). Each processed event/message/object
+is represented as six linked slice traces that are progressively filled by the
+pipeline and then sealed into one Context Envelope.
+
+----------------------------------------------------------------------
+1. CORE DOCTRINE
+----------------------------------------------------------------------
+
+Every processed event generates six independent but linked slice traces:
+
+1. WHAT  = identity / event / object
+2. WHY   = reasoning / interpretation / intent
+3. WHEN  = temporal context
+4. WHERE = spatial / situational context
+5. HOW   = derivation / mechanism / process path
+6. WHO   = actor / authority / responsibility
+
+These six slices together form the system’s highest-fidelity representation
+of meaning.
+
+Meaning is not stored as one monolithic blob.
+Meaning is assembled through six parallel trace dimensions.
+
+----------------------------------------------------------------------
+2. LIFECYCLE MODEL
+----------------------------------------------------------------------
+
+Each slice has a lifecycle state:
+
+EMPTY
+PARTIAL
+FILLED
+REVIEWED
+OVERRIDDEN
+SEALED
+
+Definitions:
+
+- EMPTY:
+  Template created but no useful content inserted yet.
+
+- PARTIAL:
+  Some fields populated, but meaning still incomplete.
+
+- FILLED:
+  Slice contains a usable interpreted result from pipeline logic.
+
+- REVIEWED:
+  A human or approved review layer has examined the slice and accepted it.
+
+- OVERRIDDEN:
+  A prior result was manually or explicitly replaced.
+
+- SEALED:
+  Slice is frozen as part of a finalized Context Envelope version.
+
+Lifecycle rule:
+Each slice evolves independently, but final event sealing occurs only when the
+Context Envelope is committed as a stable event record version.
+
+----------------------------------------------------------------------
+3. CONTEXT ENVELOPE MODEL
+----------------------------------------------------------------------
+
+One event/message produces:
+
+- what.slice.json
+- why.slice.json
+- when.slice.json
+- where.slice.json
+- how.slice.json
+- who.slice.json
+
+These are linked by a shared envelope identifier.
+
+Parent object:
+
+ContextEnvelope
+{
+  envelope_id
+  module
+  source_type
+  source_ref
+  created_at
+  updated_at
+  overall_status
+  overall_confidence
+  slice_refs {
+    what
+    why
+    when
+    where
+    how
+    who
+  }
+  precedent_refs[]
+  related_envelopes[]
+  supersedes_envelope_id
+  sealed_at
+  sealed_by
+}
+
+overall_status examples:
+DRAFT / ACTIVE / REVIEW_REQUIRED / SEALED / SUPERSEDED / REJECTED
+
+----------------------------------------------------------------------
+4. REQUIRED COMMON FIELDS FOR ALL SLICE TYPES
+----------------------------------------------------------------------
+
+Every slice trace should contain a common header:
+
+SliceTrace
+{
+  envelope_id
+  slice_type              // WHAT / WHY / WHEN / WHERE / HOW / WHO
+  slice_version
+  lifecycle_state
+  confidence
+  created_at
+  updated_at
+  produced_by_module
+  produced_by_stage
+  review_required
+  reviewed_by
+  reviewed_at
+  overridden_by
+  overridden_at
+  source_refs[]
+  evidence_refs[]
+  notes
+  unresolved_fields[]
+  predecessor_slice_version
+}
+
+Rule:
+A slice is not just a final answer.
+A slice is a trace artifact containing value + evidence + confidence + revision context.
+
+----------------------------------------------------------------------
+5. SLICE-SPECIFIC STRUCTURES
+----------------------------------------------------------------------
+
+----------------
+5.1 WHAT SLICE
+----------------
+
+Purpose:
+Define what the event/object actually is.
+
+WhatSlice
+{
+  event_class               // e.g. NAVWARNING, CREW_DOC, LOP_RESULT, ALERT
+  event_subclass            // e.g. MODU_WARNING, CANCELLATION, PASSPORT, SUN_SIGHT
+  object_type               // area, point, line, document, person, route, calculation
+  title
+  canonical_label
+  normalized_keywords[]
+  semantic_tags[]
+  operational_domain        // navwarn / portalis / astranav / dashboard / nova / astra
+  detected_entities[]
+  candidate_classes[]
+  final_class_reason
+}
+
+Examples:
+- event_class = NAVWARNING
+- event_subclass = OFFSHORE_ACTIVITY
+- object_type = point
+
+----------------
+5.2 WHY SLICE
+----------------
+
+Purpose:
+Capture why the interpretation exists and why it matters.
+
+WhySlice
+{
+  interpretation_basis[]
+  matched_keywords[]
+  matched_phrases[]
+  reasoning_chain[]
+  hazard_indicators[]
+  intent_indicators[]
+  semantic_pattern
+  alternative_interpretations[]
+  rejected_interpretations[]
+  justification_text
+  precedent_support_refs[]
+  operator_reason
+}
+
+Examples:
+- matched_phrase = "IN AREA BOUNDED BY"
+- hazard_indicators = ["drilling", "safety zone"]
+- alternative_interpretations = ["advisory area"]
+
+----------------
+5.3 WHEN SLICE
+----------------
+
+Purpose:
+Capture time, validity, sequence, and temporal context.
+
+WhenSlice
+{
+  detected_time_text[]
+  issued_at
+  effective_from
+  effective_until
+  cancelled_at
+  expires_at
+  processed_at
+  reviewed_at
+  event_status              // in_force / expired / cancelled / draft / unknown
+  time_confidence
+  temporal_notes
+  related_time_windows[]
+}
+
+Examples:
+- event_status = IN_FORCE
+- effective_until = null
+- cancelled_at = derived from later warning
+
+----------------
+5.4 WHERE SLICE
+----------------
+
+Purpose:
+Capture spatial meaning or contextual position.
+
+WhereSlice
+{
+  geometry_type             // point / line / polygon / corridor / unknown
+  coordinates_raw[]
+  coordinates_normalized[]
+  geometry_confidence
+  area_name
+  sea_area
+  navarea
+  gazetteer_matches[]
+  feature_ids[]
+  route_relevance
+  distance_to_ship_nm
+  distance_to_route_nm
+  bounding_box
+  center_point
+  radius_nm
+  geometry_builder_path
+  spatial_notes
+}
+
+Examples:
+- geometry_type = POINT
+- sea_area = Gulf of Mexico
+- route_relevance = HIGH
+
+----------------
+5.5 HOW SLICE
+----------------
+
+Purpose:
+Capture how the result was produced.
+
+HowSlice
+{
+  source_adapter            // IMC / PHONE / NAVTOR / PDF / OCR / MANUAL
+  pipeline_stages[]
+  parser_versions[]
+  normalization_actions[]
+  classification_method
+  geometry_method
+  extraction_method
+  confidence_adjustments[]
+  archivist_hits[]
+  manual_edits[]
+  export_paths[]
+  process_notes
+}
+
+Examples:
+- source_adapter = IMC
+- geometry_method = phrase_polygon_builder
+- archivist_hits = prior similar offshore warnings
+
+----------------
+5.6 WHO SLICE
+----------------
+
+Purpose:
+Capture responsibility, authority, actors, and ownership.
+
+WhoSlice
+{
+  source_authority
+  source_sender
+  system_actor              // NAVSYS / NOVA / ASTRA / module name
+  human_actor
+  vessel_role
+  reviewer
+  approver
+  override_actor
+  authority_level
+  escalation_target
+  responsibility_chain[]
+  watch_context
+  ownership_notes
+}
+
+Examples:
+- human_actor = Eddie
+- vessel_role = Master / OOW / reviewer
+- source_authority = NAVAREA IV
+
+----------------------------------------------------------------------
+6. ARCHIVIST INTEGRATION
+----------------------------------------------------------------------
+
+Archivist function:
+After first-pass extraction, the system searches prior Context Envelopes and/or
+prior slice traces for relevant precedent matches.
+
+Archivist searches by:
+1. keyword match
+2. semantic class match
+3. slice-pattern match
+4. operator-corrected precedent
+5. cross-module context correlation
+
+Archivist must return hints, not truth.
+
+Archivist output may include:
+- matched_prior_envelopes[]
+- matched_slice_refs[]
+- precedent_confidence
+- suggested_classifications[]
+- suggested_geometry_patterns[]
+- suggested_reasoning_patterns[]
+- related_operator_overrides[]
+- related_ports/routes/entities/modules[]
+
+Rule:
+Archivist informs the interpreter; it must not silently overwrite current meaning.
+
+----------------------------------------------------------------------
+7. PIPELINE INTEGRATION RULE
+----------------------------------------------------------------------
+
+Standard flow:
+
+RAW INPUT
+→ TEMPLATE SPAWN (6 empty slices)
+→ NORMALIZATION
+→ KEYWORD / ENTITY EXTRACTION
+→ FIRST-PASS CLASSIFICATION
+→ TIME PARSE
+→ GEOMETRY / CONTEXT PARSE
+→ ARCHIVIST LOOKUP
+→ CONFIDENCE / PRECEDENT ENRICHMENT
+→ REVIEW / OVERRIDE IF NEEDED
+→ CONTEXT ENVELOPE SEAL
+→ TCE ARCHIVE
+
+Important:
+Slices may be populated in parallel or in staged sequence.
+No stage should require all other slices to be complete before contributing.
+
+----------------------------------------------------------------------
+8. FAILURE / PARTIAL UNDERSTANDING RULE
+----------------------------------------------------------------------
+
+If one slice fails, the whole event must not collapse.
+
+Example:
+WHERE unresolved due to malformed coordinates
+but WHAT / WHY / WHEN / HOW / WHO remain valid.
+
+System should preserve partial meaning and raise:
+
+- review_required = true
+- unresolved_fields = [...]
+- overall_status = REVIEW_REQUIRED
+
+This is a mandatory resilience rule.
+
+----------------------------------------------------------------------
+9. VERSIONING / AUDIT RULE
+----------------------------------------------------------------------
+
+Every slice and envelope must support version history.
+
+Audit goals:
+- reconstruct what was known at the time
+- show what changed
+- show who changed it
+- show why it changed
+- preserve previous interpretations
+
+Required:
+- slice_version
+- predecessor_slice_version
+- supersedes_envelope_id
+- reviewed_by / overridden_by / sealed_by
+- timestamps for each state transition
+
+----------------------------------------------------------------------
+10. CROSS-MODULE DOCTRINE
+----------------------------------------------------------------------
+
+This schema is not NavWarn-only.
+
+It is the universal meaning contract for:
+- NavWarn
+- Portalis
+- AstraNav
+- Dashboard / voyage state
+- Nova
+- Astra
+- future NAVSYS cognition tools
+
+Interpretation:
+TCE stores meaning.
+Archivist recalls meaning.
+Nova acts on meaning.
+Astra reflects on meaning.
+
+----------------------------------------------------------------------
+11. COGNITION STACK
+----------------------------------------------------------------------
+
+Recommended conceptual stack:
+
+Interpreter
+  = first-pass extraction and classification
+
+Archivist
+  = precedent and historical slice recall
+
+Adjudicator
+  = combines present evidence + precedent + operational state
+
+Recorder
+  = seals final slice set into TCE Context Envelope
+
+This stack may be implemented explicitly or progressively over time.
+
+----------------------------------------------------------------------
+12. MINIMUM IMPLEMENTATION PRIORITY
+----------------------------------------------------------------------
+
+Immediate practical baseline:
+
+Phase 1:
+- add six empty slice template files
+- add lifecycle field to each
+- link them with one envelope_id
+
+Phase 2:
+- populate WHAT / WHEN / WHERE / HOW from NavWarn pipeline
+
+Phase 3:
+- populate WHY from phrase / keyword reasoning
+- populate WHO from source and review context
+
+Phase 4:
+- add ContextEnvelope parent record
+- add seal operation
+
+Phase 5:
+- add Archivist lookup on keyword + class + prior overrides
+
+Phase 6:
+- expand cross-module use (Portalis / AstraNav / Nova / Astra)
+
+----------------------------------------------------------------------
+13. CORE LAW
+----------------------------------------------------------------------
+
+A NAVSYS event is not a single output.
+It is a six-slice meaning construct whose combined sealed state forms the
+best auditable representation of reality available to the system at that time.
+
+=== END SCHEMA INJECTION ===

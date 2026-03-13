@@ -3,12 +3,13 @@ import re
 from typing import List, Tuple
 
 from .coordinate_extractor_mini import CoordinateExtractor
-
+from modules.navwarn_mini.coord_repair import repair_split_coords
 
 def normalize_coord_text(s: str) -> str:
-
     if not s:
         return ""
+
+    s = repair_split_coords(s)
 
     s = (
         s.replace("°", " ")
