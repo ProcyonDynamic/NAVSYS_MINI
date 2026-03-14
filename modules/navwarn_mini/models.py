@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Literal, Optional, List, Dict
+
 
 NAVAREA = str
 SourceKind = Literal["NAVAREA", "NAVTEX", "SAFETYNET", "WEB", "MANUAL"]
@@ -97,6 +100,7 @@ class LineAggregateObject:
     default_color_no: int
     vertices: List[StyledVertex]
     text_objects: List[TextObject]
+    label_payload: Optional[LabelPayload] = None
     
     
 # ---------------------------------------------------------------------------

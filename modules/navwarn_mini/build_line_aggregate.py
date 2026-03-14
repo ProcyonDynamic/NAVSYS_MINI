@@ -147,56 +147,14 @@ def build_line_aggregate(
         for (lat, lon) in draw_path
     ]
 
-    # Text objects (optional)
+    # Text objects are now controlled by the caller.
+    # No fallback to title/body here, to avoid random label content.
     text_objects: List[TextObject] = []
+
     if text_objects_override is not None:
         text_objects = list(text_objects_override)
-    elif enable_text:
-        anchor_lat, anchor_lon = _compute_anchor_point(w)
 
-        # Title near anchor
-        text_objects.append(
-            TextObject(
-                lat=anchor_lat,
-                lon=anchor_lon,
-                rotation_deg=0.0,
-                size=title_text_size,
-                text=w.warning_id.strip() if w.warning_id.strip() else w.title.strip(),
-            )
-        )
 
-        # Body slightly offset in latitude (about 0.3 NM ~ 0.005 deg)
-        body_lat = anchor_lat - (0.3 / 60.0)
-        body_text = w.body.strip()
-        if body_text:
-            if len(body_text) > 240:
-                body_text = body_text[:237] + "..."
-            text_objects.append(
-                TextObject(
-                    lat=body_lat,
-                    lon=anchor_lon,
-                    rotation_deg=0.0,
-                    size=body_text_size,
-                    text=body_text,
-                )
-            )
-
-        # Body slightly offset in latitude (about 0.3 NM ~ 0.005 deg)
-        body_lat = anchor_lat - (0.3 / 60.0)
-        body_text = w.body.strip()
-        if body_text:
-            # Keep body reasonable for ECDIS text; full text always in printed report
-            if len(body_text) > 240:
-                body_text = body_text[:237] + "..."
-            text_objects.append(
-                TextObject(
-                    lat=body_lat,
-                    lon=anchor_lon,
-                    rotation_deg=0.0,
-                    size=body_text_size,
-                    text=body_text,
-                )
-            )
 
     return LineAggregateObject(
         run_id=w.run_id,

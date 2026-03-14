@@ -15,24 +15,26 @@ class CoordinateExtractor:
 
     MASTER_PATTERN = re.compile(
         r"""
+        (?<![A-Z0-9])
         (?P<lat>
             [NS]?\s*
             \d{1,3}
-            (?:[\-\s°]\d{1,2}(?:\.\d+)?)      # minutes, decimal allowed here
-            (?:[\-\s]\d{1,2}(?:\.\d+)?)?      # optional seconds
+            (?:[\-\s°]\d{1,2}(?:\.\d+)?)
+            (?:[\-\s]\d{1,2}(?:\.\d+)?)?
             \s*[NS]?
         )
         [,\s/;]+
         (?P<lon>
             [EW]?\s*
             \d{1,3}
-            (?:[\-\s°]\d{1,2}(?:\.\d+)?)      # minutes, decimal allowed here
-            (?:[\-\s]\d{1,2}(?:\.\d+)?)?      # optional seconds
+            (?:[\-\s°]\d{1,2}(?:\.\d+)?)
+            (?:[\-\s]\d{1,2}(?:\.\d+)?)?
             \s*[EW]?
         )
         """,
         re.VERBOSE | re.IGNORECASE,
     )
+
 
     @classmethod
     def extract(cls, text: str) -> List[Coordinate]:
@@ -53,20 +55,27 @@ class CoordinateExtractor:
         return results
 
     @staticmethod
+
     def _parse_component(text: str, is_lat: bool) -> Optional[float]:
 
         text = (text or "").upper().strip()
 
         hemi = 1
-        if ("S" in text and is_lat) or ("W" in text and not is_lat):
-            hemi = -1
+        t = text.strip()
+
+        if is_lat:
+            if t.startswith("S") or t.endswith("S"):
+                hemi = -1
+        else:
+            if t.startswith("W") or t.endswith("W"):
+                hemi = -1
 
         clean = (
             text.replace("-", " ")
                 .replace("°", " ")
                 .replace("'", " ")
                 .replace('"', " ")
-        )
+            )
 
         numbers = re.findall(r"\d+(?:\.\d+)?", clean)
 

@@ -1,5 +1,73 @@
+
+from pathlib import Path
 from modules.navwarn_mini.process_warning import process_warning_text
 
+def test_modu_repeated_keyword_list(tmp_path: Path):
+    raw = """
+    MODU AAA 24-10.2N 092-33.1W
+    MODU BBB 24-18.0N 092-40.5W
+    MODU CCCC 24-21.0N 092-37.0W
+    """.strip()
+
+    result = process_warning_text(
+        raw_text=raw,
+        navarea="IV",
+        ship_lat=None,
+        ship_lon=None,
+        output_root=str(tmp_path),
+        warning_id="NAVAREA IV 900/26",
+        title="MODU LIST",
+        source_kind="MANUAL",
+        operator_name="TEST",
+    )
+
+    assert result["ok"] is True
+    assert result["geom_type"] == "POINT"
+
+def test_modu_heading_plus_label_list(tmp_path: Path):
+    raw = """
+    MODU LIST
+    AAA 24-10.2N 092-33.1W
+    BBB 24-18.0N 092-40.5W
+    CCCC 24-21.0N 092-37.0W
+    """.strip()
+
+    result = process_warning_text(
+        raw_text=raw,
+        navarea="IV",
+        ship_lat=None,
+        ship_lon=None,
+        output_root=str(tmp_path),
+        warning_id="NAVAREA IV 901/26",
+        title="MODU LIST",
+        source_kind="MANUAL",
+        operator_name="TEST",
+    )
+
+    assert result["ok"] is True
+    assert result["geom_type"] == "POINT"
+    
+def test_modu_pure_label_list(tmp_path: Path):
+    raw = """
+    AAA 24-10.2N 092-33.1W
+    BBB 24-18.0N 092-40.5W
+    CCCC 24-21.0N 092-37.0W
+    """.strip()
+
+    result = process_warning_text(
+        raw_text=raw,
+        navarea="IV",
+        ship_lat=None,
+        ship_lon=None,
+        output_root=str(tmp_path),
+        warning_id="NAVAREA IV 902/26",
+        title="MODU LIST",
+        source_kind="MANUAL",
+        operator_name="TEST",
+    )
+
+    assert result["ok"] is True
+    assert result["geom_type"] == "POINT"
 
 def test_reference_bulletin_returns_reference_status(tmp_path):
     result = process_warning_text(
@@ -76,7 +144,7 @@ DRILLING OPERATIONS IN AREA BOUNDED BY
     
     
 from pathlib import Path
-from navwarn_mini.process_warning import process_warning_text
+from modules.navwarn_mini.process_warning import process_warning_text
 
 
 def test_process_single_modu_forces_point(tmp_path: Path):
