@@ -1,0 +1,107 @@
+{
+  "metadata": {
+    "name": "Portalis Certificate Alias Registry",
+    "version": "0.1",
+    "description": "Maps certificate aliases and trigger phrases to canonical certificate identities and fields."
+  },
+  "certificates": [
+    {
+      "canonical_certificate_id": "certificate.tonnage",
+      "display_name": "International Tonnage Certificate",
+      "aliases": [
+        "tonnage certificate",
+        "tonnage cert",
+        "international tonnage certificate",
+        "itc",
+        "itc 69",
+        "itc number",
+        "certificate of tonnage"
+      ],
+      "field_targets": {
+        "number": "certificate.tonnage.number",
+        "issue_date": "certificate.tonnage.issue_date",
+        "expiry_date": "certificate.tonnage.expiry_date"
+      },
+      "notes": "Used for agent forms and authority questionnaires requesting vessel tonnage certificate details."
+    },
+    {
+      "canonical_certificate_id": "certificate.registry",
+      "display_name": "Certificate of Registry",
+      "aliases": [
+        "certificate of registry",
+        "registry certificate",
+        "registry cert",
+        "ship registry",
+        "registration certificate"
+      ],
+      "field_targets": {
+        "number": "certificate.registry.number"
+      },
+      "notes": "Used where agent or authority requests ship registration/certificate reference."
+    },
+    {
+      "canonical_certificate_id": "certificate.ism",
+      "display_name": "Safety Management Certificate / ISM",
+      "aliases": [
+        "ism",
+        "ism certificate",
+        "smc",
+        "safety management certificate",
+        "ism no",
+        "smc number"
+      ],
+      "field_targets": {
+        "number": "certificate.ism.number"
+      },
+      "notes": "Used for ISM / SMC-related form prompts."
+    },
+    {
+      "canonical_certificate_id": "certificate.issc",
+      "display_name": "International Ship Security Certificate",
+      "aliases": [
+        "issc",
+        "issc number",
+        "international ship security certificate",
+        "ship security certificate"
+      ],
+      "field_targets": {
+        "number": "certificate.issc.number"
+      },
+      "notes": "Used for ISPS security certificate requests."
+    },
+    {
+      "canonical_certificate_id": "certificate.gmdss_annual_survey",
+      "display_name": "GMDSS Annual Survey",
+      "aliases": [
+        "gmdss annual survey",
+        "gmdss survey",
+        "radio annual survey",
+        "radio survey",
+        "annual radio survey"
+      ],
+      "field_targets": {
+        "number": "certificate.gmdss_annual_survey.number",
+        "issue_date": "certificate.gmdss_annual_survey.issue_date",
+        "expiry_date": "certificate.gmdss_annual_survey.expiry_date"
+      },
+      "notes": "Used when agent or vetting documents request radio survey details."
+    },
+    {
+      "canonical_certificate_id": "certificate.yellow_fever",
+      "display_name": "Yellow Fever Vaccination Certificate",
+      "aliases": [
+        "yellow fever certificate",
+        "yellow fever cert",
+        "yf certificate",
+        "vaccination certificate",
+        "yellow fever vaccination"
+      ],
+      "field_targets": {
+        "number": "vaccination.yellow_fever.number",
+        "issue_date": "vaccination.yellow_fever.issue_date",
+        "expiry_date": "vaccination.yellow_fever.expiry_date"
+      },
+      "notes": "Crew-level medical/vaccination proof used in health and immigration workflows."
+    }
+  ]
+}

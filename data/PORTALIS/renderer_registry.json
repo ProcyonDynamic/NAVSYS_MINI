@@ -1,0 +1,448 @@
+{
+  "metadata": {
+    "name": "Portalis Canonical Field Dictionary",
+    "version": "0.1",
+    "purpose": "Shared canonical field registry for Portalis OCR, crew data, certificate vault, voyage context, and form renderers."
+  },
+  "fields": {
+    "vessel.name": {
+      "label": "Vessel Name",
+      "type": "string",
+      "aliases": ["ship name", "vessel", "name of vessel"],
+      "example": "ENERGY ENDURANCE",
+      "notes": "Primary vessel display name across forms and generated outputs."
+    },
+    "vessel.imo_number": {
+      "label": "IMO Number",
+      "type": "string",
+      "aliases": ["imo", "imo no", "imo number"],
+      "example": "9876543",
+      "notes": "Primary vessel IMO identifier."
+    },
+    "vessel.call_sign": {
+      "label": "Call Sign",
+      "type": "string",
+      "aliases": ["call sign", "radio call sign"],
+      "example": "9HA1234",
+      "notes": "Used in agent and port forms."
+    },
+    "vessel.flag_state": {
+      "label": "Flag State",
+      "type": "string",
+      "aliases": ["flag", "registry", "flag state"],
+      "example": "Marshall Islands",
+      "notes": "Vessel registration / flag state."
+    },
+    "vessel.gross_tonnage": {
+      "label": "Gross Tonnage",
+      "type": "number",
+      "aliases": ["gt", "gross tonnage", "gross tonnage number"],
+      "example": "115000",
+      "notes": "Often requested by agent forms and certificates."
+    },
+    "voyage.current_port": {
+      "label": "Current Port",
+      "type": "string",
+      "aliases": ["port of arrival", "arrival port", "current port"],
+      "example": "Sabine Pass",
+      "notes": "Primary arrival port context field."
+    },
+    "voyage.last_port": {
+      "label": "Last Port",
+      "type": "string",
+      "aliases": ["last port", "previous port", "port of departure"],
+      "example": "Barcarena",
+      "notes": "Port visited immediately before current arrival."
+    },
+    "voyage.next_port": {
+      "label": "Next Port",
+      "type": "string",
+      "aliases": ["next port", "port of destination", "following port"],
+      "example": "Altamira",
+      "notes": "Planned next port after current call."
+    },
+    "voyage.arrival_date": {
+      "label": "Arrival Date",
+      "type": "date",
+      "aliases": ["arrival date", "date of arrival", "eta date"],
+      "example": "2026-03-25",
+      "notes": "Date-only arrival reference when time is handled separately."
+    },
+    "voyage.eta": {
+      "label": "ETA",
+      "type": "datetime",
+      "aliases": ["eta", "estimated time of arrival"],
+      "example": "2026-03-25T14:00:00",
+      "notes": "Full ETA when date and time are both required."
+    },
+    "voyage.etd": {
+      "label": "ETD",
+      "type": "datetime",
+      "aliases": ["etd", "estimated time of departure"],
+      "example": "2026-03-27T08:00:00",
+      "notes": "Full ETD when required by port/agent forms."
+    },
+    "voyage.reason_of_call": {
+      "label": "Reason of Call",
+      "type": "string",
+      "aliases": ["purpose of call", "reason of call", "purpose"],
+      "example": "Discharge LNG",
+      "notes": "Port call purpose or operational intent."
+    },
+    "voyage.period_of_stay": {
+      "label": "Period of Stay",
+      "type": "string",
+      "aliases": ["stay", "period of stay", "duration of stay"],
+      "example": "2 days",
+      "notes": "Usually required by pre-arrival forms."
+    },
+    "voyage.last_10_ports": {
+      "label": "Last 10 Ports",
+      "type": "array[string]",
+      "aliases": ["last 10 ports", "previous 10 ports of call", "port history"],
+      "example": ["Barcarena", "Sabine Pass", "Galveston OPL"],
+      "notes": "Ordered historical list of recent ports of call."
+    },
+    "voyage.ship_security_level": {
+      "label": "Ship Security Level",
+      "type": "string",
+      "aliases": ["security level", "ship security level", "ssl"],
+      "example": "1",
+      "notes": "ISPS security level of vessel."
+    },
+    "voyage.port_security_level": {
+      "label": "Port Security Level",
+      "type": "string",
+      "aliases": ["port security level", "facility security level"],
+      "example": "1",
+      "notes": "Security level of receiving port/facility."
+    },
+    "voyage.persons_on_board": {
+      "label": "Persons on Board",
+      "type": "integer",
+      "aliases": ["pob", "persons on board", "souls on board"],
+      "example": 28,
+      "notes": "Total persons on board for arrival and security reporting."
+    },
+    "crew.rank": {
+      "label": "Rank",
+      "type": "string",
+      "aliases": ["rank", "position", "capacity"],
+      "example": "Chief Officer",
+      "notes": "Crew rank or function onboard."
+    },
+    "crew.family_name": {
+      "label": "Family Name",
+      "type": "string",
+      "aliases": ["family name", "surname", "last name"],
+      "example": "WENDT",
+      "notes": "Primary crew surname field used across port and IMO forms."
+    },
+    "crew.given_name": {
+      "label": "Given Name",
+      "type": "string",
+      "aliases": ["given name", "first name", "forename"],
+      "example": "ROBERT",
+      "notes": "Primary crew given name field."
+    },
+    "crew.middle_initial": {
+      "label": "Middle Initial",
+      "type": "string",
+      "aliases": ["initial", "middle initial", "mi"],
+      "example": "K",
+      "notes": "Optional middle initial used by some authority forms."
+    },
+    "crew.date_of_birth": {
+      "label": "Date of Birth",
+      "type": "date",
+      "aliases": ["dob", "date of birth", "birth date"],
+      "example": "1986-07-23",
+      "notes": "Crew date of birth."
+    },
+    "crew.place_of_birth": {
+      "label": "Place of Birth",
+      "type": "string",
+      "aliases": ["place of birth", "pob", "birth place"],
+      "example": "GDAŃSK",
+      "notes": "Birthplace location text from identity documents."
+    },
+    "crew.nationality": {
+      "label": "Nationality",
+      "type": "string",
+      "aliases": ["nationality", "citizenship", "nationality/citizenship"],
+      "example": "POLISH",
+      "notes": "Canonical nationality display value."
+    },
+    "crew.nationality_code": {
+      "label": "Nationality Code",
+      "type": "string",
+      "aliases": ["nationality code", "country code", "nat code"],
+      "example": "PL",
+      "notes": "Short nationality code when required by templates."
+    },
+    "crew.gender": {
+      "label": "Gender",
+      "type": "string",
+      "aliases": ["gender", "sex"],
+      "example": "M",
+      "notes": "Used by some immigration and health forms."
+    },
+    "crew.home_address": {
+      "label": "Home Address",
+      "type": "string",
+      "aliases": ["home address", "residential address", "permanent address"],
+      "example": "123 Main Street, Gdynia, Poland",
+      "notes": "Crew member residential address."
+    },
+    "crew.address_us": {
+      "label": "Address in United States",
+      "type": "string",
+      "aliases": ["address in us", "u.s. address", "address while in united states"],
+      "example": "C/O M/V ENERGY ENDURANCE, Port of Sabine Pass, TX",
+      "notes": "Often defaulted for crew landing/entry forms."
+    },
+    "crew.active_status": {
+      "label": "Crew Status",
+      "type": "string",
+      "aliases": ["status", "active status", "crew status"],
+      "example": "active",
+      "notes": "Used for onboard / signed-off / relief state."
+    },
+    "crew.sign_on_date": {
+      "label": "Sign On Date",
+      "type": "date",
+      "aliases": ["sign on", "date joined ship", "embarkation date"],
+      "example": "2026-01-14",
+      "notes": "Date crew member joined vessel."
+    },
+    "crew.sign_off_date": {
+      "label": "Sign Off Date",
+      "type": "date",
+      "aliases": ["sign off", "date left ship", "disembarkation date"],
+      "example": "2026-04-02",
+      "notes": "Date crew member leaves vessel, if applicable."
+    },
+    "crew.contract_expiry_date": {
+      "label": "Contract Expiry Date",
+      "type": "date",
+      "aliases": ["contract expiry", "contract end date", "employment expiry"],
+      "example": "2026-05-14",
+      "notes": "Useful for crew admin and agent paperwork."
+    },
+    "passport.number": {
+      "label": "Passport Number",
+      "type": "string",
+      "aliases": ["passport no", "passport number", "passport"],
+      "example": "EK0855330",
+      "notes": "Primary passport identifier for crew member."
+    },
+    "passport.issue_state": {
+      "label": "Passport Issue State",
+      "type": "string",
+      "aliases": ["issuing state", "passport issuing country", "issued by"],
+      "example": "POLAND",
+      "notes": "State/country that issued the passport."
+    },
+    "passport.issue_date": {
+      "label": "Passport Issue Date",
+      "type": "date",
+      "aliases": ["passport issue date", "date of issue"],
+      "example": "2018-05-14",
+      "notes": "Passport issue date if available."
+    },
+    "passport.expiry_date": {
+      "label": "Passport Expiry Date",
+      "type": "date",
+      "aliases": ["passport expiry", "date of expiry", "valid until"],
+      "example": "2028-05-13",
+      "notes": "Passport expiry date."
+    },
+    "passport.identity_document_nature": {
+      "label": "Nature of Identity Document",
+      "type": "string",
+      "aliases": ["nature of identity document", "identity document type", "document nature"],
+      "example": "Passport",
+      "notes": "Used by crew and passenger list forms."
+    },
+    "seaman_book.number": {
+      "label": "Seaman Book Number",
+      "type": "string",
+      "aliases": ["seaman book no", "seaman's book number", "sb number", "seafarer book no"],
+      "example": "SB123456",
+      "notes": "Canonical seaman book number value."
+    },
+    "seaman_book.issuing_state": {
+      "label": "Seaman Book Issuing State",
+      "type": "string",
+      "aliases": ["seaman book issuing state", "seaman book country"],
+      "example": "Marshall Islands",
+      "notes": "Country or authority issuing the seaman book."
+    },
+    "seaman_book.expiry_date": {
+      "label": "Seaman Book Expiry Date",
+      "type": "date",
+      "aliases": ["seaman book expiry", "sb expiry date"],
+      "example": "2029-08-12",
+      "notes": "Expiry date of seaman book document."
+    },
+    "vaccination.yellow_fever.number": {
+      "label": "Yellow Fever Certificate Number",
+      "type": "string",
+      "aliases": ["yellow fever certificate no", "yf cert no", "vaccination cert no"],
+      "example": "YF-0012456",
+      "notes": "Certificate number for yellow fever vaccination proof."
+    },
+    "vaccination.yellow_fever.issue_date": {
+      "label": "Yellow Fever Issue Date",
+      "type": "date",
+      "aliases": ["yellow fever issue date", "vaccination date", "date vaccinated"],
+      "example": "2020-01-10",
+      "notes": "Primary issue/vaccination date for yellow fever record."
+    },
+    "vaccination.yellow_fever.expiry_date": {
+      "label": "Yellow Fever Expiry Date",
+      "type": "date",
+      "aliases": ["yellow fever expiry", "yellow fever valid until"],
+      "example": "2030-01-09",
+      "notes": "Expiry or validity end date where applicable."
+    },
+    "health.master_name": {
+      "label": "Master Name",
+      "type": "string",
+      "aliases": ["master", "captain name", "name of master"],
+      "example": "John Smith",
+      "notes": "Used in MDoH and authority declarations."
+    },
+    "health.declaration_port": {
+      "label": "Declaration Port",
+      "type": "string",
+      "aliases": ["port of declaration", "declaration port"],
+      "example": "Sabine Pass",
+      "notes": "Port referenced in health declaration forms."
+    },
+    "certificate.tonnage.number": {
+      "label": "Tonnage Certificate Number",
+      "type": "string",
+      "aliases": [
+        "tonnage cert no",
+        "international tonnage certificate number",
+        "itc number",
+        "certificate of tonnage no"
+      ],
+      "example": "ABC12345",
+      "notes": "Used by agent and authority forms requesting tonnage certificate reference."
+    },
+    "certificate.tonnage.issue_date": {
+      "label": "Tonnage Certificate Issue Date",
+      "type": "date",
+      "aliases": ["tonnage cert issue date", "itc issue date"],
+      "example": "2021-06-10",
+      "notes": "Issue date of tonnage certificate."
+    },
+    "certificate.tonnage.expiry_date": {
+      "label": "Tonnage Certificate Expiry Date",
+      "type": "date",
+      "aliases": ["tonnage cert expiry", "itc expiry date", "valid until"],
+      "example": "2026-06-09",
+      "notes": "Expiry date when applicable or tracked operationally."
+    },
+    "certificate.registry.number": {
+      "label": "Certificate of Registry Number",
+      "type": "string",
+      "aliases": ["registry cert no", "certificate of registry no", "csr no", "registration number"],
+      "example": "REG-778899",
+      "notes": "Certificate/registry identifier used on agent forms."
+    },
+    "certificate.ism.number": {
+      "label": "ISM Certificate Number",
+      "type": "string",
+      "aliases": ["ism no", "safety management certificate number", "smc number"],
+      "example": "ISM-12345",
+      "notes": "For ISM/SMC-related form requests."
+    },
+    "certificate.issc.number": {
+      "label": "ISSC Number",
+      "type": "string",
+      "aliases": ["issc no", "international ship security certificate number"],
+      "example": "ISSC-12345",
+      "notes": "ISPS / security certificate identifier."
+    },
+    "stores.article_name": {
+      "label": "Stores Article Name",
+      "type": "string",
+      "aliases": ["article name", "item", "stores item"],
+      "example": "Cigarettes",
+      "notes": "Used in bonded/store declarations."
+    },
+    "stores.quantity": {
+      "label": "Stores Quantity",
+      "type": "number",
+      "aliases": ["quantity", "qty", "amount"],
+      "example": 120,
+      "notes": "Quantity associated with store or bonded article."
+    },
+    "stores.location_on_board": {
+      "label": "Location on Board",
+      "type": "string",
+      "aliases": ["location on board", "stowage location", "where stored"],
+      "example": "Bonded Store Room",
+      "notes": "Storage location for articles or declarations."
+    },
+    "dangerous_goods.un_number": {
+      "label": "UN Number",
+      "type": "string",
+      "aliases": ["un no", "un number"],
+      "example": "UN1203",
+      "notes": "Dangerous goods UN reference number."
+    },
+    "dangerous_goods.shipping_name": {
+      "label": "Proper Shipping Name",
+      "type": "string",
+      "aliases": ["shipping name", "proper shipping name", "psn"],
+      "example": "Gasoline",
+      "notes": "Dangerous goods proper shipping name."
+    },
+    "dangerous_goods.class": {
+      "label": "DG Class",
+      "type": "string",
+      "aliases": ["class", "dg class", "imo class"],
+      "example": "3",
+      "notes": "Dangerous goods classification."
+    },
+    "dangerous_goods.packing_group": {
+      "label": "Packing Group",
+      "type": "string",
+      "aliases": ["packing group", "pg"],
+      "example": "II",
+      "notes": "DG packing group where applicable."
+    },
+    "dangerous_goods.package_count": {
+      "label": "Package Count",
+      "type": "integer",
+      "aliases": ["packages", "number of packages", "pkg count"],
+      "example": 4,
+      "notes": "Package count for DG declaration."
+    },
+    "dangerous_goods.mass_or_volume": {
+      "label": "Mass or Volume",
+      "type": "string",
+      "aliases": ["mass", "volume", "quantity mass/volume"],
+      "example": "200 L",
+      "notes": "Reported mass or volume of DG cargo/item."
+    },
+    "dangerous_goods.stowage_position": {
+      "label": "Stowage Position",
+      "type": "string",
+      "aliases": ["stowage", "stowage position", "location"],
+      "example": "Paint Locker",
+      "notes": "Onboard stowage location for dangerous goods."
+    },
+    "output.form_name": {
+      "label": "Form Name",
+      "type": "string",
+      "aliases": ["form", "document name", "output form"],
+      "example": "Crew Landing Permit",
+      "notes": "Display name of generated output."
+    }
+  }
+}
