@@ -1,0 +1,21 @@
+# Portalis / NAVSYS USB runtime requirements
+# Strong offline multilingual document stack
+
+# OCR / image pipeline
+paddleocr
+opencv-python
+pillow
+pdf2image
+pytesseract
+
+# Language detection / translation
+lingua-language-detector
+argostranslate
+
+# Document generation / parsing
+python-docx
+openpyxl
+
+# Core utilities
+pydantic
+python-dateutil
