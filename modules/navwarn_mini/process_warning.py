@@ -31,6 +31,8 @@ from .warning_vault_service import match_warning_profile
 from .warning_label_service import build_profile_label_payload
 from .warning_plot_policy_service import resolve_plot_policy_for_profile
 from .warning_pattern_service import match_warning_pattern
+from .warning_geometry_hint_service import build_geometry_hints
+from .warning_auditor_service import audit_warning_result
 
 
 class WarningState:
@@ -194,6 +196,8 @@ def process_warning_text(
         raw_text=raw_text,
         profile_id=profile_match.profile.internal_id if profile_match.profile else None,
     )
+    
+
 
 
     # ----------------------------------------------
@@ -255,6 +259,24 @@ def process_warning_text(
     verts = geom_result.verts
     geom_type = geom_result.geom_type
     offshore_objects = geom_result.offshore_objects
+
+    geometry_hint_result = build_geometry_hints(
+        profile_match=profile_match,
+        pattern_match=pattern_match,
+        actual_geom_type=geom_type,
+    )
+    
+    audit_result = audit_warning_result(
+        profile_match=profile_match,
+        pattern_match=pattern_match,
+        geometry_hint_result=geometry_hint_result,
+        actual_geom_type=geom_type,
+        vertex_count=len(verts),
+        is_reference_message=interp.is_reference_message,
+        is_cancellation=interp.is_cancellation,
+        offshore_object_count=len(offshore_objects),
+    )
+
 
     if offshore_objects and not verts:
         return {
@@ -559,6 +581,11 @@ def process_warning_text(
         "pattern_id": pattern_match.pattern.pattern_id if pattern_match.pattern else None,
         "pattern_score": pattern_match.score,
         "pattern_reasons": pattern_match.reasons,
-
-
+        "expected_geometry_types": geometry_hint_result.expected_geometry_types,
+        "geometry_hints": geometry_hint_result.geometry_hints,
+        "geometry_consistency": geometry_hint_result.geometry_consistency,
+        "audit_status": audit_result.audit_status,
+        "audit_flags": audit_result.audit_flags,
+        "audit_notes": audit_result.audit_notes,
+        
     }
