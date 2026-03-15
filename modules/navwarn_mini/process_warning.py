@@ -3,11 +3,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
-
-import re
-
-
-from .vertex_text_builder import build_vertex_texts_for_platform
 from .message_envelope import MessageEnvelope
 from .models import (
     WarningDraft,
@@ -24,11 +19,6 @@ from .route_distance import (
     min_distance_vertices_to_route_waypoints,
 )
 from .interpreter import interpret_warning
-from .active_warning_table import (
-    ActiveWarningRecord,
-    upsert_warning_record,
-    mark_cancelled_targets,
-)
 from .warning_state_service import (
     StateContext,
     handle_duplicate,
@@ -38,6 +28,9 @@ from .warning_state_service import (
 from .warning_output_service import persist_operational_warning_output
 from .warning_geometry_service import resolve_warning_geometry
 from .warning_vault_service import match_warning_profile
+from .warning_label_service import build_profile_label_payload
+from .warning_plot_policy_service import resolve_plot_policy_for_profile
+from .warning_pattern_service import match_warning_pattern
 
 
 class WarningState:
@@ -191,6 +184,15 @@ def process_warning_text(
     profile_match = match_warning_profile(
         raw_text=raw_text,
         interp_warning_type=interp.warning_type,
+    )
+
+    plot_policy_match = resolve_plot_policy_for_profile(
+        profile=profile_match.profile,
+    )
+
+    pattern_match = match_warning_pattern(
+        raw_text=raw_text,
+        profile_id=profile_match.profile.internal_id if profile_match.profile else None,
     )
 
 
@@ -434,72 +436,6 @@ def process_warning_text(
         errors=classified.errors,
     )
 
-    def build_key_phrase_summary(raw_text: str) -> str:
-        text = " ".join(raw_text.upper().split())
-
-        priority_phrases = [
-            "UNLIT",
-            "UNRELIABLE",
-            "DRILLING OPERATIONS",
-            "DRILLING",
-            "MODU",
-            "PLATFORM",
-            "OFF STATION",
-            "MISSING",
-            "ESTABLISHED",
-            "CANCEL",
-            "EXERCISE",
-            "FIRING",
-            "SURVEY OPERATIONS",
-            "PIPELAYING",
-            "SUBSEA OPERATIONS",
-        ]
-
-        found = [p for p in priority_phrases if p in text]
-        found = found[:3]
-
-        return " / ".join(found)
-
-
-    if offshore_objects and offshore_objects[0].geometry.vertices:
-
-        first_obj = offshore_objects[0]
-
-        note_text = None
-        if first_obj.match_status == "POSITION_UPDATED":
-            note_text = "MOVED"
-
-        text_override = build_vertex_texts_for_platform(
-            vertex=first_obj.geometry.vertices[0],
-            warning_id=warning_id,
-            platform_name=first_obj.platform_name,
-            note_text=note_text,
-        )
-
-    else:
-        # general warning label
-        text_override = [{
-            "lines": label_lines
-        }]
-
-    if offshore_objects and offshore_objects[0].geometry.vertices:
-        first_obj = offshore_objects[0]
-        note_text = None
-        if first_obj.match_status == "POSITION_UPDATED":
-            note_text = "MOVED"
-
-        text_override = build_vertex_texts_for_platform(
-            vertex=first_obj.geometry.vertices[0],
-            warning_id=warning_id,
-            platform_name=first_obj.platform_name,
-            note_text=note_text,
-        )
-    
-    key_phrase_summary = build_key_phrase_summary(raw_text)
-
-    label_lines = [warning_id]
-    if key_phrase_summary:
-        label_lines.append(key_phrase_summary)
 
     plot_objects = []
 
@@ -536,32 +472,52 @@ def process_warning_text(
                 errors=classified.errors,
             )
 
-            note_text = "MOVED" if obj.match_status == "POSITION_UPDATED" else None
-
-            obj_text_override = build_vertex_texts_for_platform(
-                vertex=obj.geometry.vertices[0],
+            obj_text_override = build_profile_label_payload(
+                profile_id=profile_match.profile.internal_id if profile_match.profile else None,
                 warning_id=warning_id,
-                platform_name=obj.platform_name,
-                note_text=note_text,
+                raw_text=raw_text,
+                offshore_vertex=obj.geometry.vertices[0],
+                offshore_name=obj.platform_name,
+                offshore_match_status=obj.match_status,
             )
+
 
             plot_objects.append(
                 build_line_aggregate(
                     single_classified,
                     text_objects_override=obj_text_override,
+                    enable_text=plot_policy_match.policy.enable_text if plot_policy_match.policy else None,
+                    title_text_size=plot_policy_match.policy.title_text_size if plot_policy_match.policy else None,
+                    body_text_size=plot_policy_match.policy.body_text_size if plot_policy_match.policy else None,
+                    red_color_no=plot_policy_match.policy.red_color_no if plot_policy_match.policy else None,
+                    amber_color_no=plot_policy_match.policy.amber_color_no if plot_policy_match.policy else None,
+                    main_width=plot_policy_match.policy.main_width if plot_policy_match.policy else None,
+                    main_line_type=plot_policy_match.policy.main_line_type if plot_policy_match.policy else None,
                 )
             )
+
     else:
-        general_text_override = [{
-            "lines": label_lines
-        }]
+        general_text_override = build_profile_label_payload(
+            profile_id=profile_match.profile.internal_id if profile_match.profile else None,
+            warning_id=warning_id,
+            raw_text=raw_text,
+        )
+
 
         plot_objects.append(
             build_line_aggregate(
                 classified,
                 text_objects_override=general_text_override,
+                enable_text=plot_policy_match.policy.enable_text if plot_policy_match.policy else None,
+                title_text_size=plot_policy_match.policy.title_text_size if plot_policy_match.policy else None,
+                body_text_size=plot_policy_match.policy.body_text_size if plot_policy_match.policy else None,
+                red_color_no=plot_policy_match.policy.red_color_no if plot_policy_match.policy else None,
+                amber_color_no=plot_policy_match.policy.amber_color_no if plot_policy_match.policy else None,
+                main_width=plot_policy_match.policy.main_width if plot_policy_match.policy else None,
+                main_line_type=plot_policy_match.policy.main_line_type if plot_policy_match.policy else None,
             )
         )
+
 
     output_result = persist_operational_warning_output(
         classified=classified,
@@ -599,4 +555,10 @@ def process_warning_text(
         "profile_id": profile_match.profile.internal_id if profile_match.profile else None,
         "profile_score": profile_match.score,
         "profile_reasons": profile_match.reasons,
+        "plot_policy_id": plot_policy_match.policy_id,
+        "pattern_id": pattern_match.pattern.pattern_id if pattern_match.pattern else None,
+        "pattern_score": pattern_match.score,
+        "pattern_reasons": pattern_match.reasons,
+
+
     }

@@ -49,7 +49,7 @@ def match_warning_profile(*, raw_text: str, interp_warning_type: str = "") -> Wa
                 reasons.append(f"excluded:{ex}")
 
         if interp_type:
-            if profile.category_type == "OFFSHORE" and interp_type in ("MODU", "PLATFORM", "DRILLING"):
+            if profile.category_type == "OFFSHORE" and interp_type in ("MODU", "PLATFORM"):
                 score += 15
                 reasons.append(f"interp_type:{interp_type}")
             elif profile.category_type == "CANCELLATION" and interp_type == "CANCELLATION":
