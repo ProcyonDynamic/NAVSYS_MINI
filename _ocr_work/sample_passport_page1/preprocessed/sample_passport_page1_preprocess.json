@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "source_path": "D:\\NAVSYS_USB\\sample_passport_page1.png",
+  "output_path": "D:\\NAVSYS_USB\\_ocr_work\\sample_passport_page1\\preprocessed\\sample_passport_page1_preprocessed.png",
+  "width": 2337,
+  "height": 1653,
+  "channels": 1,
+  "steps_applied": [
+    "denoise",
+    "grayscale",
+    "contrast_boost",
+    "sharpen",
+    "deskew"
+  ],
+  "diagnostics": {
+    "original_shape": [
+      1653,
+      2337,
+      3
+    ],
+    "resized": false,
+    "resize_scale": 1.0,
+    "deskew_angle_deg": 0.0
+  },
+  "debug_paths": []
+}

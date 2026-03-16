@@ -1,4 +1,3 @@
-# image_preprocess_service.py
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
@@ -10,7 +9,7 @@ import cv2
 import numpy as np
 
 
-@dataclass
+@dataclass(slots=True)
 class PreprocessOptions:
     grayscale: bool = True
     denoise: bool = True
@@ -23,7 +22,7 @@ class PreprocessOptions:
     save_debug_steps: bool = False
 
 
-@dataclass
+@dataclass(slots=True)
 class PreprocessResult:
     ok: bool
     source_path: str
@@ -102,7 +101,6 @@ def _adaptive_binarize(gray: np.ndarray) -> np.ndarray:
 
 
 def _estimate_skew_angle(gray: np.ndarray) -> float:
-    # Invert binary so text is white for minAreaRect
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     _, thresh = cv2.threshold(
         blur, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
@@ -115,7 +113,6 @@ def _estimate_skew_angle(gray: np.ndarray) -> float:
     rect = cv2.minAreaRect(coords)
     angle = rect[-1]
 
-    # Normalize OpenCV angle convention
     if angle < -45:
         angle = 90 + angle
     elif angle > 45:
@@ -151,10 +148,6 @@ def _rotate_image(image: np.ndarray, angle: float) -> np.ndarray:
 
 
 def _trim_border(gray: np.ndarray, threshold: int = 245) -> np.ndarray:
-    # Trim near-white border if present
-    if len(gray.shape) != 2:
-        gray = _to_gray(gray)
-
     mask = gray < threshold
     coords = np.column_stack(np.where(mask))
     if coords.size == 0:
@@ -172,6 +165,8 @@ def preprocess_image(
 ) -> PreprocessResult:
     options = options or PreprocessOptions()
 
+    image = _crop_to_content(image)
+    steps_applied.append("crop_to_content")
     image_path = Path(image_path)
     output_path = Path(output_path)
 
@@ -182,28 +177,15 @@ def preprocess_image(
     image = _load_image(image_path)
     diagnostics["original_shape"] = list(image.shape)
 
-    if options.save_debug_steps:
-        debug_0 = output_path.with_name(output_path.stem + "_debug_00_original.png")
-        _save_image(debug_0, image)
-        debug_paths.append(str(debug_0))
-
     image, resized, scale = _resize_if_needed(image, options.resize_min_width)
     diagnostics["resized"] = resized
     diagnostics["resize_scale"] = scale
     if resized:
         steps_applied.append("resize")
-        if options.save_debug_steps:
-            p = output_path.with_name(output_path.stem + "_debug_01_resized.png")
-            _save_image(p, image)
-            debug_paths.append(str(p))
 
     if options.denoise:
         image = _denoise(image)
         steps_applied.append("denoise")
-        if options.save_debug_steps:
-            p = output_path.with_name(output_path.stem + "_debug_02_denoised.png")
-            _save_image(p, image)
-            debug_paths.append(str(p))
 
     gray = _to_gray(image)
     if options.grayscale:
@@ -217,11 +199,10 @@ def preprocess_image(
         gray = _sharpen_gray(gray)
         steps_applied.append("sharpen")
 
-    estimated_angle = 0.0
     if options.deskew:
-        estimated_angle = _estimate_skew_angle(gray)
-        diagnostics["deskew_angle_deg"] = estimated_angle
-        gray = _rotate_image(gray, estimated_angle)
+        angle = _estimate_skew_angle(gray)
+        diagnostics["deskew_angle_deg"] = angle
+        gray = _rotate_image(gray, angle)
         steps_applied.append("deskew")
 
     if options.trim_border:
@@ -234,26 +215,36 @@ def preprocess_image(
 
     _save_image(output_path, gray)
 
-    if options.save_debug_steps:
-        p = output_path.with_name(output_path.stem + "_debug_final.png")
-        _save_image(p, gray)
-        debug_paths.append(str(p))
-
     h, w = gray.shape[:2]
-    channels = 1 if len(gray.shape) == 2 else gray.shape[2]
-
     return PreprocessResult(
         ok=True,
         source_path=str(image_path),
         output_path=str(output_path),
         width=w,
         height=h,
-        channels=channels,
+        channels=1,
         steps_applied=steps_applied,
         diagnostics=diagnostics,
         debug_paths=debug_paths,
     )
 
+def _crop_to_content(image: np.ndarray, threshold: int = 245, pad: int = 20) -> np.ndarray:
+    gray = image if len(image.shape) == 2 else cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    mask = gray < threshold
+    coords = np.column_stack(np.where(mask))
+    if coords.size == 0:
+        return image
+
+    y0, x0 = coords.min(axis=0)
+    y1, x1 = coords.max(axis=0) + 1
+
+    y0 = max(0, y0 - pad)
+    x0 = max(0, x0 - pad)
+    y1 = min(gray.shape[0], y1 + pad)
+    x1 = min(gray.shape[1], x1 + pad)
+
+    return image[y0:y1, x0:x1]
 
 def save_preprocess_metadata(result: PreprocessResult, metadata_path: str | Path) -> None:
     metadata_path = Path(metadata_path)
