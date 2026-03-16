@@ -11,6 +11,12 @@ import pytesseract
 from PIL import Image
 from pdf2image import convert_from_path
 
+import os
+
+os.environ["HF_HOME"] = r"D:\NAVSYS_USB\models\huggingface"
+os.environ["TRANSFORMERS_CACHE"] = r"D:\NAVSYS_USB\models\huggingface"
+os.environ["HF_DATASETS_CACHE"] = r"D:\NAVSYS_USB\models\huggingface"
+
 try:
     SURYA_AVAILABLE = None
 except Exception:
