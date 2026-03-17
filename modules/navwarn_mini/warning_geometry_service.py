@@ -153,7 +153,10 @@ def resolve_warning_geometry(
     output_root: str,
 ) -> GeometryResolution:
     platform_sections = split_platform_sections(raw_text)
-
+    
+    base_geometry = None
+    print("[DEBUG] interp_geometry_blocks:", interp_geometry_blocks)
+    
     if len(platform_sections) <= 1:
         fallback_sections = split_platform_sections_fallback(raw_text)
         if len(fallback_sections) > len(platform_sections):
@@ -165,7 +168,7 @@ def resolve_warning_geometry(
             platform_sections = list_lines
 
     is_offshore_warning = (
-        interp_warning_type in ("MODU", "DRILLING", "PLATFORM")
+        interp_warning_type in ("MODU", "PLATFORM")
         or bool(platform_sections)
         or any(
             kw in raw_text.upper()
@@ -203,28 +206,29 @@ def resolve_warning_geometry(
                     closed=False,
                 )
 
-                ident = resolve_platform_identity(
-                    registry_csv_path=str(registry_csv),
-                    platform_name=sec_name,
-                    platform_type=interp_warning_type,
-                    geometry=sec_geometry,
-                    warning_id=warning_id,
-                    observed_utc=created_utc,
-                )
-
-                offshore_objects.append(
-                    OffshoreObject(
-                        platform_id=ident["platform_id"],
+                if sec_geometry is not None:
+                    ident = resolve_platform_identity(
+                        registry_csv_path=str(registry_csv),
                         platform_name=sec_name,
                         platform_type=interp_warning_type,
-                        match_status=ident["match_status"],
-                        identity_confidence=ident["identity_confidence"],
-                        tce_thread_id=ident["tce_thread_id"],
                         geometry=sec_geometry,
-                        source_warning_id=warning_id,
-                        source_navarea=navarea,
+                        warning_id=warning_id,
+                        observed_utc=created_utc,
                     )
-                )
+
+                    offshore_objects.append(
+                        OffshoreObject(
+                            platform_id=ident["platform_id"],
+                            platform_name=sec_name,
+                            platform_type=interp_warning_type,
+                            match_status=ident["match_status"],
+                            identity_confidence=ident["identity_confidence"],
+                            tce_thread_id=ident["tce_thread_id"],
+                            geometry=sec_geometry,
+                            source_warning_id=warning_id,
+                            source_navarea=navarea,
+                        )
+                    )
 
         if not offshore_objects:
             coords = []
@@ -232,38 +236,61 @@ def resolve_warning_geometry(
                 block_coords = block.extracted.get("coords", [])
                 if isinstance(block_coords, list):
                     coords.extend(block_coords)
-
+            
+            
             if coords:
                 first = coords[0]
-                base_geometry = Geometry(
-                    geom_type="POINT",
-                    vertices=[LatLon(lat=first.lat, lon=first.lon)],
-                    closed=False,
-                )
 
-                ident = resolve_platform_identity(
-                    registry_csv_path=str(registry_csv),
-                    platform_name=extract_platform_name(raw_text) or extract_platform_name_fallback(raw_text),
-                    platform_type=interp_warning_type,
-                    geometry=base_geometry,
-                    warning_id=warning_id,
-                    observed_utc=created_utc,
-                )
+                if isinstance(first, dict):
+                    first_lat = first.get("lat")
+                    first_lon = first.get("lon")
+                else:
+                    first_lat = getattr(first, "lat", None)
+                    first_lon = getattr(first, "lon", None)
 
-                offshore_objects.append(
-                    OffshoreObject(
-                        platform_id=ident["platform_id"],
+                if first_lat is not None and first_lon is not None:
+                    base_geometry = Geometry(
+                        geom_type="POINT",
+                        vertices=[LatLon(lat=first_lat, lon=first_lon)],
+                        closed=False,
+                    )
+                else:
+                    base_geometry = None
+
+
+                if base_geometry is not None:
+                    ident = resolve_platform_identity(
+                        registry_csv_path=str(registry_csv),
                         platform_name=extract_platform_name(raw_text) or extract_platform_name_fallback(raw_text),
                         platform_type=interp_warning_type,
-                        match_status=ident["match_status"],
-                        identity_confidence=ident["identity_confidence"],
-                        tce_thread_id=ident["tce_thread_id"],
                         geometry=base_geometry,
-                        source_warning_id=warning_id,
-                        source_navarea=navarea,
+                        warning_id=warning_id,
+                        observed_utc=created_utc,
                     )
-                )
 
+                    offshore_objects.append(
+                        OffshoreObject(
+                            platform_id=ident["platform_id"],
+                            platform_name=extract_platform_name(raw_text) or extract_platform_name_fallback(raw_text),
+                            platform_type=interp_warning_type,
+                            match_status=ident["match_status"],
+                            identity_confidence=ident["identity_confidence"],
+                            tce_thread_id=ident["tce_thread_id"],
+                            geometry=base_geometry,
+                            source_warning_id=warning_id,
+                            source_navarea=navarea,
+                        )
+                    )
+        
+        print("\n[DEBUG] RAW TEXT INTO GEOMETRY:")
+        print(raw_text)
+
+        verts, geom_type = extract_vertices_and_geom(raw_text)
+
+        print("[DEBUG] FALLBACK EXTRACT RESULT:")
+        print("verts:", verts)
+        print("geom_type:", geom_type)
+        
         if offshore_objects:
             verts = [
                 (obj.geometry.vertices[0].lat, obj.geometry.vertices[0].lon)
@@ -278,8 +305,8 @@ def resolve_warning_geometry(
             )
 
         return GeometryResolution(
-            verts=[],
-            geom_type="POINT",
+            verts=verts,
+            geom_type=geom_type,
             offshore_objects=offshore_objects,
         )
 

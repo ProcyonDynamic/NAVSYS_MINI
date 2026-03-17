@@ -1,67 +1,28 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
+from pathlib import Path
+
+from .warning_plot_decision_models import WarningPlotPolicy
+from .warning_plot_policy_loader import load_plot_policies
 
 
-@dataclass
-class WarningPlotPolicy:
-    policy_id: str
-    human_display_name: str
+def load_plot_policy_registry(output_root: str) -> dict[str, WarningPlotPolicy]:
+    root = Path(output_root)
+    config_dir = root / "NAVWARN" / "config"
 
-    enable_text: bool = True
+    defaults_path = config_dir / "plot_policy_defaults.json"
+    overrides_path = config_dir / "plot_policy_overrides.json"
 
-    title_text_size: Optional[int] = None
-    body_text_size: Optional[int] = None
-
-    red_color_no: Optional[int] = None
-    amber_color_no: Optional[int] = None
-
-    main_width: Optional[int] = None
-    main_line_type: Optional[int] = None
-
-    point_symbol_kind: str = "x"
-    notes: str = ""
+    return load_plot_policies(
+        defaults_path=defaults_path,
+        overrides_path=overrides_path,
+    )
 
 
-WARNING_PLOT_POLICIES: dict[str, WarningPlotPolicy] = {
-    "plot_offshore_default": WarningPlotPolicy(
-        policy_id="plot_offshore_default",
-        human_display_name="Offshore Default",
-        enable_text=True,
-        title_text_size=16,
-        body_text_size=14,
-        red_color_no=9,
-        amber_color_no=2,
-        main_width=3,
-        main_line_type=1,
-        point_symbol_kind="x",
-        notes="Default offshore/MODU plotting policy.",
-    ),
-    "plot_operational_default": WarningPlotPolicy(
-        policy_id="plot_operational_default",
-        human_display_name="Operational Default",
-        enable_text=True,
-        title_text_size=16,
-        body_text_size=14,
-        red_color_no=9,
-        amber_color_no=2,
-        main_width=3,
-        main_line_type=1,
-        point_symbol_kind="x",
-        notes="Default operational area/line/point plotting policy.",
-    ),
-    "plot_none": WarningPlotPolicy(
-        policy_id="plot_none",
-        human_display_name="No Plot",
-        enable_text=False,
-        title_text_size=16,
-        body_text_size=14,
-        red_color_no=9,
-        amber_color_no=2,
-        main_width=3,
-        main_line_type=1,
-        point_symbol_kind="x",
-        notes="Used for state-only/reference/cancellation style flows.",
-    ),
-}
+def get_plot_policy(
+    *,
+    output_root: str,
+    policy_id: str,
+) -> WarningPlotPolicy | None:
+    registry = load_plot_policy_registry(output_root)
+    return registry.get(policy_id)
