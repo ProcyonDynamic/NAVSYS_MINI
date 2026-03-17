@@ -183,8 +183,18 @@ class CanonicalMapper:
 
     def _normalize_nationality(self, value: str) -> str:
         upper = value.upper().strip()
-        return self.NATIONALITY_NORMALIZATION.get(upper, upper)
 
+        # direct match
+        if upper in self.NATIONALITY_NORMALIZATION:
+            return self.NATIONALITY_NORMALIZATION[upper]
+
+        # contains match
+        for key, normalized in self.NATIONALITY_NORMALIZATION.items():
+            if key in upper:
+                return normalized
+
+        return upper
+    
     def _normalize_date(self, value: str) -> Optional[str]:
         text = value.strip()
 

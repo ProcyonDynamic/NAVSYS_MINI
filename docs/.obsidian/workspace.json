@@ -4,53 +4,20 @@
     "type": "split",
     "children": [
       {
-        "id": "d4abab360bf8882f",
+        "id": "8f1a1e566dd24b1a",
         "type": "tabs",
         "children": [
           {
-            "id": "e6ffcdebc9fccf96",
+            "id": "bf4c3c5c9b67c49b",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "NAVSYS_LEDGER.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "NAVSYS_LEDGER"
-            }
-          },
-          {
-            "id": "7fc334266454fbf5",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "NAVSYS_SHELL_MAP.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "NAVSYS_SHELL_MAP"
-            }
-          },
-          {
-            "id": "886bfc07062f7c65",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "portalis_form_mapping.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "portalis_form_mapping"
+              "title": "New tab"
             }
           }
-        ],
-        "currentTab": 2
+        ]
       }
     ],
     "direction": "vertical"
@@ -212,13 +179,18 @@
       "bases:Create new base": false
     }
   },
-  "active": "886bfc07062f7c65",
+  "active": "23958218b8e32b20",
   "lastOpenFiles": [
+    "Portalis/Portalis/Welcome.md",
+    "Portalis/Portalis",
+    "Untitled",
+    "Portalis_Build_Ledger.md",
+    "NAVSYS_PORTALIS_OCR_API_BLUEPRINT.md",
     "NAVSYS_CHAT_HANDOVER.md",
-    "portalis_form_mapping.md",
     "NAVSYS_SHELL_MAP.md",
-    "NAVSYS Mini Handover.md",
     "NAVSYS_ARCHITECTURE.md",
+    "portalis_form_mapping.md",
+    "NAVSYS Mini Handover.md",
     "NAVSYS_LEDGER.md",
     "NAVSYS_BUILD_GUIDE.md",
     "NAVSYS_PROJECT_LEDGER.md",

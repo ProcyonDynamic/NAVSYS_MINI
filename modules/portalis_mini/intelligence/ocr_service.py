@@ -195,6 +195,8 @@ class OCRService:
                     sharpen=True,
                     trim_border=False,
                     save_debug_steps=False,
+                    crop_to_content=True,
+                    crop_pad=20,
                 ),
             )
             save_preprocess_metadata(preprocess_result, meta_path)

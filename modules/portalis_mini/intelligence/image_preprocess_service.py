@@ -19,8 +19,10 @@ class PreprocessOptions:
     resize_min_width: int = 1800
     sharpen: bool = True
     trim_border: bool = False
+    crop_to_content: bool = True
+    crop_pad: int = 30
     save_debug_steps: bool = False
-
+    auto_rotate: bool = False
 
 @dataclass(slots=True)
 class PreprocessResult:
@@ -165,8 +167,6 @@ def preprocess_image(
 ) -> PreprocessResult:
     options = options or PreprocessOptions()
 
-    image = _crop_to_content(image)
-    steps_applied.append("crop_to_content")
     image_path = Path(image_path)
     output_path = Path(output_path)
 
@@ -176,6 +176,17 @@ def preprocess_image(
 
     image = _load_image(image_path)
     diagnostics["original_shape"] = list(image.shape)
+
+    if options.crop_to_content:
+        before_shape = list(image.shape)
+        image = _crop_to_content(image, pad=options.crop_pad)
+        after_shape = list(image.shape)
+        diagnostics["crop_to_content_before_shape"] = before_shape
+        diagnostics["crop_to_content_after_shape"] = after_shape
+        steps_applied.append("crop_to_content")
+        if options.auto_rotate:
+            image = _auto_rotate_to_upright(image)
+            steps_applied.append("auto_rotate")
 
     image, resized, scale = _resize_if_needed(image, options.resize_min_width)
     diagnostics["resized"] = resized
@@ -228,23 +239,106 @@ def preprocess_image(
         debug_paths=debug_paths,
     )
 
-def _crop_to_content(image: np.ndarray, threshold: int = 245, pad: int = 20) -> np.ndarray:
+def _auto_rotate_to_upright(image: np.ndarray) -> np.ndarray:
+    rotations = [
+        (0, image),
+        (90, cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)),
+        (180, cv2.rotate(image, cv2.ROTATE_180)),
+        (270, cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)),
+    ]
+
+    best_score = -1
+    best_img = image
+
+    for angle, img in rotations:
+        gray = img if len(img.shape) == 2 else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # heuristic: horizontal text produces more horizontal gradients
+        sobel = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+        score = np.mean(np.abs(sobel))
+
+        if score > best_score:
+            best_score = score
+            best_img = img
+
+    return best_img
+
+def _crop_to_content(image: np.ndarray, pad: int = 30) -> np.ndarray:
     gray = image if len(image.shape) == 2 else cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    mask = gray < threshold
-    coords = np.column_stack(np.where(mask))
-    if coords.size == 0:
+    # Blur slightly to suppress tiny texture noise
+    blur = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # Edge map
+    edges = cv2.Canny(blur, 50, 150)
+
+    # Close gaps to form larger document contours
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (21, 21))
+    closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    # Find outer contours
+    contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
         return image
 
-    y0, x0 = coords.min(axis=0)
-    y1, x1 = coords.max(axis=0) + 1
+    H, W = gray.shape[:2]
+    page_area = H * W
 
-    y0 = max(0, y0 - pad)
-    x0 = max(0, x0 - pad)
-    y1 = min(gray.shape[0], y1 + pad)
-    x1 = min(gray.shape[1], x1 + pad)
+    best_rect = None
+    best_score = -1.0
 
-    return image[y0:y1, x0:x1]
+    for c in contours:
+        x, y, w, h = cv2.boundingRect(c)
+        area = w * h
+
+        # Ignore tiny junk
+        if area < 0.10 * page_area:
+            continue
+
+        # Prefer tall-ish, large regions
+        aspect = h / max(w, 1)
+        fill_score = area / page_area
+        score = fill_score + 0.15 * min(aspect, 2.5)
+
+
+        if score > best_score:
+            best_score = score
+            best_rect = (x, y, w, h)
+
+    if best_rect is None:
+        return image
+
+    x, y, w, h = best_rect
+
+    x0 = max(0, x - pad)
+    y0 = max(0, y - pad)
+    x1 = min(W, x + w + pad)
+    y1 = min(H, y + h + pad)
+
+    cropped = image[y0:y1, x0:x1]
+
+    orig_h, orig_w = image.shape[:2]
+    crop_h, crop_w = cropped.shape[:2]
+
+    orig_area = orig_h * orig_w
+    crop_area = crop_h * crop_w
+
+    # Reject suspicious crops that are too small or too distorted
+    if crop_area < 0.35 * orig_area:
+        return image
+
+    aspect_orig = orig_h / max(orig_w, 1)
+    aspect_crop = crop_h / max(crop_w, 1)
+
+    if abs(aspect_crop - aspect_orig) > 0.8:
+        return image
+
+    return cropped
+
+def _extract_bottom_mrz_zone(image: np.ndarray, fraction: float = 0.28) -> np.ndarray:
+    h, w = image.shape[:2]
+    y0 = int(h * (1.0 - fraction))
+    return image[y0:h, 0:w]
 
 def save_preprocess_metadata(result: PreprocessResult, metadata_path: str | Path) -> None:
     metadata_path = Path(metadata_path)

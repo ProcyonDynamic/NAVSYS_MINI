@@ -1,0 +1,193 @@
+{
+  "main": {
+    "id": "a4ac1b6197006743",
+    "type": "split",
+    "children": [
+      {
+        "id": "1f2de74cf093b0c3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "ededdd3af7df0d80",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "NAVSYS_PORTALIS_OCR_API_BLUEPRINT.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "NAVSYS_PORTALIS_OCR_API_BLUEPRINT"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "ed2eac648ee7e6da",
+    "type": "split",
+    "children": [
+      {
+        "id": "abd05b7d9bd1ce0e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8134a12e99417598",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "97ea284052a3fa52",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "3fc08fb6fde3d9cb",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "564e2a62e017d4b3",
+    "type": "split",
+    "children": [
+      {
+        "id": "9c39267be9136ef3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "adb53aaad36a98c2",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "NAVSYS_PORTALIS_OCR_API_BLUEPRINT.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for NAVSYS_PORTALIS_OCR_API_BLUEPRINT"
+            }
+          },
+          {
+            "id": "dd5f29f918aa856b",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "NAVSYS_PORTALIS_OCR_API_BLUEPRINT.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from NAVSYS_PORTALIS_OCR_API_BLUEPRINT"
+            }
+          },
+          {
+            "id": "0dfa3e6fbbaa32e0",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "27a0d3f920579d62",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "acbcfe874b7afbe6",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "NAVSYS_PORTALIS_OCR_API_BLUEPRINT.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of NAVSYS_PORTALIS_OCR_API_BLUEPRINT"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "ededdd3af7df0d80",
+  "lastOpenFiles": [
+    "NAVSYS_PORTALIS_OCR_GMM_ANALYTICAL.md",
+    "Portalis_Build_Ledger.md",
+    "NAVSYS_PORTALIS_OCR_API_BLUEPRINT.md",
+    "Welcome.md"
+  ]
+}

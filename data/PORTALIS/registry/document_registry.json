@@ -1,0 +1,275 @@
+{
+  "documents": [
+    {
+      "document_id": "DOC_000001",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.place_of_birth": "NAKHODKA"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T22:03:56.011004"
+    },
+    {
+      "document_id": "DOC_000002",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.place_of_birth": "NAKHODKA"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T22:56:37.089656"
+    },
+    {
+      "document_id": "DOC_000003",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.place_of_birth": "NAKHODKA"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T23:00:40.607002"
+    },
+    {
+      "document_id": "DOC_000004",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.place_of_birth": "NAKHODKA"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T23:08:09.138513"
+    },
+    {
+      "document_id": "DOC_000005",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "r",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "47 Jul 33",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 dul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T23:14:40.234523"
+    },
+    {
+      "document_id": "DOC_000006",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "r",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "47 Jul 33",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 dul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T23:18:47.606694"
+    },
+    {
+      "document_id": "DOC_000007",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "r",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "47 Jul 33",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 dul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T23:34:41.639465"
+    },
+    {
+      "document_id": "DOC_000008",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "r",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "47 Jul 33",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 dul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T23:40:02.670813"
+    },
+    {
+      "document_id": "DOC_000009",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "r",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "47 Jul 33",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 dul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T23:45:50.340410"
+    },
+    {
+      "document_id": "DOC_000010",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "r",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "47 Jul 33",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 dul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T23:47:36.079924"
+    },
+    {
+      "document_id": "DOC_000011",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "r",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "47 Jul 33",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 dul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-16T23:54:06.483254"
+    },
+    {
+      "document_id": "DOC_000012",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "r",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "47 Jul 33",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 dul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-17T00:01:25.310912"
+    },
+    {
+      "document_id": "DOC_000013",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY466715",
+        "crew.surname": "EGO H",
+        "crew.given_names": "EGO H",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "22 Jan 00",
+        "crew.place_of_birth": "NAKHODKA Gus",
+        "passport.issue_date": "18 Jul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-17T00:04:53.841352"
+    },
+    {
+      "document_id": "DOC_000014",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "Oe",
+        "crew.given_names": "Y SONE I",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "22 Jan 00",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 Jul 23"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-17T00:09:13.311825"
+    },
+    {
+      "document_id": "DOC_000015",
+      "doc_type": "passport",
+      "owner_entity": "unknown",
+      "owner_id": "unknown",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "parsed_fields": {
+        "passport.number": "P6676452",
+        "crew.surname": "& =. ANE DEA NCR EAST",
+        "crew.given_names": "& =. ANE DEA NCR EAST",
+        "crew.sex": "F"
+      },
+      "confidence": 0.9,
+      "created_at": "2026-03-17T00:38:35.853406"
+    }
+  ]
+}

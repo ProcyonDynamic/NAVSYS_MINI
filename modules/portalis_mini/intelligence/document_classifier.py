@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -14,9 +15,16 @@ class DocumentClassification:
 class DocumentClassifier:
     PASSPORT_KEYWORDS = [
         "passport",
+        "surname",
+        "given names",
+        "given name",
         "nationality",
         "date of birth",
         "place of birth",
+        "sex",
+        "issuing authority",
+        "republic",
+        "passport no",
     ]
 
     SEAMAN_BOOK_KEYWORDS = [
@@ -54,9 +62,25 @@ class DocumentClassifier:
         "company form",
     ]
 
+    MRZ_HINT_RE = re.compile(r"[A-Z0-9<]{20,}")
+
     def classify(self, text: str) -> Optional[DocumentClassification]:
         text_lower = text.lower()
 
+        if self.MRZ_HINT_RE.search(text.upper()):
+            return DocumentClassification(
+                document_type="passport",
+                confidence=0.97,
+                matched_keywords=["mrz_detected"],
+            )
+        text_upper = text.upper()
+
+        if "PASSPORT" in text_upper and ("SURNAME" in text_upper or "SEX" in text_upper or "NATIONALITY" in text_upper):
+            return DocumentClassification(
+                document_type="passport",
+                confidence=0.85,
+                matched_keywords=["passport_layout_detected"],
+            )
         checks = [
             ("passport", self.PASSPORT_KEYWORDS, 2, 0.90),
             ("seaman_book", self.SEAMAN_BOOK_KEYWORDS, 2, 0.90),
@@ -79,4 +103,4 @@ class DocumentClassifier:
                 if best_match is None or len(candidate.matched_keywords) > len(best_match.matched_keywords):
                     best_match = candidate
 
-        return best_match
+        return best_match 

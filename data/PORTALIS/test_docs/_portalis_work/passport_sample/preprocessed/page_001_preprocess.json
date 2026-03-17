@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\_portalis_work\\passport_sample\\pdf_pages\\page_001.png",
+  "output_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\_portalis_work\\passport_sample\\preprocessed\\page_001_preprocessed.png",
+  "width": 1800,
+  "height": 2475,
+  "channels": 1,
+  "steps_applied": [
+    "crop_to_content",
+    "resize",
+    "denoise",
+    "grayscale",
+    "contrast_boost",
+    "sharpen",
+    "deskew"
+  ],
+  "diagnostics": {
+    "original_shape": [
+      2337,
+      1653,
+      3
+    ],
+    "crop_to_content_before_shape": [
+      2337,
+      1653,
+      3
+    ],
+    "crop_to_content_after_shape": [
+      1396,
+      1015,
+      3
+    ],
+    "resized": true,
+    "resize_scale": 1.7733990147783252,
+    "deskew_angle_deg": 0.0
+  },
+  "debug_paths": []
+}
