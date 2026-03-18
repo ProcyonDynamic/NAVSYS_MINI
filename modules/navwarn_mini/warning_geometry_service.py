@@ -153,35 +153,46 @@ def resolve_warning_geometry(
     output_root: str,
 ) -> GeometryResolution:
     platform_sections = split_platform_sections(raw_text)
-    
-    base_geometry = None
-    print("[DEBUG] interp_geometry_blocks:", interp_geometry_blocks)
-    
-    if len(platform_sections) <= 1:
+
+    raw_upper = raw_text.upper()
+
+    has_offshore_keyword = any(
+        kw in raw_upper
+        for kw in (
+            "MODU",
+            "DRILLING RIG",
+            "SEMI-SUBMERSIBLE",
+            "JACK-UP",
+            "JACK UP",
+            "PLATFORM",
+            "FPSO",
+            "FSO",
+        )
+    )
+
+    # Only allow fallback splitting if it's likely an offshore warning
+    if len(platform_sections) <= 1 and has_offshore_keyword:
         fallback_sections = split_platform_sections_fallback(raw_text)
         if len(fallback_sections) > len(platform_sections):
             platform_sections = fallback_sections
 
-    if len(platform_sections) <= 1:
-        list_lines = detect_platform_list_lines(raw_text)
-        if len(list_lines) >= 2:
-            platform_sections = list_lines
-
     is_offshore_warning = (
         interp_warning_type in ("MODU", "PLATFORM")
-        or bool(platform_sections)
+        or has_offshore_keyword
         or any(
-            kw in raw_text.upper()
-            for kw in (
-                "MODU",
-                "DRILLING RIG",
-                "SEMI-SUBMERSIBLE",
-                "JACK-UP",
-                "JACK UP",
-                "PLATFORM",
-                "FPSO",
-                "FSO",
+            sec.upper().startswith(
+                (
+                    "MODU",
+                    "PLATFORM",
+                    "FPSO",
+                    "FSO",
+                    "DRILLING RIG",
+                    "JACK-UP",
+                    "JACK UP",
+                    "SEMI-SUBMERSIBLE",
+                )
             )
+            for sec in platform_sections
         )
     )
 

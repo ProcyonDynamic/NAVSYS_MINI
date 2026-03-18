@@ -19,6 +19,10 @@ def _truncate(text: str, max_len: int) -> str:
         return text
     return text[: max_len - 3].rstrip() + "..."
 
+def build_object_short_text(platform_type: str | None, platform_name: str | None) -> str:
+    if platform_name and platform_type:
+        return f"{platform_type} {platform_name}".strip()
+    return platform_name or platform_type or "OFFSHORE"
 
 def build_plot_text_payload(
     *,

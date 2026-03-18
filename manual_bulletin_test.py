@@ -24,3 +24,26 @@ for i, env in enumerate(split_result.envelopes, 1):
     print("navarea:", env.navarea)
     print("raw_text:")
     print(env.raw_text)
+
+    
+from modules.navwarn_mini.process_warning import process_warning_text
+
+for i, env in enumerate(split_result.envelopes, 1):
+    print(f"\n=== PROCESS ENVELOPE {i} ===")
+    result = process_warning_text(
+        raw_text=env.raw_text,
+        navarea=env.navarea,
+        warning_id=env.warning_id,
+        ship_lat=None,
+        ship_lon=None,
+        output_root="tmp_bulletin_test_21",
+        source_kind="MANUAL",
+        title=env.warning_id,
+    )
+    
+    print("ok:", result.get("ok"))
+    print("geom_type:", result.get("geom_type"))
+    print("vertex_count:", result.get("vertex_count"))
+    print("band:", result.get("band"))
+    print("plot_csv_path:", result.get("plot_csv_path"))
+    print("errors:", result.get("errors"))

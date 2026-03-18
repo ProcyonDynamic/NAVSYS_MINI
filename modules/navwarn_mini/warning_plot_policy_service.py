@@ -20,6 +20,14 @@ def resolve_plot_policy_for_profile(
     output_root: str,
     profile,
 ) -> PlotPolicyMatch:
+    if profile is None:
+        return PlotPolicyMatch(
+            matched=False,
+            policy_id=None,
+            policy=None,
+            reasons=["No profile matched"],
+        )
+
     policy_id = getattr(profile, "plotting_policy_ref", None)
 
     if not policy_id:

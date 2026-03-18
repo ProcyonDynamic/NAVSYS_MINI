@@ -13,7 +13,7 @@ from .models import (
     SourceRef,
 )
 from .distance import classify_warning
-from .build_line_aggregate import build_line_aggregate
+
 from .route_distance import (
     load_jrc_route_csv,
     min_distance_vertices_to_route_waypoints,
@@ -28,11 +28,18 @@ from .warning_state_service import (
 from .warning_output_service import persist_operational_warning_output
 from .warning_geometry_service import resolve_warning_geometry
 from .warning_vault_service import match_warning_profile
-from .warning_label_service import build_profile_label_payload
-from .warning_plot_policy_service import resolve_plot_policy_for_profile
+
 from .warning_pattern_service import match_warning_pattern
 from .warning_geometry_hint_service import build_geometry_hints
 from .warning_auditor_service import audit_warning_result
+
+from .warning_plot_builder_service import build_plot_objects
+from .warning_text_payload_service import build_plot_text_payload
+from .warning_plot_policy_service import (
+    resolve_plot_policy_for_profile,
+    build_effective_plot_decision,
+)
+
 
 
 class WarningState:
@@ -189,8 +196,13 @@ def process_warning_text(
     )
 
     plot_policy_match = resolve_plot_policy_for_profile(
+        output_root=output_root,
         profile=profile_match.profile,
     )
+
+    print("[DEBUG] plot_policy_match.matched:", plot_policy_match.matched)
+    print("[DEBUG] plot_policy_id:", plot_policy_match.policy_id)
+    print("[DEBUG] plot_policy_reasons:", plot_policy_match.reasons)
 
     pattern_match = match_warning_pattern(
         raw_text=raw_text,
@@ -259,6 +271,35 @@ def process_warning_text(
     verts = geom_result.verts
     geom_type = geom_result.geom_type
     offshore_objects = geom_result.offshore_objects
+    
+    if not plot_policy_match.matched:
+
+        fallback_policy_id = None
+        
+        if offshore_objects:
+            fallback_policy_id = "plot_offshore_points"
+        elif geom_type == "AREA":
+            fallback_policy_id = "plot_operational_area"
+        elif geom_type == "LINE":
+            fallback_policy_id = "plot_operational_line"
+        elif geom_type == "POINT":
+            fallback_policy_id = "plot_operational_point"
+
+        if fallback_policy_id:
+            from .warning_plot_policy_registry import get_plot_policy
+
+            fallback_policy = get_plot_policy(
+                output_root=output_root,
+                policy_id=fallback_policy_id,
+            )
+
+            if fallback_policy is not None:
+                plot_policy_match.matched = True
+                plot_policy_match.policy_id = fallback_policy_id
+                plot_policy_match.policy = fallback_policy
+                plot_policy_match.reasons.append(
+                    f"Applied fallback policy: {fallback_policy_id}"
+                )
 
     geometry_hint_result = build_geometry_hints(
         profile_match=profile_match,
@@ -457,88 +498,45 @@ def process_warning_text(
         status=classified.status,
         errors=classified.errors,
     )
-
-
+    
     plot_objects = []
 
-    if offshore_objects:
-        for obj in offshore_objects:
-            if not obj.geometry.vertices:
-                continue
+    if plot_policy_match.matched and plot_policy_match.policy is not None:
+    
+        decision = build_effective_plot_decision(
+            policy=plot_policy_match.policy,
+            geom_type=geom_type,
+            band=effective_band,
+            offshore_object_count=len(offshore_objects),
+        )
 
-            # build a single-point classified clone for this offshore object
-            single_vertices = [LatLon(
-                lat=obj.geometry.vertices[0].lat,
-                lon=obj.geometry.vertices[0].lon,
-            )]
-
-            single_classified = classified.__class__(
-                run_id=classified.run_id,
-                processed_utc=classified.processed_utc,
-                navarea=classified.navarea,
-                source_kind=classified.source_kind,
-                source_ref=classified.source_ref,
-                warning_id=classified.warning_id,
-                title=classified.title,
-                body=classified.body,
-                validity=classified.validity,
-                geometry=Geometry(
-                    geom_type="POINT",
-                    vertices=single_vertices,
-                    closed=False,
-                ),
-                ship_position=classified.ship_position,
-                distance_nm=classified.distance_nm,
-                band=classified.band,
-                status=classified.status,
-                errors=classified.errors,
-            )
-
-            obj_text_override = build_profile_label_payload(
-                profile_id=profile_match.profile.internal_id if profile_match.profile else None,
-                warning_id=warning_id,
-                raw_text=raw_text,
-                offshore_vertex=obj.geometry.vertices[0],
-                offshore_name=obj.platform_name,
-                offshore_match_status=obj.match_status,
-            )
-
-
-            plot_objects.append(
-                build_line_aggregate(
-                    single_classified,
-                    text_objects_override=obj_text_override,
-                    enable_text=plot_policy_match.policy.enable_text if plot_policy_match.policy else None,
-                    title_text_size=plot_policy_match.policy.title_text_size if plot_policy_match.policy else None,
-                    body_text_size=plot_policy_match.policy.body_text_size if plot_policy_match.policy else None,
-                    red_color_no=plot_policy_match.policy.red_color_no if plot_policy_match.policy else None,
-                    amber_color_no=plot_policy_match.policy.amber_color_no if plot_policy_match.policy else None,
-                    main_width=plot_policy_match.policy.main_width if plot_policy_match.policy else None,
-                    main_line_type=plot_policy_match.policy.main_line_type if plot_policy_match.policy else None,
-                )
-            )
-
-    else:
-        general_text_override = build_profile_label_payload(
-            profile_id=profile_match.profile.internal_id if profile_match.profile else None,
+        text_payload = build_plot_text_payload(
             warning_id=warning_id,
             raw_text=raw_text,
+            interp_warning_type=interp.warning_type,
         )
 
+        print("[DEBUG] plot_policy_match.matched:", plot_policy_match.matched)
+        print("[DEBUG] plot_policy_id:", plot_policy_match.policy_id)
+        print("[DEBUG] plot_policy_reasons:", plot_policy_match.reasons)
 
-        plot_objects.append(
-            build_line_aggregate(
-                classified,
-                text_objects_override=general_text_override,
-                enable_text=plot_policy_match.policy.enable_text if plot_policy_match.policy else None,
-                title_text_size=plot_policy_match.policy.title_text_size if plot_policy_match.policy else None,
-                body_text_size=plot_policy_match.policy.body_text_size if plot_policy_match.policy else None,
-                red_color_no=plot_policy_match.policy.red_color_no if plot_policy_match.policy else None,
-                amber_color_no=plot_policy_match.policy.amber_color_no if plot_policy_match.policy else None,
-                main_width=plot_policy_match.policy.main_width if plot_policy_match.policy else None,
-                main_line_type=plot_policy_match.policy.main_line_type if plot_policy_match.policy else None,
-            )
+        plot_build = build_plot_objects(
+            warning_id=warning_id,
+            navarea=navarea,
+            verts=verts,
+            geom_type=geom_type,
+            offshore_objects=offshore_objects,
+            decision=decision,
+            text_payload=text_payload,
         )
+
+        plot_objects = plot_build.objects
+        
+        print("[DEBUG] plot_policy_match.matched:", plot_policy_match.matched)
+        print("[DEBUG] plot_policy_id:", plot_policy_match.policy_id)
+        print("[DEBUG] plot object count:", len(plot_objects))
+        for obj in plot_objects:
+            print("[DEBUG OBJ]", obj.object_kind, obj.geom_type, obj.text, obj.vertices)
 
 
     output_result = persist_operational_warning_output(
