@@ -1,0 +1,23 @@
+[
+  {
+    "registry_id": "mrcc_norfolk",
+    "canonical_name": "MRCC NORFOLK",
+    "entity_type": "MRCC",
+    "aliases": ["NORFOLK MRCC"],
+    "tags": ["SAR", "DISTRESS"]
+  },
+  {
+    "registry_id": "mrcc_miami",
+    "canonical_name": "MRCC MIAMI",
+    "entity_type": "MRCC",
+    "aliases": ["MIAMI MRCC"],
+    "tags": ["SAR", "DISTRESS"]
+  },
+  {
+    "registry_id": "mrcc_san_juan",
+    "canonical_name": "MRCC SAN JUAN",
+    "entity_type": "MRCC",
+    "aliases": ["SAN JUAN MRCC"],
+    "tags": ["SAR", "DISTRESS"]
+  }
+]

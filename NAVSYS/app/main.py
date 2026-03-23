@@ -14,8 +14,28 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2] # D:\NAVSYS_USB
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from modules.navwarn_mini.bulletin_splitter import split_navarea_bulletin
+from modules.navwarn_mini.warning_splitter_service import split_bulletin_to_envelopes
 from modules.navwarn_mini.txt_ingester_helper import split_txt_blocks
+
+from modules.portalis_mini.portcall_assistant.excel_arrival_loader import load_arrival_database
+from modules.portalis_mini.portcall_assistant.ship_pdf_loader import load_ship_particulars
+from modules.portalis_mini.portcall_assistant.certificate_pdf_loader import load_certificate as load_certificate_pdf
+from modules.portalis_mini.portcall_assistant.apply_context import (
+    apply_ship_to_state,
+    import_crew_rows,
+    import_certificates,
+)
+
+from modules.navwarn_mini.route_navarea_service import (
+    detect_navareas_from_route_csv,
+    build_chart_slots,
+)
+
+from modules.navwarn_mini.planner_cumulative_service import build_planner_cumulative_snapshot
+
+from modules.navwarn_mini.planner_apply_service import apply_planner_mode
+
+from modules.navwarn_mini.planner_slot_summary_service import build_slot_summary
 
 def get_usb_root() -> Path:
     if getattr(sys, "frozen", False):
@@ -116,6 +136,8 @@ from modules.portalis_mini.certificate_registry import (
 
 from modules.portalis_mini.certificate_checks import check_required_certificates
 
+from modules.navwarn_mini.active_warning_table import load_active_warning_table
+
 def _safe_filename(s: str) -> str:
     return (
         (s or "")
@@ -127,10 +149,10 @@ def _safe_filename(s: str) -> str:
     )
     
 
-
-USB_ROOT = Path(r"D:\NAVSYS_USB")
-TEMPLATES_DIR = USB_ROOT / "NAVSYS" / "ui" / "templates"
-STATIC_DIR = USB_ROOT / "NAVSYS" / "ui" / "static"
+BASE_DIR = Path(__file__).resolve().parent.parent
+USB_ROOT = BASE_DIR.parent
+TEMPLATES_DIR = BASE_DIR / "ui" / "templates"
+STATIC_DIR = BASE_DIR / "ui" / "static"
 
 app = Flask(
     __name__,
@@ -149,6 +171,107 @@ def _to_float_or_none(s: str):
         return None
     return float(s)
 
+def _split_navwarn_blocks(raw_text: str) -> tuple[list[dict], list[str]]:
+    raw_text = (raw_text or "").strip()
+    if not raw_text:
+        return [], []
+
+    split_result = split_bulletin_to_envelopes(
+        raw_text=raw_text,
+        source="MANUAL",
+    )
+
+    blocks = []
+    for env in split_result.envelopes:
+        blocks.append({
+            "warning_id": (env.warning_id or "").strip(),
+            "navarea": (env.navarea or "").strip(),
+            "raw_text": (env.raw_text or "").strip(),
+        })
+
+    if not blocks:
+        fallback_blocks = split_txt_blocks(raw_text)
+        if fallback_blocks:
+            blocks = []
+            for block_text in fallback_blocks:
+                first_line = block_text.splitlines()[0].strip() if block_text.splitlines() else ""
+                blocks.append({
+                    "warning_id": first_line,
+                    "navarea": "",
+                    "raw_text": block_text.strip(),
+                })
+
+    return blocks, list(split_result.errors)
+
+def _attach_slot_summary_state(slots: list[dict], usb_root: Path) -> list[dict]:
+    enriched = []
+
+    for slot in slots:
+        route_id = (slot.get("route_id") or "").strip().upper()
+        navarea = (slot.get("navarea") or "").strip().upper()
+
+        summary = build_slot_summary(
+            output_root=str(usb_root),
+            route_id=route_id,
+            navarea=navarea,
+        )
+
+        merged = dict(slot)
+        merged["summary"] = summary
+        enriched.append(merged)
+
+    return enriched
+
+def _attach_slot_cumulative_state(slots: list[dict], usb_root: Path) -> list[dict]:
+    enriched = []
+
+    for slot in slots:
+        navarea = (slot.get("navarea") or "").strip().upper()
+
+        snapshot = build_planner_cumulative_snapshot(
+            output_root=str(usb_root),
+            navarea=navarea,
+        )
+
+        merged = dict(slot)
+        merged["cumulative"] = snapshot
+        enriched.append(merged)
+
+    return enriched
+
+def _decorate_overview_rows(ids: list[str], status: str) -> list[dict]:
+    rows = []
+    normalized_status = (status or "").strip().upper()
+
+    for wid in ids or []:
+        wid = " ".join((wid or "").split())
+        if not wid:
+            continue
+
+        if normalized_status == "ACTIVE":
+            css_class = "status-active"
+            label = "ACTIVE"
+        elif normalized_status == "NEW":
+            css_class = "status-new"
+            label = "NEW"
+        elif normalized_status == "DROPPED":
+            css_class = "status-dropped"
+            label = "DROPPED"
+        elif normalized_status == "CANCELLED":
+            css_class = "status-cancelled"
+            label = "CANCELLED"
+        else:
+            css_class = "status-neutral"
+            label = normalized_status or "INFO"
+
+        rows.append({
+            "warning_id": wid,
+            "status": normalized_status,
+            "css_class": css_class,
+            "label": label,
+        })
+
+    return rows
 
 @app.route("/")
 def home():
@@ -169,12 +292,16 @@ def navwarn():
             "route_csv_path": str(USB_ROOT / "data" / "ROUTE" / "route.csv"),
             "source_kind": "MANUAL",
             "raw_text": "",
+            "chart_mode": "UPDATE_EXISTING",
+            "target_navarea": "",
         },
         "preview_geom": "",
         "preview_vertices": "",
         "result": None,
         "errors": [],
         "results": [],
+        "route_detect": None,
+        "chart_slots": [],
     }
 
     if request.method == "POST":
@@ -191,7 +318,10 @@ def navwarn():
             "route_csv_path": request.form.get("route_csv_path", "").strip(),
             "source_kind": request.form.get("source_kind", "").strip().upper() or "MANUAL",
             "raw_text": request.form.get("raw_text", "").strip(),
+            "chart_mode": request.form.get("chart_mode", "").strip().upper() or "UPDATE_EXISTING",
+            "target_navarea": request.form.get("target_navarea", "").strip().upper(),
         }
+        
         ctx["form"] = form
 
         txt_file = request.files.get("warning_txt")
@@ -201,32 +331,140 @@ def navwarn():
                 form["raw_text"] = uploaded_text.strip()
         
         try:
-            if action == "preview":
-                blocks = split_navarea_bulletin(form["raw_text"])
-                preview_text = blocks[0]["raw_text"] if blocks else form["raw_text"]
+            
+            if action in (
+                "slot_apply_effective",
+                "slot_apply_new",
+                "slot_rebuild_state",
+                "slot_apply_selected",
+                "slot_rebuild_selected",
+            ):
+                detect_result = detect_navareas_from_route_csv(
+                    form["route_csv_path"],
+                ) if form["route_csv_path"] else None
 
-                verts, geom = extract_vertices_and_geom(preview_text)
-                ctx["preview_geom"] = geom
-                ctx["preview_vertices"] = preview_vertices_dm(verts)
+                ctx["route_detect"] = detect_result
+                if detect_result and detect_result.get("ok"):
+                    slots = build_chart_slots(
+                        output_root=str(USB_ROOT),
+                        route_id=detect_result["route_id"],
+                        navareas=detect_result["navareas"],
+                    )
+                    slots = _attach_slot_cumulative_state(slots, USB_ROOT)
+                    ctx["chart_slots"] = _attach_slot_summary_state(slots, USB_ROOT)
+                    
+                selected_navarea = request.form.get("slot_navarea", "").strip().upper()
+                selected_route_id = (
+                    detect_result["route_id"]
+                    if detect_result and detect_result.get("ok")
+                    else ""
+                )
 
+                selected_warning_ids = request.form.getlist("selected_warning_ids")
+
+                if action == "slot_apply_effective":
+                    planner_mode = "APPLY_EFFECTIVE_ACTIVE"
+                elif action == "slot_apply_new":
+                    planner_mode = "APPLY_NEW_ONLY"
+                elif action == "slot_rebuild_state":
+                    planner_mode = "REBUILD_FROM_STATE"
+                elif action == "slot_apply_selected":
+                    planner_mode = "APPLY_SELECTED"
+                else:
+                    planner_mode = "REBUILD_SELECTED"
+                    
+                apply_result = apply_planner_mode(
+                    output_root=str(USB_ROOT),
+                    route_id=selected_route_id,
+                    navarea=selected_navarea,
+                    mode=planner_mode,
+                    selected_warning_ids=selected_warning_ids,
+                )
                 
-            elif action == "process":
-                blocks = split_navarea_bulletin(form["raw_text"])
+                planner_audit_rows = []
+                
+                for wid in apply_result.applied_warning_ids:
+                    
+                    planner_audit_rows.append({
+                        "warning_id": wid,
+                        "source": apply_result.fallback_sources.get(wid, "UNKNOWN"),
+                    })
 
-                # Fallback: if no NAVAREA headers found, treat whole text as one warning
+                ctx["result"] = {
+                    "ok": apply_result.ok,
+                    "warning_id": f"{planner_mode}:{selected_navarea}",
+                    "geom_type": "PLANNER",
+                    "vertex_count": 0,
+                    "ship_distance_nm": None,
+                    "route_distance_nm": None,
+                    "distance_nm": None,
+                    "band": None,
+                    "plot_csv_path": apply_result.chart_csv_path,
+                    "daily_ns01_csv_path": "",
+                    "daily_ns01_txt_path": "",
+                    "route_id": apply_result.route_id,
+                    "chart_mode": planner_mode,
+                    "plotted_warning_ids": apply_result.applied_warning_ids,
+                    "fallback_sources": apply_result.fallback_sources,
+                    "planner_audit_rows": planner_audit_rows,
+                    "errors": list(apply_result.errors) + [
+                        f"MISSING_ARCHIVE: {wid}" for wid in apply_result.missing_warning_ids
+                    ],
+                }
+
+                ctx["results"] = [ctx["result"]]
+
+                ctx["errors"] = list(apply_result.errors) + [
+                    f"missing archived section: {wid}" for wid in apply_result.missing_warning_ids
+                ]
+            
+            if action in ("slot_create", "slot_update"):
+                detect_result = detect_navareas_from_route_csv(
+                    form["route_csv_path"],
+                ) if form["route_csv_path"] else None
+
+                ctx["route_detect"] = detect_result
+                
+                if detect_result and detect_result.get("ok"):
+                    slots = build_chart_slots(
+                        output_root=str(USB_ROOT),
+                        route_id=detect_result["route_id"],
+                        navareas=detect_result["navareas"],
+                    )
+                    slots = _attach_slot_cumulative_state(slots, USB_ROOT)
+                    ctx["chart_slots"] = _attach_slot_summary_state(slots, USB_ROOT)
+                    
+                selected_navarea = request.form.get("slot_navarea", "").strip().upper()
+                if selected_navarea:
+                    form["target_navarea"] = selected_navarea
+
+                form["chart_mode"] = (
+                    "CREATE_NEW" if action == "slot_create" else "UPDATE_EXISTING"
+                )
+
+                blocks, split_errors = _split_navwarn_blocks(form["raw_text"])
+
                 if not blocks:
                     blocks = [{
-                    "warning_id": form["warning_id"],
-                    "raw_text": form["raw_text"],
-                }]
+                        "warning_id": form["warning_id"],
+                        "navarea": form["target_navarea"] or form["navarea"],
+                        "raw_text": form["raw_text"],
+                    }]
 
                 results = []
-                all_errors = []
+                all_errors = list(split_errors)
 
                 for block in blocks:
+                    block_navarea = (
+                        form["target_navarea"]
+                        or block.get("navarea")
+                        or form["navarea"]
+                        or "IV"
+                    ).strip().upper()
+
                     res = process_warning_text(
                         raw_text=block["raw_text"],
-                        navarea=form["navarea"] or "IV",
+                        navarea=block_navarea,
                         ship_lat=_to_float_or_none(form["ship_lat"]),
                         ship_lon=_to_float_or_none(form["ship_lon"]),
                         output_root=str(USB_ROOT),
@@ -234,6 +472,8 @@ def navwarn():
                         title=form["title"],
                         source_kind=form["source_kind"],
                         route_csv_path=form["route_csv_path"] or None,
+                        chart_mode=form["chart_mode"],
+                        forced_route_id=(detect_result["route_id"] if detect_result and detect_result.get("ok") else ""),
                     )
                     results.append(res)
 
@@ -244,13 +484,222 @@ def navwarn():
                 ctx["result"] = results[0] if results else None
                 ctx["errors"] = all_errors
 
+                if ctx["result"]:
+                    if "plot_csv" not in ctx["result"]:
+                        ctx["result"]["plot_csv"] = ctx["result"].get("plot_csv_path", "")
+                    if "ns01_csv" not in ctx["result"]:
+                        ctx["result"]["ns01_csv"] = ctx["result"].get("daily_ns01_csv_path", "")
+                    if "ns01_txt" not in ctx["result"]:
+                        ctx["result"]["ns01_txt"] = ctx["result"].get("daily_ns01_txt_path", "")
+
+                for r in ctx["results"]:
+                    if "plot_csv" not in r:
+                        r["plot_csv"] = r.get("plot_csv_path", "")
+                    if "ns01_csv" not in r:
+                        r["ns01_csv"] = r.get("daily_ns01_csv_path", "")
+                    if "ns01_txt" not in r:
+                        r["ns01_txt"] = r.get("daily_ns01_txt_path", "")
+
                 preview_text = blocks[0]["raw_text"] if blocks else form["raw_text"]
                 verts, geom = extract_vertices_and_geom(preview_text)
                 ctx["preview_geom"] = geom
                 ctx["preview_vertices"] = preview_vertices_dm(verts)
+            
+            if action == "detect_route_navareas":
+                detect_result = detect_navareas_from_route_csv(
+                    form["route_csv_path"],
+                )
+                ctx["route_detect"] = detect_result
 
-                if not res.get("ok", False):
-                    ctx["errors"] = res.get("errors", [])
+                if detect_result.get("ok"):
+                    slots = build_chart_slots(
+                        output_root=str(USB_ROOT),
+                        route_id=detect_result["route_id"],
+                        navareas=detect_result["navareas"],
+                    )
+                    slots = _attach_slot_cumulative_state(slots, USB_ROOT)
+                    ctx["chart_slots"] = _attach_slot_summary_state(slots, USB_ROOT)
+                                        
+                else:
+                    ctx["errors"] = detect_result.get("errors", [])
+            
+            if action == "preview":
+                blocks, split_errors = _split_navwarn_blocks(form["raw_text"])
+                preview_text = blocks[0]["raw_text"] if blocks else form["raw_text"]
+
+                verts, geom = extract_vertices_and_geom(preview_text)
+                ctx["preview_geom"] = geom
+                ctx["preview_vertices"] = preview_vertices_dm(verts)
+                ctx["errors"] = split_errors
+                
+            elif action == "process":
+                blocks, split_errors = _split_navwarn_blocks(form["raw_text"])
+
+                detect_result = detect_navareas_from_route_csv(
+                    form["route_csv_path"],
+                ) if form["route_csv_path"] else None
+
+                ctx["route_detect"] = detect_result
+                
+                if detect_result and detect_result.get("ok"):
+                    slots = build_chart_slots(
+                        output_root=str(USB_ROOT),
+                        route_id=detect_result["route_id"],
+                        navareas=detect_result["navareas"],
+                    )
+                    ctx["chart_slots"] = _attach_slot_cumulative_state(slots, USB_ROOT)
+                    
+
+                if not blocks:
+                    blocks = [{
+                        "warning_id": form["warning_id"],
+                        "navarea": form["navarea"],
+                        "raw_text": form["raw_text"],
+                    }]
+
+                results = []
+                all_errors = list(split_errors)
+
+                for block in blocks:
+                    
+                    block_navarea = (
+                        form["target_navarea"]
+                        or block.get("navarea")
+                        or form["navarea"]
+                        or "IV"
+                    ).strip().upper()
+                    
+                    res = process_warning_text(
+                        raw_text=block["raw_text"],
+                        navarea=block_navarea,
+                        ship_lat=_to_float_or_none(form["ship_lat"]),
+                        ship_lon=_to_float_or_none(form["ship_lon"]),
+                        output_root=str(USB_ROOT),
+                        warning_id=block["warning_id"] or form["warning_id"],
+                        title=form["title"],
+                        source_kind=form["source_kind"],
+                        route_csv_path=form["route_csv_path"] or None,
+                        chart_mode=form["chart_mode"],
+                        forced_route_id=(detect_result["route_id"] if detect_result and detect_result.get("ok") else ""),
+                    )
+                    results.append(res)
+
+                    if not res.get("ok", False):
+                        all_errors.extend(res.get("errors", []))
+
+                ctx["results"] = results
+                ctx["result"] = results[0] if results else None
+
+                if ctx["result"]:
+                    if "plot_csv" not in ctx["result"]:
+                        ctx["result"]["plot_csv"] = ctx["result"].get("plot_csv_path", "")
+                    if "ns01_csv" not in ctx["result"]:
+                        ctx["result"]["ns01_csv"] = ctx["result"].get("daily_ns01_csv_path", "")
+                    if "ns01_txt" not in ctx["result"]:
+                        ctx["result"]["ns01_txt"] = ctx["result"].get("daily_ns01_txt_path", "")
+
+                for r in ctx["results"]:
+                    if "plot_csv" not in r:
+                        r["plot_csv"] = r.get("plot_csv_path", "")
+                    if "ns01_csv" not in r:
+                        r["ns01_csv"] = r.get("daily_ns01_csv_path", "")
+                    if "ns01_txt" not in r:
+                        r["ns01_txt"] = r.get("daily_ns01_txt_path", "")
+
+                ctx["errors"] = all_errors
+
+                cumulative_results = [
+                    r for r in results
+                    if (r.get("state") or "") == "REFERENCE_CUMULATIVE"
+                ]
+
+                if cumulative_results:
+                    latest_cumulative = cumulative_results[-1]
+
+                    cumulative_navarea = ""
+                    listed_ids = latest_cumulative.get("listed_ids", [])
+                    if listed_ids:
+                        first_listed = " ".join((listed_ids[0] or "").split()).upper()
+                        parts = first_listed.split()
+                        if len(parts) >= 2 and parts[0] == "NAVAREA":
+                            cumulative_navarea = parts[1]
+
+                    if not cumulative_navarea:
+                        cumulative_navarea = (form["navarea"] or "").strip().upper()
+
+                    cancelled_ids = []
+                    try:
+                        active_rows = load_active_warning_table(USB_ROOT / "NAVWARN" / "active_warning_table.csv")
+                        cancelled_ids = [
+                            row.warning_id
+                            for row in active_rows
+                            if (row.navarea or "").strip().upper() == cumulative_navarea
+                            and (row.state or "").strip().upper() == "CANCELLED_EXPLICIT"
+                        ]
+                    except Exception as e:
+                        all_errors.append(f"overview_cancelled_load_failed: {e}")
+                    ctx["latest_cumulative_cancelled_ids"] = cancelled_ids
+
+                    ctx["latest_cumulative_warning_id"] = latest_cumulative.get("warning_id", "")
+                    ctx["latest_cumulative_listed_ids"] = latest_cumulative.get("listed_ids", [])
+                    ctx["latest_cumulative_kept_ids"] = latest_cumulative.get("kept_ids", [])
+                    ctx["latest_cumulative_omitted_ids"] = latest_cumulative.get("omitted_ids", [])
+                    ctx["latest_cumulative_newer_preserved_ids"] = latest_cumulative.get("newer_preserved_ids", [])
+                    ctx["latest_cumulative_active_session_ok"] = latest_cumulative.get("active_session_ok", False)
+                    ctx["latest_cumulative_active_session_rows_written"] = latest_cumulative.get("active_session_rows_written", 0)
+                    ctx["latest_cumulative_listed_count"] = len(ctx["latest_cumulative_listed_ids"])
+                    ctx["latest_cumulative_new_count"] = len(ctx["latest_cumulative_newer_preserved_ids"])
+                    ctx["latest_cumulative_dropped_count"] = len(ctx["latest_cumulative_omitted_ids"])
+                    ctx["latest_cumulative_cancelled_count"] = len(ctx["latest_cumulative_cancelled_ids"])
+                    effective_active_ids = []
+                    seen_effective = set()
+
+                    cancelled_set = {
+                        " ".join((wid or "").split())
+                        for wid in ctx["latest_cumulative_cancelled_ids"]
+                    }
+
+                    for wid in ctx["latest_cumulative_listed_ids"] + ctx["latest_cumulative_newer_preserved_ids"]:
+                        norm_wid = " ".join((wid or "").split())
+
+                        if not norm_wid:
+                            continue
+
+                        if norm_wid in cancelled_set:
+                            continue
+
+                        if norm_wid not in seen_effective:
+                            seen_effective.add(norm_wid)
+                            effective_active_ids.append(norm_wid)
+
+                    ctx["latest_cumulative_effective_active_ids"] = effective_active_ids
+                    ctx["latest_cumulative_effective_active_count"] = len(effective_active_ids)
+
+                    ctx["latest_cumulative_effective_active_rows"] = _decorate_overview_rows(
+                        ctx["latest_cumulative_effective_active_ids"],
+                        "ACTIVE",
+                    )
+                    ctx["latest_cumulative_listed_rows"] = _decorate_overview_rows(
+                        ctx["latest_cumulative_listed_ids"],
+                        "ACTIVE",
+                    )
+                    ctx["latest_cumulative_new_rows"] = _decorate_overview_rows(
+                        ctx["latest_cumulative_newer_preserved_ids"],
+                        "NEW",
+                    )
+                    ctx["latest_cumulative_dropped_rows"] = _decorate_overview_rows(
+                        ctx["latest_cumulative_omitted_ids"],
+                        "DROPPED",
+                    )
+                    ctx["latest_cumulative_cancelled_rows"] = _decorate_overview_rows(
+                        ctx["latest_cumulative_cancelled_ids"],
+                        "CANCELLED",
+                    )
+
+                preview_text = blocks[0]["raw_text"] if blocks else form["raw_text"]
+                verts, geom = extract_vertices_and_geom(preview_text)
+                ctx["preview_geom"] = geom
+                ctx["preview_vertices"] = preview_vertices_dm(verts)
 
         except Exception as e:
             ctx["errors"] = [str(e)]
@@ -358,14 +807,18 @@ def portalis():
 
     selected_crew_id = request.args.get("crew_id", "").strip()
     selected_crew = None
+    
     if selected_crew_id:
         try:
             selected_crew = load_crew_record(portalis_root, selected_crew_id)
         except Exception:
             selected_crew = None
 
-    selected_port_name = request.args.get("port_name", "").strip() or state.voyage.arrival_port.strip()
+    arrival_port_value = ""
+    if getattr(state, "voyage", None) and getattr(state.voyage, "arrival_port", None):
+        arrival_port_value = state.voyage.arrival_port.strip()
 
+    selected_port_name = request.args.get("port_name", "").strip() or arrival_port_value
     selected_port = None
     if selected_port_name:
         selected_port = load_port_requirement(portalis_root, selected_port_name)
@@ -434,7 +887,7 @@ def portalis():
                 crew_id = request.form.get("crew_id", "").strip()
                 if not crew_id:
                     raise ValueError("crew_id is required")
-
+                
                 add_document_to_crew(
                     portalis_root,
                     crew_id,
@@ -530,15 +983,67 @@ def portalis():
                     notes=request.form.get("cert_notes"),
                 )
 
+ 
+ 
+            elif action == "import_arrival_db":
+                crew_excel_path = request.form.get("crew_excel_path", "").strip()
+                ship_pdf_path = request.form.get("ship_pdf_path", "").strip()
+                cert_paths_raw = request.form.get("cert_paths", "").strip()
+
+                cert_paths = [x.strip() for x in cert_paths_raw.split(",") if x.strip()]
+
+                if not crew_excel_path:
+                    ctx["errors"] = ["crew_excel_path is required"]
+                    return render_template("portalis.html", **ctx)
+
+                if not ship_pdf_path:
+                    ctx["errors"] = ["ship_pdf_path is required"]
+                    return render_template("portalis.html", **ctx)
+
+                ctx["errors"] = []
+
+                try:
+                    crew_rows = load_arrival_database(crew_excel_path)
+                except Exception as e:
+                    ctx["errors"] = [f"crew load failed: {e}"]
+                    return render_template("portalis.html", **ctx)
+
+                try:
+                    ship_data = load_ship_particulars(ship_pdf_path)
+                except Exception as e:
+                    ctx["errors"] = [f"ship pdf load failed: {e}"]
+                    return render_template("portalis.html", **ctx)
+
+                try:
+                    certs = [load_certificate_pdf(p) for p in cert_paths]
+                except Exception as e:
+                    ctx["errors"] = [f"certificate load failed: {e}"]
+                    return render_template("portalis.html", **ctx)
+
+                try:
+                    state = apply_ship_to_state(state, ship_data)
+                    save_portalis_state(state, str(state_path))
+                except Exception as e:
+                    ctx["errors"] = [f"apply ship failed: {e}"]
+                    return render_template("portalis.html", **ctx)
+
+                try:
+                    import_crew_rows(portalis_root, crew_rows)
+                except Exception as e:
+                    ctx["errors"] = [f"crew import failed: {e}"]
+                    return render_template("portalis.html", **ctx)
+
+                try:
+                    import_certificates(portalis_root, certs)
+                except Exception as e:
+                    ctx["errors"] = [f"certificate import failed: {e}"]
+                    return render_template("portalis.html", **ctx)
+
+                ctx["state"] = load_portalis_state(str(state_path))
+                ctx["crew"] = list_crew(portalis_root)
                 ctx["certificates"] = list_certificates(portalis_root)
-
-                if ctx["selected_port"]:
-                    ctx["cert_check"] = check_required_certificates(
-                        ctx["selected_port"]["certificate_requirements"],
-                        ctx["certificates"],
-                    )
-
                 ctx["saved"] = True
+
 
         except Exception as e:
             ctx["errors"] = [str(e)]

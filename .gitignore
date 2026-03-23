@@ -31,3 +31,5 @@ navsys_startup_error.txt
 tracked_files.txt
 Thumbs.db
 .DS_Store
+
+/tools/

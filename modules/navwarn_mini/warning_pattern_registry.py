@@ -12,6 +12,10 @@ class WarningPattern:
     trigger_phrases: list[str] = field(default_factory=list)
     geometry_hints: list[str] = field(default_factory=list)
     expected_geometry_types: list[str] = field(default_factory=list)
+    expected_block_types: list[str] = field(default_factory=list)
+    list_style: str = ""
+    self_cancel_allowed: bool = False
+    preferred_geometry_source: str = "AUTO"
 
     label_hints: list[str] = field(default_factory=list)
     notes: str = ""
@@ -27,6 +31,10 @@ WARNING_PATTERNS: list[WarningPattern] = [
         expected_geometry_types=["POINT"],
         label_hints=["PLATFORM_NAME", "WARNING_ID"],
         notes="Basic offshore unit/platform list pattern.",
+        expected_block_types=["GEOMETRY"],
+        list_style="ALPHA_LABELLED",
+        self_cancel_allowed=False,
+        preferred_geometry_source="OFFSHORE_SECTION_SPLIT",
     ),
     WarningPattern(
         pattern_id="area_bounded_by",
@@ -37,6 +45,10 @@ WARNING_PATTERNS: list[WarningPattern] = [
         expected_geometry_types=["AREA"],
         label_hints=["WARNING_ID", "KEY_PHRASE"],
         notes="Polygon-style area warning pattern.",
+        expected_block_types=["GEOMETRY"],
+        list_style="SUBAREA_ALPHA_OPTIONAL",
+        self_cancel_allowed=True,
+        preferred_geometry_source="STRUCTURE_FIRST",
     ),
     WarningPattern(
         pattern_id="line_along_between",
@@ -47,6 +59,10 @@ WARNING_PATTERNS: list[WarningPattern] = [
         expected_geometry_types=["LINE"],
         label_hints=["WARNING_ID", "KEY_PHRASE"],
         notes="Line-style warning pattern.",
+        expected_block_types=["TIME", "GEOMETRY"],
+        list_style="SUBAREA_ALPHA_OPTIONAL",
+        self_cancel_allowed=True,
+        preferred_geometry_source="STRUCTURE_FIRST",
     ),
     WarningPattern(
         pattern_id="exercise_firing_ops",
@@ -67,6 +83,10 @@ WARNING_PATTERNS: list[WarningPattern] = [
         expected_geometry_types=["AREA", "LINE", "POINT"],
         label_hints=["WARNING_ID", "KEY_PHRASE"],
         notes="Survey / subsea / pipelaying style warning.",
+        expected_block_types=["GEOMETRY"],
+        list_style="LINEAR_OR_AREA",
+        self_cancel_allowed=True,
+        preferred_geometry_source="STRUCTURE_FIRST",
     ),
     WarningPattern(
         pattern_id="cancellation_basic",
@@ -77,6 +97,10 @@ WARNING_PATTERNS: list[WarningPattern] = [
         expected_geometry_types=[],
         label_hints=["STATE_CHANGE"],
         notes="Basic cancellation pattern.",
+        expected_block_types=["CANCELLATION"],
+        list_style="ID_LIST_OPTIONAL",
+        self_cancel_allowed=False,
+        preferred_geometry_source="NONE",
     ),
 ]
 

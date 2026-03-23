@@ -1,3 +1,0 @@
-﻿ObjectKind,GeomType,Vertices,Text,PointSymbolKind,ColorNo,LineType,LineWidth,HatchEnabled,HatchSpacingNm,WarningID,Navarea,Metadata
-AREA,AREA,"25.166667,-90.333333;25.333333,-90.500000;25.500000,-90.166667",,,3,1,2,Y,1.0,NAVAREA IV 205/26,IV,"{'render_family': 'OPERATIONAL', 'label_mode': 'GENERAL', 'collapse_to_boundary_only': False}"
-TEXT,POINT,"25.333333,-90.333333",NAVAREA IV 205/26 OPERATIONAL AREA,,3,,,N,,NAVAREA IV 205/26,IV,{'text_role': 'area_label'}

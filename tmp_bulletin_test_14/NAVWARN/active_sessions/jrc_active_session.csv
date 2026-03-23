@@ -1,5 +1,0 @@
-ObjectKind,GeomType,Vertices,Text,PointSymbolKind,ColorNo,LineType,LineWidth,HatchEnabled,HatchSpacingNm,WarningID,Navarea,Metadata
-POINT,POINT,"12.323056,-92.051667",AGOSTO 12,offshore_default,3,1,2,N,,NAVAREA IV 204/26,IV,"{'render_family': 'OFFSHORE', 'platform_id': 'OFFOBJ-000001', 'platform_name': 'AGOSTO 12', 'platform_type': 'MODU', 'match_status': 'NEW_OBJECT', 'identity_confidence': 0.0, 'tce_thread_id': 'TCE_OFFOBJ-000001', 'label_mode': 'OFFSHORE_PER_OBJECT'}"
-POINT,POINT,"11.640000,-70.363333",ALULA,offshore_default,3,1,2,N,,NAVAREA IV 204/26,IV,"{'render_family': 'OFFSHORE', 'platform_id': 'OFFOBJ-000002', 'platform_name': 'ALULA', 'platform_type': 'MODU', 'match_status': 'NEW_OBJECT', 'identity_confidence': 0.0, 'tce_thread_id': 'TCE_OFFOBJ-000002', 'label_mode': 'OFFSHORE_PER_OBJECT'}"
-AREA,AREA,"25.166667,-90.333333;25.333333,-90.500000;25.500000,-90.166667",,,3,1,2,Y,1.0,NAVAREA IV 205/26,IV,"{'render_family': 'OPERATIONAL', 'label_mode': 'GENERAL', 'collapse_to_boundary_only': False}"
-TEXT,POINT,"25.333333,-90.333333",NAVAREA IV 205/26 OPERATIONAL AREA,,3,,,N,,NAVAREA IV 205/26,IV,{'text_role': 'area_label'}

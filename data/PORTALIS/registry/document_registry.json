@@ -270,6 +270,131 @@
       },
       "confidence": 0.9,
       "created_at": "2026-03-17T00:38:35.853406"
+    },
+    {
+      "document_id": "DOC_000016",
+      "doc_type": "passport",
+      "owner_entity": "crew",
+      "owner_id": "crew_test_001",
+      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "parsed_fields": {
+        "passport.number": "AP3255765",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "KOYIMOB",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "22 Jan 00",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 Jul 23"
+      },
+      "confidence": 0.9,
+      "review_required": true,
+      "review_reasons": [
+        "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+        "Could not normalize date for passport.expiry_date: 22 Jan 00",
+        "Could not normalize date for passport.issue_date: 48 Jul 23"
+      ],
+      "warnings": [
+        "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+        "Could not normalize date for passport.expiry_date: 22 Jan 00",
+        "Could not normalize date for passport.issue_date: 48 Jul 23"
+      ],
+      "created_at": "2026-03-19T23:05:08.277917"
+    },
+    {
+      "document_id": "DOC_000017",
+      "doc_type": "passport",
+      "owner_entity": "crew",
+      "owner_id": "crew_test_001",
+      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "parsed_fields": {
+        "passport.number": "AP3255765",
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "KOYIMOB",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "22 Jan 00",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 Jul 23"
+      },
+      "confidence": 0.9,
+      "review_required": true,
+      "review_reasons": [
+        "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+        "Could not normalize date for passport.expiry_date: 22 Jan 00",
+        "Could not normalize date for passport.issue_date: 48 Jul 23"
+      ],
+      "warnings": [
+        "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+        "Could not normalize date for passport.expiry_date: 22 Jan 00",
+        "Could not normalize date for passport.issue_date: 48 Jul 23"
+      ],
+      "created_at": "2026-03-19T23:08:25.138340"
+    },
+    {
+      "document_id": "DOC_000018",
+      "doc_type": "passport",
+      "owner_entity": "crew",
+      "owner_id": "crew_test_001",
+      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "parsed_fields": {
+        "crew.surname": "KOYIMOB",
+        "crew.given_names": "KOYIMOB",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "22 Jan 00",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 Jul 23"
+      },
+      "confidence": 0.9,
+      "review_required": true,
+      "review_reasons": [
+        "Missing required field: passport_number",
+        "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+        "Could not normalize date for passport.expiry_date: 22 Jan 00",
+        "Could not normalize date for passport.issue_date: 48 Jul 23"
+      ],
+      "warnings": [
+        "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+        "Could not normalize date for passport.expiry_date: 22 Jan 00",
+        "Could not normalize date for passport.issue_date: 48 Jul 23",
+        "Missing required field: passport_number"
+      ],
+      "created_at": "2026-03-19T23:13:00.931696"
+    },
+    {
+      "document_id": "DOC_000019",
+      "doc_type": "passport",
+      "owner_entity": "crew",
+      "owner_id": "crew_test_001",
+      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "Y SONE I",
+        "crew.given_names": "Y SONE I",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "22 Jan 00",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 Jul 23"
+      },
+      "confidence": 0.9,
+      "review_required": true,
+      "review_reasons": [
+        "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+        "Could not normalize date for passport.expiry_date: 22 Jan 00",
+        "Could not normalize date for passport.issue_date: 48 Jul 23"
+      ],
+      "warnings": [
+        "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+        "Could not normalize date for passport.expiry_date: 22 Jan 00",
+        "Could not normalize date for passport.issue_date: 48 Jul 23"
+      ],
+      "created_at": "2026-03-19T23:26:42.703295"
     }
   ]
 }

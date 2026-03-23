@@ -3,19 +3,30 @@ from __future__ import annotations
 from .models import PortalisState, VesselRecord, VoyageRecord, DocumentStatusRecord
 
 
+def _to_float_or_none(v):
+    s = (v or "").strip()
+    if not s:
+        return None
+    try:
+        return float(s.replace(",", ""))
+    except ValueError:
+        return None
+
+
 def update_vessel_from_form(state: PortalisState, form: dict) -> PortalisState:
     state.vessel = VesselRecord(
-        ship_name=form.get("ship_name", "").strip(),
-        imo=form.get("imo", "").strip(),
-        call_sign=form.get("call_sign", "").strip(),
-        flag=form.get("flag", "").strip(),
-        gross_tonnage=form.get("gross_tonnage", "").strip(),
-        deadweight=form.get("deadweight", "").strip(),
-        loa=form.get("loa", "").strip(),
-        beam=form.get("beam", "").strip(),
-        summer_draft=form.get("summer_draft", "").strip(),
-        manager=form.get("manager", "").strip(),
-        operator=form.get("operator", "").strip(),
+        vessel_id=state.vessel.vessel_id,
+        name=form.get("name", "").strip(),
+        imo_number=form.get("imo_number", "").strip() or None,
+        call_sign=form.get("call_sign", "").strip() or None,
+        flag_state=form.get("flag_state", "").strip() or None,
+        vessel_type=form.get("vessel_type", "").strip() or None,
+        gross_tonnage=_to_float_or_none(form.get("gross_tonnage", "")),
+        net_tonnage=_to_float_or_none(form.get("net_tonnage", "")),
+        deadweight=_to_float_or_none(form.get("deadweight", "")),
+        owner_name=form.get("owner_name", "").strip() or None,
+        operator_name=form.get("operator_name", "").strip() or None,
+        audit=state.vessel.audit,
     )
     return state
 

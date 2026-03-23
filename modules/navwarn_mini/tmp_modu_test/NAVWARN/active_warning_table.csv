@@ -1,0 +1,2 @@
+warning_id,navarea,state,source_warning_id,cancel_targets,last_updated_utc,plotted,plot_ref,issued_utc,state_reason,last_seen_in_cumulative_id,last_seen_in_cumulative_utc,omitted_by_cumulative_id,omitted_by_cumulative_utc
+NAVAREA IV 201/26,IV,ACTIVE,NAVAREA IV 201/26,,2026-03-22T20:51:15Z,YES,tmp_modu_test\NAVWARN\plots\jrc_userchart_20260322.csv,2026-03-22T20:51:15Z,NEW_OPERATIONAL_WARNING,,,,

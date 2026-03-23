@@ -16,19 +16,41 @@
       <h1>Portalis Mini</h1>
       <p>USB Root: <code>{{ usb_root }}</code></p>
 
+      <h2>Port Call Intake</h2>
+
+<div class="statusbox">
+  <form method="post">
+    <label>Arrival Database Excel</label>
+    <input name="crew_excel_path" type="text" placeholder="D:\NAVSYS_USB\03.03.2026--ARVL--Database.xlsx">
+
+    <label>Ship Particulars PDF</label>
+    <input name="ship_pdf_path" type="text" placeholder="D:\NAVSYS_USB\Ship's Particulars - Energy Endurance.pdf">
+
+    <label>Certificate PDFs (comma separated)</label>
+    <input name="cert_paths" type="text" placeholder="D:\NAVSYS_USB\cert1.pdf, D:\NAVSYS_USB\cert2.pdf">
+
+    <div class="row">
+      <button type="submit" name="action" value="import_arrival_db">Import & Auto-Fill</button>
+    </div>
+  </form>
+</div>
+
       <form method="post">
         <h2>Vessel</h2>
-        <input name="ship_name" type="text" value="{{ state.vessel.ship_name }}" placeholder="Ship Name">
-        <input name="imo" type="text" value="{{ state.vessel.imo }}" placeholder="IMO">
+        <input name="name" type="text" value="{{ state.vessel.name }}" placeholder="Ship Name">
+        <input name="imo_number" type="text" value="{{ state.vessel.imo_number }}" placeholder="IMO">
         <input name="call_sign" type="text" value="{{ state.vessel.call_sign }}" placeholder="Call Sign">
-        <input name="flag" type="text" value="{{ state.vessel.flag }}" placeholder="Flag">
-
-        <h2>Voyage</h2>
+        <input name="flag_state" type="text" value="{{ state.vessel.flag_state }}" placeholder="Flag">        <h2>Voyage</h2>
         <input name="voyage_no" type="text" value="{{ state.voyage.voyage_no }}" placeholder="Voyage No">
         <input name="departure_port" type="text" value="{{ state.voyage.departure_port }}" placeholder="Departure Port">
         <input name="arrival_port" type="text" value="{{ state.voyage.arrival_port }}" placeholder="Arrival Port">
         <input name="eta" type="text" value="{{ state.voyage.eta }}" placeholder="ETA">
-
+        <input name="vessel_type" type="text" value="{{ state.vessel.vessel_type or '' }}" placeholder="Vessel Type">
+        <input name="gross_tonnage" type="text" value="{{ state.vessel.gross_tonnage or '' }}" placeholder="Gross Tonnage">
+        <input name="net_tonnage" type="text" value="{{ state.vessel.net_tonnage or '' }}" placeholder="Net Tonnage">
+        <input name="deadweight" type="text" value="{{ state.vessel.deadweight or '' }}" placeholder="Deadweight">
+        <input name="owner_name" type="text" value="{{ state.vessel.owner_name or '' }}" placeholder="Owner">
+        <input name="operator_name" type="text" value="{{ state.vessel.operator_name or '' }}" placeholder="Operator">
         <h2>Documents</h2>
         {% for doc in state.documents %}
         <div class="statusbox">

@@ -89,6 +89,16 @@ def build_effective_plot_decision(
         object_mode = policy.object_mode
         reasons.append(f"Policy forced object_mode={object_mode}")
 
+        # Safety override:
+        # if policy forces AREA/LINE but actual geometry is only a POINT,
+        # keep the render honest and downgrade to POINT.
+        if geom_type == "POINT" and object_mode in ("AREA", "LINE"):
+            object_mode = "POINT"
+            reasons.append("Forced mode downgraded to POINT because actual geom_type=POINT")
+
+        elif geom_type == "LINE" and object_mode == "AREA":
+            object_mode = "LINE"
+            reasons.append("Forced mode downgraded to LINE because actual geom_type=LINE")
     # 3. color resolution
     effective_color_no = None
 

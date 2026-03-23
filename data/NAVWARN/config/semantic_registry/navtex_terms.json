@@ -1,0 +1,9 @@
+[
+  {
+    "registry_id": "navtex",
+    "canonical_name": "NAVTEX",
+    "entity_type": "NAVTEX_SYSTEM",
+    "aliases": ["NAVTEX"],
+    "tags": ["GMDSS"]
+  }
+]

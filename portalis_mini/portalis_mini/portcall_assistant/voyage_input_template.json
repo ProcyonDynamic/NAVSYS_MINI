@@ -1,0 +1,16 @@
+{
+  "current_port": "",
+  "last_port": "",
+  "next_port": "",
+  "eta": "",
+  "etd": "",
+  "berth": "",
+  "terminal": "",
+  "agent": "",
+  "voyage_number": "",
+  "reason_of_call": "",
+  "cargo_summary": "",
+  "security_level": "1",
+  "persons_on_board": null,
+  "last_10_ports": []
+}

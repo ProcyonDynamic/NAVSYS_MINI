@@ -1,0 +1,23 @@
+[
+  {
+    "registry_id": "navarea_ii",
+    "canonical_name": "NAVAREA II",
+    "entity_type": "NAVAREA",
+    "aliases": ["NAVAREA 2"],
+    "tags": ["WARNING_AREA"]
+  },
+  {
+    "registry_id": "navarea_iv",
+    "canonical_name": "NAVAREA IV",
+    "entity_type": "NAVAREA",
+    "aliases": ["NAVAREA 4"],
+    "tags": ["WARNING_AREA"]
+  },
+  {
+    "registry_id": "navarea_xii",
+    "canonical_name": "NAVAREA XII",
+    "entity_type": "NAVAREA",
+    "aliases": ["NAVAREA 12"],
+    "tags": ["WARNING_AREA"]
+  }
+]

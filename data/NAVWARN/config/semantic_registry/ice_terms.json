@@ -1,0 +1,16 @@
+[
+  {
+    "registry_id": "iceberg",
+    "canonical_name": "ICEBERG",
+    "entity_type": "ICE_TERM",
+    "aliases": ["ICEBERG", "ICEBERGS"],
+    "tags": ["ICE"]
+  },
+  {
+    "registry_id": "SEA ICE",
+    "canonical_name": "SEA ICE",
+    "entity_type": "ICE_TERM",
+    "aliases": ["SEA ICE", "PACK ICE"],
+    "tags": ["ICE"]
+  }
+]

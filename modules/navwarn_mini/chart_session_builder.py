@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 from pathlib import Path
-
+from .active_warning_table import load_active_warning_table
 
 def _read_csv_rows(csv_path: Path) -> list[list[str]]:
     if not csv_path.exists():
@@ -27,34 +27,31 @@ def rebuild_active_session_csv(
             "errors": [f"active table not found: {active_path}"],
         }
 
-    rows = _read_csv_rows(active_path)
+    records = load_active_warning_table(active_path)
 
-    if not rows:
+    if not records:
         return {
             "ok": False,
             "mode": "rebuild",
             "errors": ["active warning table empty"],
         }
 
-    header = rows[0]
-    body = rows[1:]
-
     out_rows = []
     errors = []
 
-    for row in body:
-
-        try:
-            state = row[2]     # assuming state column index
-            plotted = row[3]   # assuming plotted column index
-            plot_ref = row[4]  # assuming csv path column index
-        except Exception:
-            continue
+    for record in records:
+        state = (record.state or "").strip().upper()
+        plotted = (record.plotted or "").strip().upper()
+        plot_ref = (record.plot_ref or "").strip()
 
         if state != "ACTIVE":
             continue
 
-        if plotted != "True":
+        if plotted != "YES":
+            continue
+
+        if not plot_ref:
+            errors.append(f"missing plot_ref for active warning: {record.warning_id}")
             continue
 
         plot_path = Path(plot_ref)
@@ -69,9 +66,9 @@ def rebuild_active_session_csv(
             continue
 
         if not out_rows:
-            out_rows.append(plot_rows[0])  # header
-
-        out_rows.extend(plot_rows[1:])
+            out_rows.extend(plot_rows)
+        else:
+            out_rows.extend(plot_rows)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -85,7 +82,7 @@ def rebuild_active_session_csv(
         "rows_written": len(out_rows),
         "errors": errors,
     }
-
+    
 def append_warning_csv_to_active_session(
     *,
     warning_plot_csv_path: str,

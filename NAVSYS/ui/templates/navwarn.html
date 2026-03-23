@@ -4,6 +4,132 @@
   <meta charset="utf-8">
   <title>NavWarn Mini</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+
+    .validation-good {
+      background: rgba(34, 197, 94, 0.16);
+      color: #bbf7d0;
+      border: 1px solid rgba(34, 197, 94, 0.38);
+    }
+
+    .validation-warn {
+      background: rgba(250, 204, 21, 0.18);
+      color: #fde68a;
+      border: 1px solid rgba(250, 204, 21, 0.38);
+    }
+
+    .validation-bad {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.38);
+    }
+
+    .source-missing {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.38);
+    }
+
+
+    .source-route-archive {
+      background: rgba(34, 197, 94, 0.16);
+      color: #bbf7d0;
+      border: 1px solid rgba(34, 197, 94, 0.38);
+    }
+
+    .source-global-archive {
+      background: rgba(59, 130, 246, 0.16);
+      color: #bfdbfe;
+      border: 1px solid rgba(59, 130, 246, 0.38);
+    }
+
+    .source-plot-ref {
+      background: rgba(168, 85, 247, 0.16);
+      color: #e9d5ff;
+      border: 1px solid rgba(168, 85, 247, 0.38);
+    }
+
+    .source-unknown {
+      background: rgba(148, 163, 184, 0.16);
+      color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.38);
+    }
+
+    .overview-section {
+      margin-top: 12px;
+    }
+
+    .overview-filter-list {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+    }
+
+    .overview-filter-list li {
+      margin: 6px 0;
+      padding: 0;
+    }
+
+    .overview-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .overview-badge {
+      display: inline-block;
+      min-width: 86px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .status-active {
+      background: rgba(34, 197, 94, 0.16);
+      color: #bbf7d0;
+      border: 1px solid rgba(34, 197, 94, 0.38);
+    }
+
+    .status-new {
+      background: rgba(250, 204, 21, 0.18);
+      color: #fde68a;
+      border: 1px solid rgba(250, 204, 21, 0.38);
+    }
+
+    .status-dropped {
+      background: rgba(148, 163, 184, 0.16);
+      color: #e2e8f0;
+      border: 1px solid rgba(148, 163, 184, 0.38);
+    }
+
+    .status-cancelled {
+      background: rgba(239, 68, 68, 0.16);
+      color: #fecaca;
+      border: 1px solid rgba(239, 68, 68, 0.38);
+    }
+
+    .status-neutral {
+      background: rgba(99, 102, 241, 0.14);
+      color: #e0e7ff;
+      border: 1px solid rgba(99, 102, 241, 0.30);
+    }
+
+    .delta-pill {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.08);
+    }
+  </style>
+
 </head>
 <body>
   <div class="topbar">
@@ -35,6 +161,16 @@
         <label>Route CSV Path</label>
         <input name="route_csv_path" type="text" value="{{ form.route_csv_path }}" placeholder="D:\NAVSYS_USB\data\ROUTE\route.csv">
 
+        <label>Chart Mode</label>
+        <select name="chart_mode">
+          <option value="CREATE_NEW" {% if form.chart_mode == "CREATE_NEW" %}selected{% endif %}>Create New Userchart</option>
+          <option value="UPDATE_EXISTING" {% if form.chart_mode == "UPDATE_EXISTING" %}selected{% endif %}>Update Existing Userchart</option>
+        </select>
+
+        <label>Target NAVAREA (optional override)</label>
+        <input name="target_navarea" type="text" value="{{ form.target_navarea }}" placeholder="IV / V / VI / XII">
+        <small>Leave blank for bulletin/default behavior, or use planner buttons below route detection.</small>
+
         <label>Source Kind</label>
         <input name="source_kind" type="text" value="{{ form.source_kind }}" placeholder="MANUAL / WEB / NAVAREA / NAVTEX">
 
@@ -45,6 +181,7 @@
         <input name="warning_txt" type="file" accept=".txt">
 
         <div class="row">
+          <button type="submit" name="action" value="detect_route_navareas">Detect Route NAVAREAs</button>
           <button type="submit" name="action" value="preview">Extract Preview</button>
           <button type="submit" name="action" value="process">Process Warning</button>
         </div>
@@ -58,6 +195,226 @@
           <li>{{ e }}</li>
           {% endfor %}
         </ul>
+      </div>
+      {% endif %}
+
+      {% if route_detect %}
+      <div class="statusbox">
+        <strong>Route NAVAREA Detection</strong><br><br>
+        OK: {{ route_detect.ok }}<br>
+        Route ID: {{ route_detect.route_id }}<br>
+        Waypoints: {{ route_detect.waypoint_count if route_detect.waypoint_count is defined else 0 }}<br>
+        NAVAREAs: {{ route_detect.navareas|join(", ") if route_detect.navareas else "NONE" }}
+      </div>
+      {% endif %}
+
+            {% if chart_slots %}
+      <div class="statusbox">
+        <strong>Voyage Userchart Planner</strong><br><br>
+
+        {% for slot in chart_slots %}
+        <div style="margin-bottom:14px;">
+          <strong>{{ slot.navarea }}</strong><br>
+          File: <code>{{ slot.chart_name }}</code><br>
+          Path: <code>{{ slot.chart_path }}</code><br>
+          Exists: {{ "YES" if slot.exists else "NO" }}<br><br>
+
+          <div class="row" style="flex-wrap:wrap;">
+            <button type="submit" form="slot_form_{{ loop.index }}" name="action" value="slot_create">Create {{ slot.navarea }}</button>
+            <button type="submit" form="slot_form_{{ loop.index }}" name="action" value="slot_update">Update {{ slot.navarea }}</button>
+            <button type="submit" form="slot_form_{{ loop.index }}" name="action" value="slot_apply_effective">Apply Effective Active</button>
+            <button type="submit" form="slot_form_{{ loop.index }}" name="action" value="slot_apply_new">Apply New Only</button>
+            <button type="submit" form="slot_form_{{ loop.index }}" name="action" value="slot_rebuild_state">Rebuild From State</button>
+          </div>
+
+          <form id="slot_form_{{ loop.index }}" method="post">
+            <input type="hidden" name="slot_navarea" value="{{ slot.navarea }}">
+
+            <input type="hidden" name="navarea" value="{{ form.navarea }}">
+            <input type="hidden" name="warning_id" value="{{ form.warning_id }}">
+            <input type="hidden" name="title" value="{{ form.title }}">
+            <input type="hidden" name="ship_lat" value="{{ form.ship_lat }}">
+            <input type="hidden" name="ship_lon" value="{{ form.ship_lon }}">
+            <input type="hidden" name="route_csv_path" value="{{ form.route_csv_path }}">
+            <input type="hidden" name="source_kind" value="{{ form.source_kind }}">
+            <input type="hidden" name="raw_text" value="{{ form.raw_text }}">
+            <input type="hidden" name="chart_mode" value="{{ form.chart_mode }}">
+            <input type="hidden" name="target_navarea" value="{{ slot.navarea }}">
+
+            {% if slot.summary and slot.summary.availability_rows %}
+            <div class="overview-section" style="margin-top:12px;">
+              <strong>Select Warnings</strong><br><br>
+              <ul class="overview-filter-list">
+                {% for row in slot.summary.availability_rows %}
+                <li>
+                  <div class="overview-row">
+                    <input
+                      type="checkbox"
+                      name="selected_warning_ids"
+                      value="{{ row.warning_id }}"
+                      data-source="{{ row.source }}"
+                      checked
+                    >
+                    {% if row.source == "ROUTE_ARCHIVE" %}
+                      {% set src_class = "source-route-archive" %}
+                    {% elif row.source == "GLOBAL_ARCHIVE" %}
+                      {% set src_class = "source-global-archive" %}
+                    {% elif row.source == "PLOT_REF" %}
+                      {% set src_class = "source-plot-ref" %}
+                    {% else %}
+                      {% set src_class = "source-missing" %}
+                    {% endif %}
+                    <span class="overview-badge {{ src_class }}">{{ row.source }}</span>
+                    <span>{{ row.warning_id }}</span>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+
+              <div class="overview-section" style="margin-top:10px;">
+                <strong>Pre-Apply Validation</strong><br><br>
+
+                <span class="delta-pill">Selected <span id="slot_selected_count_{{ loop.index }}">0</span></span>
+                <span class="delta-pill">Available <span id="slot_available_count_{{ loop.index }}">0</span></span>
+                <span class="delta-pill">Missing <span id="slot_missing_count_{{ loop.index }}">0</span></span>
+                <span id="slot_partial_flag_{{ loop.index }}" class="overview-badge validation-good">NO</span>
+              </div>
+
+              <div class="row" style="margin-top:10px; flex-wrap:wrap;">
+                <button type="button" onclick="slotSetSelection('{{ loop.index }}', 'ALL')">Select All</button>
+                <button type="button" onclick="slotSetSelection('{{ loop.index }}', 'NONE')">Clear All</button>
+                <button type="button" onclick="slotSetSelection('{{ loop.index }}', 'ROUTE_ONLY')">Only Route Archive</button>
+                <button type="button" onclick="slotSetSelection('{{ loop.index }}', 'FALLBACK_ONLY')">Only Fallback</button>
+                <button type="button" onclick="slotSetSelection('{{ loop.index }}', 'MISSING_ONLY')">Only Missing</button>
+              </div>
+
+              <div class="row" style="margin-top:10px; flex-wrap:wrap;">
+                <button type="submit" name="action" value="slot_apply_selected">Apply Selected</button>
+                <button type="submit" name="action" value="slot_rebuild_selected">Rebuild Selected</button>
+              </div>
+
+            </div>
+            {% endif %}
+          </form>
+
+          {% if slot.summary %}
+          <div class="overview-section" style="margin-top:12px;">
+            <strong>Archive Readiness</strong><br><br>
+
+            <span class="delta-pill">Effective Active {{ slot.summary.effective_active_ids|length }}</span>
+            <span class="delta-pill">Route Archive {{ slot.summary.available_route_archive_count }}</span>
+            <span class="delta-pill">Fallback {{ slot.summary.available_fallback_count }}</span>
+            <span class="delta-pill">Missing {{ slot.summary.missing_count }}</span>
+
+            {% if slot.summary.availability_rows %}
+            <div class="overview-section">
+              <h4>Section Availability</h4>
+              <ul class="overview-filter-list">
+                {% for row in slot.summary.availability_rows %}
+                {% set src = row.source %}
+                {% if src == "ROUTE_ARCHIVE" %}
+                  {% set src_class = "source-route-archive" %}
+                {% elif src == "GLOBAL_ARCHIVE" %}
+                  {% set src_class = "source-global-archive" %}
+                {% elif src == "PLOT_REF" %}
+                  {% set src_class = "source-plot-ref" %}
+                {% else %}
+                  {% set src_class = "source-missing" %}
+                {% endif %}
+                <li>
+                  <div class="overview-row">
+                    <span class="overview-badge {{ src_class }}">{{ row.source }}</span>
+                    <span>{{ row.warning_id }}</span>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {% if slot.cumulative %}
+          <div class="overview-section" style="margin-top:12px;">
+            <strong>Cumulative Snapshot</strong><br><br>
+
+            <span class="delta-pill">Effective Active {{ slot.cumulative.effective_active_ids|length }}</span>
+            <span class="delta-pill">Listed {{ slot.cumulative.listed_ids|length }}</span>
+            <span class="delta-pill">New {{ slot.cumulative.newer_preserved_ids|length }}</span>
+            <span class="delta-pill">Dropped {{ slot.cumulative.omitted_ids|length }}</span>
+            <span class="delta-pill">Cancelled {{ slot.cumulative.cancelled_ids|length }}</span>
+
+            {% if slot.cumulative.effective_active_rows %}
+            <div class="overview-section">
+              <h4>Effective Active</h4>
+              <ul class="overview-filter-list">
+                {% for row in slot.cumulative.effective_active_rows %}
+                <li>
+                  <div class="overview-row">
+                    <span class="overview-badge {{ row.css_class }}">{{ row.label }}</span>
+                    <span>{{ row.warning_id }}</span>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            {% if slot.cumulative.new_rows %}
+            <div class="overview-section">
+              <h4>New Since Latest Cumulative</h4>
+              <ul class="overview-filter-list">
+                {% for row in slot.cumulative.new_rows %}
+                <li>
+                  <div class="overview-row">
+                    <span class="overview-badge {{ row.css_class }}">{{ row.label }}</span>
+                    <span>{{ row.warning_id }}</span>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            {% if slot.cumulative.dropped_rows %}
+            <div class="overview-section">
+              <h4>Dropped / Omitted</h4>
+              <ul class="overview-filter-list">
+                {% for row in slot.cumulative.dropped_rows %}
+                <li>
+                  <div class="overview-row">
+                    <span class="overview-badge {{ row.css_class }}">{{ row.label }}</span>
+                    <span>{{ row.warning_id }}</span>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+
+            {% if slot.cumulative.cancelled_rows %}
+            <div class="overview-section">
+              <h4>Explicitly Cancelled</h4>
+              <ul class="overview-filter-list">
+                {% for row in slot.cumulative.cancelled_rows %}
+                <li>
+                  <div class="overview-row">
+                    <span class="overview-badge {{ row.css_class }}">{{ row.label }}</span>
+                    <span>{{ row.warning_id }}</span>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        {% if not loop.last %}
+        <hr>
+        {% endif %}
+        {% endfor %}
       </div>
       {% endif %}
 
@@ -82,8 +439,160 @@
         Plot CSV: <code>{{ result.plot_csv_path }}</code><br>
         NS-01 CSV: <code>{{ result.daily_ns01_csv_path }}</code><br>
         NS-01 TXT: <code>{{ result.daily_ns01_txt_path }}</code>
+
+        {% if result.route_id %}
+        <br>Route ID: {{ result.route_id }}
+        {% endif %}
+
+        {% if result.chart_mode %}
+        <br>Chart Mode: {{ result.chart_mode }}
+        {% endif %}
+
+        {% if result.planner_audit_rows %}
+        <div class="overview-section" style="margin-top:12px;">
+          <strong>Planner Apply Audit</strong><br><br>
+          <ul class="overview-filter-list">
+            {% for row in result.planner_audit_rows %}
+            {% set src = row.source %}
+            {% if src == "ROUTE_ARCHIVE" %}
+              {% set src_class = "source-route-archive" %}
+            {% elif src == "GLOBAL_ARCHIVE" %}
+              {% set src_class = "source-global-archive" %}
+            {% elif src == "PLOT_REF" %}
+              {% set src_class = "source-plot-ref" %}
+            {% else %}
+              {% set src_class = "source-unknown" %}
+            {% endif %}
+            <li>
+              <div class="overview-row">
+                <span class="overview-badge {{ src_class }}">{{ row.source }}</span>
+                <span>{{ row.warning_id }}</span>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
       </div>
       {% endif %}
+
+{% if latest_cumulative_warning_id %}
+<hr>
+<h3>Latest In-Force Overview</h3>
+
+<p><strong>Reference Warning:</strong> {{ latest_cumulative_warning_id }}</p>
+<p><strong>Active Session Rebuilt:</strong> {{ "YES" if latest_cumulative_active_session_ok else "NO" }}</p>
+<p><strong>Rows Written:</strong> {{ latest_cumulative_active_session_rows_written }}</p>
+
+<p>
+  <strong>Listed:</strong> {{ latest_cumulative_listed_count or 0 }}
+  &nbsp; | &nbsp;
+  <strong>New:</strong> {{ latest_cumulative_new_count or 0 }}
+  &nbsp; | &nbsp;
+  <strong>Dropped:</strong> {{ latest_cumulative_dropped_count or 0 }}
+  &nbsp; | &nbsp;
+  <strong>Cancelled:</strong> {{ latest_cumulative_cancelled_count or 0 }}
+</p>
+
+<p><strong>Effective Active Now:</strong> {{ latest_cumulative_effective_active_count or 0 }}</p>
+
+<div class="statusbox" style="margin-top:10px;">
+  <strong>Overview Filters</strong><br><br>
+
+  <label>Search Warning ID</label>
+  <input id="overviewFilterInput" type="text" placeholder="e.g. 211/26 or NAVAREA IV 211/26" onkeyup="filterOverviewLists()">
+
+  <div style="margin-top:10px;">
+    <label><input type="checkbox" id="toggleEffective" checked onchange="toggleOverviewSection('effectiveSection', this.checked)"> Effective Active</label><br>
+    <label><input type="checkbox" id="toggleListed" checked onchange="toggleOverviewSection('listedSection', this.checked)"> Listed In Latest In-Force</label><br>
+    <label><input type="checkbox" id="toggleNew" checked onchange="toggleOverviewSection('newSection', this.checked)"> New Since Latest In-Force</label><br>
+    <label><input type="checkbox" id="toggleDropped" checked onchange="toggleOverviewSection('droppedSection', this.checked)"> Dropped From Latest In-Force</label><br>
+    <label><input type="checkbox" id="toggleCancelled" checked onchange="toggleOverviewSection('cancelledSection', this.checked)"> Explicitly Cancelled</label><br>
+    <label><input type="checkbox" id="focusActiveOnly" onchange="focusActiveOnlyMode(this.checked)"> Focus: Active Only</label>
+  </div>
+
+
+  
+{% if latest_cumulative_effective_active_rows %}
+<div id="effectiveSection" class="overview-section">
+<h4>Currently Effective Active Warnings <span class="delta-pill">{{ latest_cumulative_effective_active_count or 0 }}</span></h4>
+<ul class="overview-filter-list">
+    {% for row in latest_cumulative_effective_active_rows %}
+    <li>
+      <div class="overview-row">
+        <span class="overview-badge {{ row.css_class }}">{{ row.label }}</span>
+        <span>{{ row.warning_id }}</span>
+      </div>
+    </li>
+    {% endfor %}
+</ul>
+</div>
+{% endif %}
+
+{% if latest_cumulative_listed_rows %}
+<div id="listedSection" class="overview-section">
+<h4>Listed In Latest In-Force <span class="delta-pill">{{ latest_cumulative_listed_count or 0 }}</span></h4>
+<ul class="overview-filter-list">
+    {% for row in latest_cumulative_listed_rows %}
+    <li>
+      <div class="overview-row">
+        <span class="overview-badge {{ row.css_class }}">{{ row.label }}</span>
+        <span>{{ row.warning_id }}</span>
+      </div>
+    </li>
+    {% endfor %}
+</ul>
+</div>
+{% endif %}
+
+{% if latest_cumulative_new_rows %}
+<div id="newSection" class="overview-section">
+<h4>New Since Latest In-Force <span class="delta-pill">{{ latest_cumulative_new_count or 0 }}</span></h4>
+<ul class="overview-filter-list">
+    {% for row in latest_cumulative_new_rows %}
+    <li>
+      <div class="overview-row">
+        <span class="overview-badge {{ row.css_class }}">{{ row.label }}</span>
+        <span>{{ row.warning_id }}</span>
+      </div>
+    </li>
+    {% endfor %}
+</ul>
+</div>
+{% endif %}
+
+{% if latest_cumulative_dropped_rows %}
+<div id="droppedSection" class="overview-section">
+<h4>Dropped From Latest In-Force <span class="delta-pill">{{ latest_cumulative_dropped_count or 0 }}</span></h4>
+<ul class="overview-filter-list">
+    {% for row in latest_cumulative_dropped_rows %}
+    <li>
+      <div class="overview-row">
+        <span class="overview-badge {{ row.css_class }}">{{ row.label }}</span>
+        <span>{{ row.warning_id }}</span>
+      </div>
+    </li>
+    {% endfor %}
+</ul>
+</div>
+{% endif %}
+
+{% if latest_cumulative_cancelled_rows %}
+<div id="cancelledSection" class="overview-section">
+<h4>Explicitly Cancelled <span class="delta-pill">{{ latest_cumulative_cancelled_count or 0 }}</span></h4>
+<ul class="overview-filter-list">
+    {% for row in latest_cumulative_cancelled_rows %}
+    <li>
+      <div class="overview-row">
+        <span class="overview-badge {{ row.css_class }}">{{ row.label }}</span>
+        <span>{{ row.warning_id }}</span>
+      </div>
+    </li>
+    {% endfor %}
+</ul>
+</div>
+{% endif %}
+{% endif %}
 
       {% if results %}
       <div class="statusbox">
@@ -125,4 +634,231 @@
     </div>
   </div>
 </body>
+
+<script>
+function updateSlotValidation(slotIndex) {
+    var form = document.getElementById("slot_form_" + slotIndex);
+    if (!form) return;
+
+    var checkboxes = form.querySelectorAll('input[name="selected_warning_ids"]');
+
+    var selectedCount = 0;
+    var availableCount = 0;
+    var missingCount = 0;
+
+    checkboxes.forEach(function(cb) {
+        if (!cb.checked) return;
+
+        selectedCount += 1;
+
+        var source = (cb.getAttribute("data-source") || "").toUpperCase();
+        if (source === "NONE") {
+            missingCount += 1;
+        } else {
+            availableCount += 1;
+        }
+    });
+
+    var selectedEl = document.getElementById("slot_selected_count_" + slotIndex);
+    var availableEl = document.getElementById("slot_available_count_" + slotIndex);
+    var missingEl = document.getElementById("slot_missing_count_" + slotIndex);
+    var partialEl = document.getElementById("slot_partial_flag_" + slotIndex);
+
+    if (selectedEl) selectedEl.textContent = selectedCount;
+    if (availableEl) availableEl.textContent = availableCount;
+    if (missingEl) missingEl.textContent = missingCount;
+
+    if (partialEl) {
+        if (selectedCount === 0) {
+            partialEl.textContent = "NO SELECTION";
+            partialEl.className = "overview-badge validation-bad";
+        } else if (missingCount > 0) {
+            partialEl.textContent = "YES";
+            partialEl.className = "overview-badge validation-warn";
+        } else {
+            partialEl.textContent = "NO";
+            partialEl.className = "overview-badge validation-good";
+        }
+    }
+}
+
+function initializeSlotValidation() {
+    var forms = document.querySelectorAll('form[id^="slot_form_"]');
+
+    forms.forEach(function(form) {
+        var slotIndex = form.id.replace("slot_form_", "");
+        var checkboxes = form.querySelectorAll('input[name="selected_warning_ids"]');
+
+        checkboxes.forEach(function(cb) {
+            cb.addEventListener("change", function() {
+                updateSlotValidation(slotIndex);
+            });
+        });
+
+        updateSlotValidation(slotIndex);
+    });
+}
+
+function slotSetSelection(slotIndex, mode) {
+    var form = document.getElementById("slot_form_" + slotIndex);
+    if (!form) return;
+
+    var checkboxes = form.querySelectorAll('input[name="selected_warning_ids"]');
+
+    checkboxes.forEach(function(cb) {
+        var source = (cb.getAttribute("data-source") || "").toUpperCase();
+
+        if (mode === "ALL") {
+            cb.checked = true;
+        } else if (mode === "NONE") {
+            cb.checked = false;
+        } else if (mode === "ROUTE_ONLY") {
+            cb.checked = (source === "ROUTE_ARCHIVE");
+        } else if (mode === "FALLBACK_ONLY") {
+            cb.checked = (source === "GLOBAL_ARCHIVE" || source === "PLOT_REF");
+        } else if (mode === "MISSING_ONLY") {
+            cb.checked = (source === "NONE");
+        }
+    });
+
+    updateSlotValidation(slotIndex);
+}
+
+function toggleOverviewSection(sectionId, isChecked) {
+    var el = document.getElementById(sectionId);
+    if (!el) return;
+    el.style.display = isChecked ? "" : "none";
+}
+
+function filterOverviewLists() {
+    var input = document.getElementById("overviewFilterInput");
+    if (!input) return;
+
+    var filter = input.value.toUpperCase();
+    var lists = document.querySelectorAll(".overview-filter-list");
+
+    lists.forEach(function(list) {
+        var items = list.querySelectorAll("li");
+
+        items.forEach(function(item) {
+            var txt = (item.textContent || item.innerText || "").toUpperCase();
+            item.style.display = txt.indexOf(filter) > -1 ? "" : "none";
+        });
+    });
+}
+
+function focusActiveOnlyMode(enabled) {
+    var sectionIds = [
+        "listedSection",
+        "newSection",
+        "droppedSection",
+        "cancelledSection"
+    ];
+
+    sectionIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = enabled ? "none" : "";
+    });
+
+    var effective = document.getElementById("effectiveSection");
+    if (effective) {
+        effective.style.display = "";
+    }
+
+    var toggleMap = {
+        "toggleListed": "listedSection",
+        "toggleNew": "newSection",
+        "toggleDropped": "droppedSection",
+        "toggleCancelled": "cancelledSection"
+    };
+
+    Object.keys(toggleMap).forEach(function(toggleId) {
+        var cb = document.getElementById(toggleId);
+        if (!cb) return;
+        if (enabled) {
+            cb.checked = false;
+        }
+    });
+
+    var effectiveCb = document.getElementById("toggleEffective");
+    if (effectiveCb) {
+        effectiveCb.checked = true;
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    initializeSlotValidation();
+});
+</script>
+<script>
+function toggleOverviewSection(sectionId, isChecked) {
+    var el = document.getElementById(sectionId);
+    if (!el) return;
+    el.style.display = isChecked ? "" : "none";
+}
+
+function filterOverviewLists() {
+    var input = document.getElementById("overviewFilterInput");
+    if (!input) return;
+
+    var filter = input.value.toUpperCase();
+    var lists = document.querySelectorAll(".overview-filter-list");
+
+    lists.forEach(function(list) {
+        var items = list.querySelectorAll("li");
+
+        items.forEach(function(item) {
+            var txt = (item.textContent || item.innerText || "").toUpperCase();
+            item.style.display = txt.indexOf(filter) > -1 ? "" : "none";
+        });
+    });
+}
+
+function focusActiveOnlyMode(enabled) {
+    var sectionIds = [
+        "listedSection",
+        "newSection",
+        "droppedSection",
+        "cancelledSection"
+    ];
+
+    sectionIds.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = enabled ? "none" : "";
+    });
+
+    var effective = document.getElementById("effectiveSection");
+    if (effective) {
+        effective.style.display = "";
+    }
+
+    var toggleMap = {
+        "toggleListed": "listedSection",
+        "toggleNew": "newSection",
+        "toggleDropped": "droppedSection",
+        "toggleCancelled": "cancelledSection"
+    };
+
+    Object.keys(toggleMap).forEach(function(toggleId) {
+        var cb = document.getElementById(toggleId);
+        if (!cb) return;
+        if (enabled) {
+            cb.checked = false;
+        }
+    });
+
+    var effectiveCb = document.getElementById("toggleEffective");
+    if (effectiveCb) {
+        effectiveCb.checked = true;
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    initializeSlotValidation();
+});
+
+</script>
+
 </html>

@@ -5,7 +5,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import json
 
-import cv2
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except Exception:
+    cv2 = None
+    CV2_AVAILABLE = False
+    
 import numpy as np
 
 
@@ -167,6 +173,29 @@ def preprocess_image(
 ) -> PreprocessResult:
     options = options or PreprocessOptions()
 
+    if not CV2_AVAILABLE:
+        # fallback: skip preprocessing but still produce a valid output image
+        image_path = Path(image_path)
+        output_path = Path(output_path)
+
+        _ensure_parent(output_path)
+
+        # just copy the file as-is
+        import shutil
+        shutil.copy(str(image_path), str(output_path))
+
+        return PreprocessResult(
+            ok=True,
+            source_path=str(image_path),
+            output_path=str(output_path),
+            width=0,
+            height=0,
+            channels=0,
+            steps_applied=["cv2_unavailable_passthrough"],
+            diagnostics={"cv2_available": False},
+            debug_paths=[],
+        )
+        
     image_path = Path(image_path)
     output_path = Path(output_path)
 

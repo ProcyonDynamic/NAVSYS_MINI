@@ -27,17 +27,34 @@ def list_crew(portalis_root):
         if not folder.is_dir():
             continue
 
-        record = folder / "record.json"
-        if record.exists():
-            data = json.loads(record.read_text(encoding="utf-8"))
+        record_path = folder / "record.json"
+        if record_path.exists():
+            data = json.loads(record_path.read_text(encoding="utf-8"))
+
             crew.append({
-                "crew_id": folder.name,
-                "name": data.get("name", ""),
+                "crew_id": data.get("crew_id", folder.name),
+                "name": _display_name(data),
                 "rank": data.get("rank", ""),
-                "documents_count": len(data.get("documents", [])),
+                "nationality": data.get("nationality", ""),
+                "documents": data.get("documents", []),
+                "passports": data.get("passports", []),
+                "seaman_books": data.get("seaman_books", []),
+                "visas": data.get("visas", []),
+                "document_counts": {
+                    "documents": len(data.get("documents", [])),
+                    "passports": len(data.get("passports", [])),
+                    "seaman_books": len(data.get("seaman_books", [])),
+                    "visas": len(data.get("visas", [])),
+                },
             })
 
-    crew.sort(key=lambda x: (x["rank"], x["name"]))
+    crew.sort(
+        key=lambda x: (
+            str(x.get("rank") or "").strip().upper(),
+            str(x.get("name") or "").strip().upper(),
+        )
+    )
+    
     return crew
 
 
@@ -45,7 +62,15 @@ def load_crew_record(portalis_root, crew_id):
     p = crew_record_path(portalis_root, crew_id)
     if not p.exists():
         raise FileNotFoundError(f"Crew record not found: {crew_id}")
-    return json.loads(p.read_text(encoding="utf-8"))
+
+    data = json.loads(p.read_text(encoding="utf-8"))
+    data["name"] = _display_name(data)
+    data.setdefault("documents", [])
+    data.setdefault("passports", [])
+    data.setdefault("seaman_books", [])
+    data.setdefault("visas", [])
+    data.setdefault("vaccinations", [])
+    return data
 
 
 def save_crew_record(portalis_root, crew_id, data):
@@ -54,7 +79,7 @@ def save_crew_record(portalis_root, crew_id, data):
     p.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def create_crew(portalis_root, name, rank):
+def create_crew(portalis_root, name, rank, nationality=""):
     crew_id = f"crew_{uuid.uuid4().hex[:6]}"
 
     root = crew_root(portalis_root)
@@ -69,8 +94,18 @@ def create_crew(portalis_root, name, rank):
         "crew_id": crew_id,
         "name": name,
         "rank": rank,
-        "nationality": "",
-        "documents": []
+        "nationality": nationality,
+        "documents": [],
+        "family_name": "",
+        "given_name": "",
+        "middle_initial": None,
+        "date_of_birth": None,
+        "place_of_birth": None,
+        "passports": [],
+        "seaman_books": [],
+        "visas": [],
+        "vaccinations": [],
+        "notes": None,
     }
 
     save_crew_record(portalis_root, crew_id, record)
@@ -121,3 +156,17 @@ def add_document_to_crew(
     save_crew_record(portalis_root, crew_id, data)
 
     return doc_id
+
+
+def _display_name(record: dict) -> str:
+    given_name = (record.get("given_name") or "").strip()
+    middle_initial = (record.get("middle_initial") or "").strip()
+    family_name = (record.get("family_name") or "").strip()
+
+    parts = [part for part in [given_name, middle_initial, family_name] if part]
+    structured_name = " ".join(parts).strip()
+
+    if structured_name:
+        return structured_name
+
+    return (record.get("name") or "").strip()

@@ -1,0 +1,413 @@
+===============================
+NAVSYS USB DEV ENVIRONMENT
+===============================
+Starting NAVSYS...
+
+ * Serving Flask app 'main'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [21/Mar/2026 21:54:08] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [21/Mar/2026 21:54:08] "GET /static/style.css HTTP/1.1" 304 -
+127.0.0.1 - - [21/Mar/2026 21:54:10] "GET /navwarn HTTP/1.1" 200 -
+127.0.0.1 - - [21/Mar/2026 21:54:10] "GET /static/style.css HTTP/1.1" 304 -
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_none
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_none']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[FALLBACK] using extractor geometry {'verts_len': 0, 'geom_type': 'POINT', 'offshore_object_count': 0}
+[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: True
+[DEBUG] plot_policy_id: plot_offshore_points
+[DEBUG] plot_policy_reasons: ['Loaded policy from config: plot_offshore_points']
+[DEBUG] plot_policy_match.matched: False
+[DEBUG] plot_policy_id: None
+[DEBUG] plot_policy_reasons: ['No profile matched']
+127.0.0.1 - - [21/Mar/2026 21:54:21] "POST /navwarn HTTP/1.1" 200 -
+127.0.0.1 - - [21/Mar/2026 21:54:21] "GET /static/style.css HTTP/1.1" 304 -

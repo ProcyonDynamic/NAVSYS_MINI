@@ -16,6 +16,12 @@ class ActiveWarningRecord:
     last_updated_utc: str = ""
     plotted: str = "NO"
     plot_ref: str = ""
+    issued_utc: str = ""
+    state_reason: str = ""
+    last_seen_in_cumulative_id: str = ""
+    last_seen_in_cumulative_utc: str = ""
+    omitted_by_cumulative_id: str = ""
+    omitted_by_cumulative_utc: str = ""
 
 
 FIELDNAMES = [
@@ -27,6 +33,12 @@ FIELDNAMES = [
     "last_updated_utc",
     "plotted",
     "plot_ref",
+    "issued_utc",
+    "state_reason",
+    "last_seen_in_cumulative_id",
+    "last_seen_in_cumulative_utc",
+    "omitted_by_cumulative_id",
+    "omitted_by_cumulative_utc",
 ]
 
 
@@ -49,6 +61,12 @@ def load_active_warning_table(path: Path) -> List[ActiveWarningRecord]:
                     last_updated_utc=row.get("last_updated_utc", ""),
                     plotted=row.get("plotted", "NO"),
                     plot_ref=row.get("plot_ref", ""),
+                    issued_utc=row.get("issued_utc", ""),
+                    state_reason=row.get("state_reason", ""),
+                    last_seen_in_cumulative_id=row.get("last_seen_in_cumulative_id", ""),
+                    last_seen_in_cumulative_utc=row.get("last_seen_in_cumulative_utc", ""),
+                    omitted_by_cumulative_id=row.get("omitted_by_cumulative_id", ""),
+                    omitted_by_cumulative_utc=row.get("omitted_by_cumulative_utc", ""),
                 )
             )
 
@@ -95,7 +113,9 @@ def mark_cancelled_targets(
     changed = False
     for row in rows:
         if row.warning_id.strip().upper() in target_set:
-            row.state = "CANCELLED"
+            row.state = "CANCELLED_EXPLICIT"
+            row.state_reason = "EXPLICIT_CANCELLATION_NOTICE"
+            row.plot_ref = ""
             row.last_updated_utc = updated_utc
             row.plotted = "NO"
             changed = True

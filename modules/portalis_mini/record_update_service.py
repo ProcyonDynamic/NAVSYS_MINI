@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Dict, Optional
-
-from portalis_models import CrewRecord, IdentityDocument
 
 
 class RecordUpdateServiceError(Exception):
@@ -37,6 +34,12 @@ class RecordUpdateService:
 
         record.setdefault("crew_id", crew_id)
         record.setdefault("rank", None)
+
+        # legacy/basic crew_service-compatible fields
+        record.setdefault("name", "")
+        record.setdefault("documents", [])
+
+        # richer structured fields
         record.setdefault("family_name", "")
         record.setdefault("given_name", "")
         record.setdefault("middle_initial", None)
@@ -48,7 +51,7 @@ class RecordUpdateService:
         record.setdefault("visas", [])
         record.setdefault("vaccinations", [])
         record.setdefault("notes", None)
-
+        
         if "crew.family_name" in mapped_fields:
             record["family_name"] = mapped_fields["crew.family_name"]
 
@@ -67,6 +70,23 @@ class RecordUpdateService:
         if "crew.place_of_birth" in mapped_fields:
             record["place_of_birth"] = mapped_fields["crew.place_of_birth"]
 
+        record["name"] = self._build_display_name(
+            family_name=record.get("family_name"),
+            given_name=record.get("given_name"),
+            middle_initial=record.get("middle_initial"),
+            fallback=record.get("name"),
+        )
+
+        passport_number = mapped_fields.get("passport.number")
+        passport_number = mapped_fields.get("passport.number")
+        
+        if passport_number:
+            passport_entry = self._find_or_create_document_entry(
+                record["passports"],
+                number=passport_number,
+                document_type="passport",
+            )
+
         passport_number = mapped_fields.get("passport.number")
         if passport_number:
             passport_entry = self._find_or_create_document_entry(
@@ -81,6 +101,18 @@ class RecordUpdateService:
             passport_entry["expiry_date"] = mapped_fields.get("passport.expiry_date")
             passport_entry["nationality"] = mapped_fields.get("crew.nationality")
             passport_entry["source_file"] = source_file
+
+            self._upsert_legacy_document(
+                record["documents"],
+                doc_type="PASSPORT",
+                document_number=passport_number,
+                country=mapped_fields.get("passport.issue_state") or mapped_fields.get("crew.nationality") or "",
+                issue_date=mapped_fields.get("passport.issue_date") or "",
+                expiry_date=mapped_fields.get("passport.expiry_date") or "",
+                source_file=source_file or "",
+                confidence="",
+                notes="Imported from mapped fields",
+            )
 
         self._write_json(record_path, record)
         return record_path
@@ -100,6 +132,70 @@ class RecordUpdateService:
             "number": number,
         }
         entries.append(new_entry)
+        return new_entry
+
+    def _build_display_name(
+        self,
+        family_name: Optional[str],
+        given_name: Optional[str],
+        middle_initial: Optional[str],
+        fallback: Optional[str] = None,
+    ) -> str:
+        parts = []
+
+        if given_name:
+            parts.append(str(given_name).strip())
+
+        if middle_initial:
+            parts.append(str(middle_initial).strip())
+
+        if family_name:
+            parts.append(str(family_name).strip())
+
+        name = " ".join(part for part in parts if part).strip()
+        return name or (fallback or "")
+
+    def _upsert_legacy_document(
+        self,
+        documents: list[Dict[str, Any]],
+        *,
+        doc_type: str,
+        document_number: str,
+        country: str = "",
+        issue_date: str = "",
+        expiry_date: str = "",
+        source_file: str = "",
+        confidence: str = "",
+        notes: str = "",
+    ) -> Dict[str, Any]:
+        for entry in documents:
+            if (
+                entry.get("doc_type") == doc_type
+                and entry.get("document_number") == document_number
+            ):
+                entry["country"] = country
+                entry["issue_date"] = issue_date
+                entry["expiry_date"] = expiry_date
+                entry["source_file"] = source_file
+                entry["confidence"] = confidence
+                entry["notes"] = notes
+                return entry
+
+        new_entry: Dict[str, Any] = {
+            "doc_id": f"{doc_type.lower()}_{document_number}".replace(" ", "_"),
+            "doc_type": doc_type,
+            "doc_subtype": "",
+            "document_number": document_number,
+            "country": country,
+            "issue_date": issue_date,
+            "expiry_date": expiry_date,
+            "is_primary": True,
+            "status": "ACTIVE",
+            "source_file": source_file,
+            "confidence": confidence,
+            "notes": notes,
+        }
+        documents.append(new_entry)
         return new_entry
 
     def _load_json(self, path: Path) -> Dict[str, Any]:

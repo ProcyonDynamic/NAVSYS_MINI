@@ -1,0 +1,38 @@
+{
+  "ok": true,
+  "source_path": "data\\PORTALIS\\documents\\CREW_PASSPORT\\_portalis_work\\sample_passport\\pdf_pages\\page_002.png",
+  "output_path": "data\\PORTALIS\\documents\\CREW_PASSPORT\\_portalis_work\\sample_passport\\preprocessed\\page_002_preprocessed.png",
+  "width": 1800,
+  "height": 2549,
+  "channels": 1,
+  "steps_applied": [
+    "crop_to_content",
+    "resize",
+    "denoise",
+    "grayscale",
+    "contrast_boost",
+    "sharpen",
+    "deskew"
+  ],
+  "diagnostics": {
+    "original_shape": [
+      1653,
+      2337,
+      3
+    ],
+    "crop_to_content_before_shape": [
+      1653,
+      2337,
+      3
+    ],
+    "crop_to_content_after_shape": [
+      1436,
+      1014,
+      3
+    ],
+    "resized": true,
+    "resize_scale": 1.7751479289940828,
+    "deskew_angle_deg": 0.0
+  },
+  "debug_paths": []
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "registry_id": "light",
+    "canonical_name": "LIGHT",
+    "entity_type": "AID_TO_NAVIGATION",
+    "aliases": ["LIGHT", "LIGHTHOUSE"],
+    "tags": ["ATON"]
+  },
+  {
+    "registry_id": "buoy",
+    "canonical_name": "BUOY",
+    "entity_type": "AID_TO_NAVIGATION",
+    "aliases": ["BUOY", "BUOYS"],
+    "tags": ["ATON"]
+  },
+  {
+    "registry_id": "beacon",
+    "canonical_name": "BEACON",
+    "entity_type": "AID_TO_NAVIGATION",
+    "aliases": ["BEACON", "BEACONS"],
+    "tags": ["ATON"]
+  }
+]

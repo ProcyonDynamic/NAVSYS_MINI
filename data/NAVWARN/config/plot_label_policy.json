@@ -1,0 +1,34 @@
+{
+  "default_label_policy": {
+    "include_warning_id": true,
+    "include_warning_type": true,
+    "include_key_phrases": true,
+    "include_time_window": true,
+    "max_key_phrases": 3,
+    "separator": " | ",
+    "uppercase": true
+  },
+  "profiles": {
+    "MODU": {
+      "include_warning_id": true,
+      "include_warning_type": true,
+      "include_key_phrases": true,
+      "include_time_window": false,
+      "max_key_phrases": 2
+    },
+    "SURVEY": {
+      "include_warning_id": true,
+      "include_warning_type": true,
+      "include_key_phrases": true,
+      "include_time_window": true,
+      "max_key_phrases": 3
+    },
+    "MILITARY_EXERCISE": {
+      "include_warning_id": true,
+      "include_warning_type": true,
+      "include_key_phrases": true,
+      "include_time_window": true,
+      "max_key_phrases": 3
+    }
+  }
+}

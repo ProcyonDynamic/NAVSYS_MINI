@@ -1,0 +1,137 @@
+trigger_id,trigger_text,alias_texts,target_path,is_dynamic,context_type,context_hint,source_scope,value_type,priority,notes
+TRG001,passport no,passport number|passport #|travel document number|document number|passport no.|passport num|pp no|passport details,crew.passport.number,True,crew_row,passport,crew,text,100,Primary passport field
+TRG002,nationality,citizenship|crew nationality|nationality of crew|country of nationality|nationality/citizenship,crew.nationality,True,crew_row,identity,crew,text,95,Crew nationality
+TRG003,date of birth,dob|birth date|date of birth (dd/mm/yyyy)|birth dt|crew dob,crew.date_of_birth,True,crew_row,identity,crew,date,95,DOB
+TRG004,place of birth,birth place|place of birth / town|town of birth|city of birth|pob,crew.place_of_birth,True,crew_row,identity,crew,text,90,POB
+TRG005,rank,position|capacity|crew position|shipboard rank|rank/position,crew.rank,True,crew_row,identity,crew,text,95,Crew rank
+TRG006,gender,sex|male/female|gender/sex,crew.gender,True,crew_row,identity,crew,text,85,Gender
+TRG007,family name,surname|last name|crew surname,crew.last_name,true,crew_row,identity,crew,text,95,Crew surname
+TRG008,given name,first name|forename|crew first name,crew.first_name,true,crew_row,identity,crew,text,95,Crew first name
+TRG009,middle name,second name|other names,crew.middle_name,true,crew_row,identity,crew,text,80,Crew middle name
+TRG010,seaman book,seaman book number|seafarer book|seamans book|seafarer's book|cdc number|seaman book no|discharge book no,crew.seaman_book.number,True,crew_row,seaman_book,crew,text,90,Seaman book
+TRG011,seaman expiry,seaman expiry date|seaman book expiry|cdc expiry|discharge book expiry,crew.seaman_book.expiry_date,True,document_block,seaman_book,crew,date,90,Seaman expiry
+TRG012,place of issue,issuing place|issue place,crew.passport.place_of_issue,true,document_block,passport,crew,text,88,Passport place of issue
+TRG013,date of issue,issue date|passport issue date,crew.passport.issue_date,true,document_block,passport,crew,date,90,Passport issue date
+TRG014,passport expiry,passport expiry date|passport expiration|passport valid until,crew.passport.expiry_date,true,document_block,passport,crew,date,93,Passport expiry
+TRG015,country of issue,issuing country|passport issuing country,crew.passport.country_of_issue,true,document_block,passport,crew,text,90,Passport issuing country
+TRG016,passport type,type of passport,crew.passport.type,true,document_block,passport,crew,text,82,Passport type
+TRG017,passport issuing authority,issuing authority|passport authority,crew.passport.issuing_authority,true,document_block,passport,crew,text,84,Passport issuing authority
+TRG018,crew id,employee id|crew number|crew id number,crew.crew_id,true,crew_row,identity,crew,text,85,Crew ID
+TRG019,national id,identity card no|id card number|national identity number,crew.national_id.number,true,crew_row,identity,crew,text,82,National ID number
+TRG020,visa number,visa no|us visa number|travel visa number|visa #|visa details,crew.visa.number,True,crew_row,visa,crew,text,90,Visa number
+TRG021,visa expiry,visa expiry date|visa valid until|visa expiration|visa expiry/expiration,crew.visa.expiry_date,True,document_block,visa,crew,date,90,Visa expiry
+TRG022,visa type,visa category|visa class|visa type/class,crew.visa.type,True,document_block,visa,crew,text,85,Visa type
+TRG023,visa issue date,visa date of issue|issued on,crew.visa.issue_date,true,document_block,visa,crew,date,86,Visa issue date
+TRG024,visa issuing place,visa issue place|place visa issued,crew.visa.place_of_issue,true,document_block,visa,crew,text,82,Visa place of issue
+TRG025,visa issuing country,country visa issued|visa issuing country,crew.visa.country_of_issue,true,document_block,visa,crew,text,82,Visa issuing country
+TRG026,crew address,home address|permanent address|residential address,crew.home_address,true,crew_row,identity,crew,text,90,Crew home address
+TRG027,city,town|city of residence,crew.city,true,crew_row,identity,crew,text,82,Crew city
+TRG028,state,province|region,crew.state,true,crew_row,identity,crew,text,80,Crew state
+TRG029,country,country of residence|home country,crew.country,true,crew_row,identity,crew,text,80,Crew country
+TRG030,imo,imo number|vessel imo|ship imo|official imo number,ship.imo,False,general,,ship,text,100,IMO
+TRG030A,vessel,ship name,ship.name,False,general,,ship,text,96,Generic vessel label
+TRG030B,vessel name,ship name,ship.name,False,general,,ship,text,100,Vessel name alias
+TRG030C,vessel imo,imo number,ship.imo,False,general,,ship,text,98,Vessel IMO
+TRG031,ship name,vessel name|name of vessel|vessel|ship's name|name of ship,ship.name,False,general,,ship,text,100,Ship name
+TRG032,call sign,callsign|vessel call sign|radio call sign|call letters,ship.call_sign,False,general,,ship,text,100,Call sign
+TRG032A,vessel call sign,callsign,ship.call_sign,False,general,,ship,text,96,Vessel call sign
+TRG033,flag,flag state|vessel flag|registry flag|flag of vessel|flag country,ship.flag,False,general,,ship,text,100,Flag
+TRG033A,vessel flag,flag state,ship.flag,False,general,,ship,text,96,Vessel flag
+TRG034,mmsi,mmsi number|vessel mmsi|ship mmsi,ship.mmsi,False,general,,ship,text,95,MMSI
+TRG034A,vessel mmsi,mmsi number,ship.mmsi,False,general,,ship,text,96,Vessel MMSI
+TRG035,gross tonnage,gt|gross registered tonnage|gross tonnage (gt),ship.gross_tonnage,False,general,,ship,number,90,GT
+TRG036,deadweight,dwt|dead weight|deadweight tonnage,ship.deadweight,False,general,,ship,number,90,DWT
+TRG037,crew phone,telephone|mobile number|contact number,crew.phone,true,crew_row,identity,crew,text,80,Crew phone
+TRG038,crew email,email address|e-mail,crew.email,true,crew_row,identity,crew,text,80,Crew email
+TRG039,next of kin,emergency contact|nok,crew.next_of_kin.name,true,crew_row,identity,crew,text,78,Next of kin
+TRG040,last port,previous port|port of departure|last port of call|previous foreign port|last visited port,voyage.last_port,False,general,,voyage,text,98,Last port
+TRG040A,port of arrival,arrival port,voyage.next_port,False,general,,voyage,text,96,Arrival port
+TRG040B,port of departure,departure port,voyage.last_port,False,general,,voyage,text,96,Departure port
+TRG041,next port,next port of call|port of arrival|arrival port|next foreign port|destination port,voyage.next_port,False,general,,voyage,text,98,Next port
+TRG042,eta,estimated time of arrival|arrival time|eta at pilot station|eta local|eta utc,voyage.eta,False,general,,voyage,datetime,95,ETA
+TRG043,etd,estimated time of departure|departure time|etd local|etd utc,voyage.etd,False,general,,voyage,datetime,95,ETD
+TRG044,arrival date,arrival time|ata|actual time of arrival|date/time of arrival,voyage.arrival,False,general,,voyage,datetime,95,Arrival
+TRG045,cdc number,continuous discharge certificate no|discharge book number,crew.seaman_book.number,true,crew_row,seaman_book,crew,text,90,CDC number
+TRG046,cdc expiry,continuous discharge certificate expiry|cdc valid until,crew.seaman_book.expiry_date,true,document_block,seaman_book,crew,date,88,CDC expiry
+TRG047,license number,certificate of competency no|coc number|license no,crew.license.number,true,document_block,license,crew,text,82,License number
+TRG048,license expiry,license valid until|coc expiry,crew.license.expiry_date,true,document_block,license,crew,date,82,License expiry
+TRG049,stcw,stcw endorsement|stcw certificate,crew.stcw.number,true,document_block,stcw,crew,text,78,STCW
+TRG050,cargo,cargo type|cargo carried|commodity|type of cargo,cargo.type,False,general,,cargo,text,95,Cargo type
+TRG050A,lng cargo,liquefied natural gas,cargo.type,False,general,lng,cargo,text,100,LNG cargo
+TRG050B,cargo temperature,tank temperature,cargo.temperature,False,general,lng,cargo,number,94,LNG cargo temperature
+TRG050C,bor,boil off rate,cargo.boil_off_rate,False,general,lng,cargo,number,94,LNG BOR
+TRG051,lng,liquefied natural gas|lng cargo|cargo is lng|natural gas liquefied,cargo.type,False,general,,cargo,text,100,LNG
+TRG052,cargo quantity,cargo amount|cargo qty|quantity loaded|cargo quantity onboard|volume of cargo,cargo.quantity,False,general,,cargo,number,95,Cargo qty
+TRG053,cargo temp,cargo temperature|tank temperature|cargo tank temp|lng temp|liquid temperature,cargo.temperature,False,general,,cargo,number,90,Cargo temp
+TRG054,boil off,boil off rate|bor|daily boil off|boiloff rate|bog rate,cargo.boil_off_rate,False,general,,cargo,number,85,BOR
+TRG055,official number,official no|ship official number,ship.official_number,false,general,,ship,text,86,Official number
+TRG056,port of registry,home port|port of registration|registered port,ship.port_of_registry,false,general,,ship,text,94,Port of registry
+TRG057,owner,registered owner|ship owner|vessel owner,ship.owner,false,general,,ship,text,95,Owner
+TRG058,manager,ship manager|technical manager|managing company,ship.manager,false,general,,ship,text,90,Manager
+TRG059,charterer,time charterer|voyage charterer,ship.charterer,false,general,,ship,text,82,Charterer
+TRG060,last port of call,previous port|last foreign port|last port visited,voyage.last_port,False,general,,voyage,text,98,Last port
+TRG061,next foreign port,next port|next arrival port|next foreign port of call,voyage.next_port,False,general,,voyage,text,98,Next port
+TRG062,crew list,crew manifest|crew details|list of crew|crew information,crew.list,True,table,crew,crew,list,90,Crew list
+TRG063,net tonnage,nt|nrt|net registered tonnage,ship.net_tonnage,false,general,,ship,number,90,Net tonnage
+TRG064,length overall,loa|overall length,ship.loa,false,general,,ship,number,92,LOA
+TRG065,beam,breadth moulded|breadth,ship.beam,false,general,,ship,number,88,Beam
+TRG066,depth,moulded depth|depth moulded,ship.depth,false,general,,ship,number,84,Depth
+TRG067,summer draft,max summer draft|summer draught,ship.summer_draft,false,general,,ship,number,88,Summer draft
+TRG068,air draft,air draught,ship.air_draft,false,general,,ship,number,84,Air draft
+TRG069,year built,built year|year of build,ship.year_built,false,general,,ship,number,86,Year built
+TRG070,master,captain|master name|name of master|ship master,ship.master,False,general,,ship,text,95,Master
+TRG070A,master name,captain name,ship.master,False,general,,ship,text,97,Master name
+TRG071,operator,company|ship operator|technical manager|operator name,ship.operator,False,general,,ship,text,95,Operator
+TRG072,agent,port agent|shipping agent|husbandry agent|local agent,voyage.agent,False,general,,voyage,text,95,Agent
+TRG072A,shipping agent,port agent,voyage.agent,False,general,,voyage,text,96,Shipping agent
+TRG073,ship type,vessel type|type of vessel,ship.type,false,general,,ship,text,96,Ship type
+TRG074,classification society,class society|class,ship.classification_society,false,general,,ship,text,88,Classification society
+TRG075,p&i club,pi club|protection and indemnity club,ship.pi_club,false,general,,ship,text,82,P&I Club
+TRG076,crew complement,number of crew|total crew,ship.crew_complement,false,general,,ship,number,86,Crew complement
+TRG077,voyage number,voy no|voyage no,voyage.number,false,general,,voyage,text,84,Voyage number
+TRG078,berth,berth no|assigned berth|berthing location,voyage.berth,false,general,,voyage,text,88,Berth
+TRG079,terminal,terminal name|loading terminal|discharge terminal,voyage.terminal,false,general,,voyage,text,92,Terminal
+TRG080,anchorage,anchorage position|anchorage area,voyage.anchorage,false,general,,voyage,text,82,Anchorage
+TRG081,pilot station,pilot boarding place|pilot station eta,voyage.pilot_station,false,general,,voyage,text,84,Pilot station
+TRG082,actual time of departure,atd|departure datetime,voyage.atd,false,general,,voyage,datetime,88,ATD
+TRG083,country of departure,departure country|last port country,voyage.departure_country,false,general,,voyage,text,84,Departure country
+TRG084,country of arrival,arrival country|destination country,voyage.arrival_country,false,general,,voyage,text,84,Arrival country
+TRG085,purpose of call,reason for call|purpose of visit,voyage.purpose_of_call,false,general,,voyage,text,82,Purpose of call
+TRG086,cargo operation,loading/discharging|operation,voyage.cargo_operation,false,general,,voyage,text,88,Cargo operation
+TRG087,cargo volume,volume onboard|m3 onboard|cargo volume m3,cargo.volume_m3,false,general,lng,cargo,number,92,Cargo volume
+TRG088,quantity on board,qob|cargo on board|cargo qty onboard,cargo.quantity_on_board,false,general,lng,cargo,number,94,Quantity on board
+TRG089,heel quantity,heel|heel onboard,cargo.heel_quantity,false,general,lng,cargo,number,88,Heel quantity
+TRG090,cargo density,lng density|liquid density,cargo.density,false,general,lng,cargo,number,80,Cargo density
+TRG091,methane number,methane no|mn,cargo.methane_number,false,general,lng,cargo,number,70,Methane number
+TRG092,cargo tanks,tank numbers|tank ids|cargo tank numbers,cargo.tanks,false,general,lng,cargo,text,80,Cargo tanks
+TRG093,manifold pressure,cargo manifold pressure,cargo.manifold_pressure,false,general,lng,cargo,number,75,Manifold pressure
+TRG094,vapour return,vapor return|vapour line connection,cargo.vapour_return,false,general,lng,cargo,text,72,Vapour return
+TRG095,esd status,emergency shutdown status|esd,cargo.esd_status,false,general,lng,cargo,text,70,ESD status
+TRG096,gcu status,gas combustion unit status|gcu,cargo.gcu_status,false,general,lng,cargo,text,68,GCU status
+TRG097,reliquefaction,reliq status|reliquefaction plant,cargo.reliquefaction_status,false,general,lng,cargo,text,68,Reliquefaction status
+TRG098,tank pressure,cargo tank pressure|tank vapour pressure,cargo.tank_pressure,false,general,lng,cargo,number,72,Tank pressure
+TRG099,tank level,cargo tank level|liquid level,cargo.tank_level,false,general,lng,cargo,number,72,Tank level
+TRG100,dpa,designated person ashore|dpa name,company.dpa,false,general,,company,text,78,DPA
+TRG101,company security officer,cso|company security officer name,company.cso,false,general,,company,text,78,CSO
+TRG102,ship security officer,sso|ship security officer name,ship.sso,false,general,,ship,text,78,SSO
+TRG103,pfso,port facility security officer,voyage.pfso,false,general,,voyage,text,72,PFSO
+TRG104,24 hour poc,24hr point of contact|24 hour point of contact|24h contact,voyage.poc_24h.name,false,general,,voyage,text,90,24h POC name
+TRG105,24 hour phone,24hr phone|24h contact number,voyage.poc_24h.phone,false,general,,voyage,text,88,24h POC phone
+TRG106,reporting party,submitting party|filing party,voyage.reporting_party,false,general,,voyage,text,92,Reporting party
+TRG107,notice id,submission id|report id,voyage.notice_id,false,general,,voyage,text,86,Notice ID
+TRG108,issc number,international ship security certificate no|issc no,ship.certificates.issc.number,false,general,,ship,text,84,ISSC number
+TRG109,issc expiry,issc expiry date|issc valid until,ship.certificates.issc.expiry_date,false,general,,ship,date,84,ISSC expiry
+TRG110,smc number,safety management certificate no|smc no,ship.certificates.smc.number,false,general,,ship,text,82,SMC number
+TRG111,smc expiry,smc expiry date|smc valid until,ship.certificates.smc.expiry_date,false,general,,ship,date,82,SMC expiry
+TRG112,doc number,document of compliance no|doc no,company.certificates.doc.number,false,general,,company,text,80,DOC number
+TRG113,doc expiry,document of compliance expiry|doc valid until,company.certificates.doc.expiry_date,false,general,,company,date,80,DOC expiry
+TRG114,cofr number,certificate of financial responsibility no|cofr no,ship.certificates.cofr.number,false,general,,ship,text,86,COFR number
+TRG115,cofr expiry,cofr expiry date|cofr valid until,ship.certificates.cofr.expiry_date,false,general,,ship,date,86,COFR expiry
+TRG116,total persons on board,pob total|persons onboard|souls on board,voyage.persons_on_board,false,general,,voyage,number,92,POB total
+TRG117,passengers,number of passengers|passenger count,voyage.passenger_count,false,general,,voyage,number,74,Passenger count
+TRG118,crew count,crew total|number of crew,voyage.crew_count,false,general,,voyage,number,90,Crew count
+TRG119,stowaways,stowaway count|number of stowaways,voyage.stowaway_count,false,general,,voyage,number,65,Stowaways
+TRG120,stores declaration,ship's stores|bonded stores,ship.stores.declaration,false,general,,ship,text,68,Stores declaration
+TRG121,last ten ports,last 10 ports|previous ten ports,voyage.last_ten_ports,false,general,,voyage,list,78,Last ten ports
+TRG122,crew effects,personal effects|crew property,crew.effects,true,crew_row,customs,crew,text,60,Crew effects
+TRG123,health declaration,maritime declaration of health|mdh,voyage.health_declaration,false,general,,voyage,text,74,Health declaration

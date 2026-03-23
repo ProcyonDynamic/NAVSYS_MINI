@@ -1,0 +1,30 @@
+[
+  {
+    "registry_id": "mayday",
+    "canonical_name": "MAYDAY",
+    "entity_type": "DISTRESS_TERM",
+    "aliases": ["MAYDAY"],
+    "tags": ["DISTRESS", "CRITICAL"]
+  },
+  {
+    "registry_id": "pan_pan",
+    "canonical_name": "PAN PAN",
+    "entity_type": "URGENCY_TERM",
+    "aliases": ["PAN PAN", "PAN-PAN"],
+    "tags": ["URGENCY"]
+  },
+  {
+    "registry_id": "securite",
+    "canonical_name": "SECURITE",
+    "entity_type": "SAFETY_TERM",
+    "aliases": ["SECURITE", "SÉCURITÉ"],
+    "tags": ["SAFETY"]
+  },
+  {
+    "registry_id": "adrift",
+    "canonical_name": "ADRIFT",
+    "entity_type": "STATE_TERM",
+    "aliases": ["ADRIFT", "DRIFTING"],
+    "tags": ["MOVEMENT"]
+  }
+]

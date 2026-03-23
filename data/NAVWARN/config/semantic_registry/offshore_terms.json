@@ -1,0 +1,9 @@
+[
+  {
+    "registry_id": "modu",
+    "canonical_name": "MODU",
+    "entity_type": "OFFSHORE_UNIT",
+    "aliases": ["DRILLING UNIT", "MODU"],
+    "tags": ["OFFSHORE"]
+  }
+]

@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from .models import Geometry, LatLon, Validity, WarningDraft
 
 from modules.navwarn_mini.coord_repair import repair_split_coords
+
+
+from .keyphrase_builder import build_key_phrases
+from .semantic_models import SemanticPacket
 
 WarningType = str
 PhrasePattern = str
@@ -67,7 +71,28 @@ class InterpretationResult:
     is_cancellation: bool
     is_reference_message: bool
     platform_name: Optional[str]
+    semantic_packet: Optional[SemanticPacket] = None
+    key_phrases: List[str] = field(default_factory=list)
+    format_fingerprint: Optional[FormatFingerprint] = None
+    
 
+@dataclass(frozen=True)
+class FormatFingerprint:
+    has_header: bool
+    has_time_block: bool
+    has_reference_block: bool
+    has_cancellation_block: bool
+    has_geometry_block: bool
+    has_description_block: bool
+    has_admin_block: bool
+
+    coord_count: int
+    geometry_phrase: str
+    has_list_labels: bool
+    looks_like_offshore_list: bool
+    looks_like_single_point_notice: bool
+    has_cancel_this_msg_clause: bool
+    has_explicit_cancel_targets: bool
 
 # ---------------------------------------------------------------------------
 # Phrase / type rules
@@ -91,7 +116,23 @@ _WARNING_TYPE_RULES: list[tuple[WarningType, tuple[str, ...]]] = [
     ("CANCELLATION", ("CANCEL THIS MSG", "CANCELLED", "CANCELS", "CANCEL NAVAREA")),
     ("CUMULATIVE", ("IN FORCE WARNINGS", "WARNINGS IN FORCE", "CUMULATIVE")),
     ("MILITARY_EXERCISE", ("MILITARY EXERCISE", "GUNNERY", "FIRING", "NAVAL EXERCISE")),
-    ("MODU", ("MODU", "MOBILE OFFSHORE DRILLING UNIT", "SEMI-SUBMERSIBLE", "JACK-UP")),
+    ("MODU", (
+        "MODU",
+        "MOBILE OFFSHORE DRILLING UNIT",
+        "SEMI-SUBMERSIBLE", "JACK-UP",
+        "MOBILE OFFSHORE DRILLING UNITS",
+        "OFFSHORE DRILLING UNIT",
+        "OFFSHORE DRILLING UNITS",
+        "SEMI-SUBMERSIBLE",
+        "SEMI SUBMERSIBLE",
+        "JACK-UP",
+        "JACK UP",
+        "DRILLING UNIT POSITIONS",
+        "DRILLING UNITS POSITIONS",
+        "DRILLING UNIT POSITION",
+        "DRILLING UNTIS POSITION",
+        "DRILLING-UNIT-POSITIONS",
+    )),
     ("DRILLING", ("DRILLING", "DRILL SHIP", "RIG", "OFFSHORE INSTALLATION")),
     ("SUBMARINE_CABLE", ("SUBMARINE CABLE", "CABLE LAYING", "CABLE WORK")),
     ("SURVEY", ("SURVEY", "SEISMIC", "RESEARCH VESSEL")),
@@ -174,63 +215,41 @@ def normalize_text(text: str) -> str:
     # Small OCR repairs
     cleaned = re.sub(r"(\d)([NS])(\d)", r"\1 \2 \3", cleaned)
     cleaned = re.sub(r"(\d)([EW])(\d)", r"\1 \2 \3", cleaned)
-    cleaned = re.sub(r"(\d)-(\d{2}\.\d)([NSEW])", r"\1 \2 \3", cleaned)
-    cleaned = re.sub(r"(\d{1,3})\s*[-/]\s*(\d{1,2}(?:\.\d+)?)\s*([NSEW])", r"\1 \2 \3", cleaned)
+    # Preserve DMS coordinates like 18-42-17N
+    cleaned = re.sub(
+        r"(\d{1,3})-(\d{1,2})-(\d{1,2})([NSEW])",
+        r"\1-\2-\3\4",
+        cleaned
+    )
 
+    # Normalize only degree-minute formats, NOT DMS 
+    cleaned = re.sub(
+        r"(\d{1,3})\s+(\d{1,2}\.\d+)\s*([NSEW])",
+        r"\1 \2 \3",
+        cleaned
+    )
+    
     return cleaned
 
 # ---------------------------------------------------------------------------
 # Coordinate detection
 # ---------------------------------------------------------------------------
 
-_COORD_PATTERNS = [
-    re.compile(
-        r"(?P<lat_deg>\d{1,2})\s+(?P<lat_min>\d{1,2}(?:\.\d+)?)\s*(?P<lat_hemi>[NS])"
-        r"[\s,;/]+"
-        r"(?P<lon_deg>\d{1,3})\s+(?P<lon_min>\d{1,2}(?:\.\d+)?)\s*(?P<lon_hemi>[EW])"
-    ),
-    re.compile(
-        r"(?P<lat_comp>\d{4,5}(?:\.\d+)?)\s*(?P<lat_hemi>[NS])"
-        r"[\s,;/]+"
-        r"(?P<lon_comp>\d{5,6}(?:\.\d+)?)\s*(?P<lon_hemi>[EW])"
-    ),
-]
-
-
-def _compact_to_deg_min(value: str, is_lon: bool) -> Tuple[int, float]:
-    digits = value.split(".")[0]
-    frac = value[len(digits):]
-    deg_len = 3 if is_lon else 2
-    deg = int(digits[:deg_len])
-    minute_str = digits[deg_len:] + frac
-    minutes = float(minute_str)
-    return deg, minutes
-
-
-def _deg_min_to_decimal(deg: int, minutes: float, hemi: str) -> float:
-    decimal = deg + (minutes / 60.0)
-    if hemi in ("S", "W"):
-        decimal *= -1.0
-    return round(decimal, 8)
 
 
 def detect_coordinates(text: str) -> List[LatLon]:
-    found: List[LatLon] = []
-    for pattern in _COORD_PATTERNS:
-        for match in pattern.finditer(text):
-            groups = match.groupdict()
-            if groups.get("lat_deg"):
-                lat_deg = int(groups["lat_deg"])
-                lat_min = float(groups["lat_min"])
-                lon_deg = int(groups["lon_deg"])
-                lon_min = float(groups["lon_min"])
-            else:
-                lat_deg, lat_min = _compact_to_deg_min(groups["lat_comp"], is_lon=False)
-                lon_deg, lon_min = _compact_to_deg_min(groups["lon_comp"], is_lon=True)
+    from .coordinate_extractor_mini import CoordinateExtractor
 
-            lat = _deg_min_to_decimal(lat_deg, lat_min, groups["lat_hemi"])
-            lon = _deg_min_to_decimal(lon_deg, lon_min, groups["lon_hemi"])
-            found.append(LatLon(lat=lat, lon=lon))
+    found: List[LatLon] = []
+    seen: set[tuple[float, float]] = set()
+
+    for coord in CoordinateExtractor.extract(text or ""):
+        key = (round(coord.lat, 8), round(coord.lon, 8))
+        if key in seen:
+            continue
+        seen.add(key)
+        found.append(LatLon(lat=coord.lat, lon=coord.lon))
+
     return found
 
 
@@ -332,19 +351,31 @@ def build_structure(title: str, body: str) -> WarningStructure:
 
 def classify_warning(text: str, structure: Optional[WarningStructure] = None) -> WarningType:
     if structure:
-        # Priority rule:
-        # A cumulative / in-force bulletin may contain "CANCEL THIS MSG"
+        # A cumulative / in-force bulletin may contain cancel wording
         # without being a true operational cancellation warning.
         if structure.reference_blocks and not structure.geometry_blocks:
             return "CUMULATIVE"
 
-        if structure.cancellation_blocks:
+        has_cancel_this_msg = any(
+            bool(block.extracted.get("has_cancel_this_msg"))
+            for block in structure.cancellation_blocks
+        )
+        has_cancel_targets = any(
+            bool(block.extracted.get("cancellation_targets"))
+            for block in structure.cancellation_blocks
+        )
+        has_geometry = bool(structure.geometry_blocks)
+
+        # Only classify as standalone cancellation if it targets warnings
+        # and does not introduce fresh operational geometry.
+        if structure.cancellation_blocks and has_cancel_targets and not has_geometry:
             return "CANCELLATION"
 
     for warning_type, keywords in _WARNING_TYPE_RULES:
         for kw in keywords:
             if kw in text:
                 return warning_type
+
     return "UNCLASSIFIED"
 
 
@@ -406,6 +437,124 @@ def extract_platform_name(text: str) -> Optional[str]:
 
     return name if len(name) >= 3 else None
 
+def _detect_geometry_phrase(text: str) -> str:
+    for pattern, phrase_name, _ in _PHRASE_LIBRARY:
+        if re.search(pattern, text):
+            return phrase_name
+    return "UNSPECIFIED"
+
+
+def _has_list_labels(raw_text: str) -> bool:
+    return bool(
+        re.search(
+            r"(^|\n)\s*(?:[A-Z]{1,4}|\d+)\.\s+",
+            raw_text or "",
+            flags=re.IGNORECASE,
+        )
+    )
+
+
+def _looks_like_single_point_notice(text: str, coord_count: int) -> bool:
+    t = (text or "").upper()
+
+    if coord_count != 1:
+        return False
+
+    return any(
+        phrase in t
+        for phrase in (
+            "UNLIT",
+            "UNRELIABLE",
+            "MISSING",
+            "DAMAGED",
+            "ESTABLISHED",
+            "WRECK",
+            "DANGEROUS WRECK",
+            "BEACON",
+            "BUOY",
+            "LIGHT",
+            "LIGHTHOUSE",
+            "RACON",
+        )
+    )
+
+
+def build_format_fingerprint(
+    *,
+    title: str,
+    body: str,
+    combined_text: str,
+    structure: WarningStructure,
+    coords: List[LatLon],
+    cancellation_targets: List[str],
+) -> FormatFingerprint:
+    raw_text = f"{title}\n{body}".strip()
+    geometry_phrase = _detect_geometry_phrase(combined_text)
+    has_cancel_this_msg_clause = "CANCEL THIS MSG" in combined_text.upper()
+
+    return FormatFingerprint(
+        has_header=bool(structure.header_blocks),
+        has_time_block=bool(structure.time_blocks),
+        has_reference_block=bool(structure.reference_blocks),
+        has_cancellation_block=bool(structure.cancellation_blocks),
+        has_geometry_block=bool(structure.geometry_blocks),
+        has_description_block=bool(structure.description_blocks),
+        has_admin_block=bool(structure.admin_blocks),
+        coord_count=len(coords),
+        geometry_phrase=geometry_phrase,
+        has_list_labels=_has_list_labels(raw_text),
+        looks_like_offshore_list=(
+            "MOBILE OFFSHORE DRILLING UNITS" in combined_text.upper()
+            or "POSITIONS AT" in combined_text.upper()
+            or (
+                "MODU" in combined_text.upper()
+                and _has_list_labels(raw_text)
+                and len(coords) >= 2
+            )
+        ),
+        looks_like_single_point_notice=_looks_like_single_point_notice(combined_text, len(coords)),
+        has_cancel_this_msg_clause=has_cancel_this_msg_clause,
+        has_explicit_cancel_targets=bool(cancellation_targets),
+    )
+
+def classify_warning_from_fingerprint(
+    *,
+    combined_text: str,
+    structure: WarningStructure,
+    fingerprint: FormatFingerprint,
+    cancellation_targets: List[str],
+) -> WarningType:
+    text = combined_text.upper()
+
+    if fingerprint.has_reference_block and not fingerprint.has_geometry_block:
+        return "CUMULATIVE"
+
+    if (
+        fingerprint.has_cancellation_block
+        and fingerprint.has_explicit_cancel_targets
+        and fingerprint.coord_count == 0
+    ):
+        return "CANCELLATION"
+
+    if fingerprint.looks_like_offshore_list:
+        return "MODU"
+
+    if fingerprint.looks_like_single_point_notice:
+        return "AIDS_TO_NAVIGATION"
+
+    if fingerprint.coord_count > 0:
+        if any(x in text for x in ("HAZARDOUS OPERATIONS", "ROCKET", "EXERCISE", "FIRING")):
+            return "ROCKET_LAUNCH"
+        if any(x in text for x in ("SURVEY OPERATIONS", "SEISMIC", "SUBSEA OPERATIONS", "PIPELINE OPERATIONS")):
+            return "SURVEY"
+        if "CABLE OPERATIONS" in text:
+            return "SUBMARINE_CABLE"
+        if any(x in text for x in ("WRECK", "DANGEROUS WRECK")):
+            return "WRECK"
+        if any(x in text for x in ("UNLIT", "MISSING", "DAMAGED", "ESTABLISHED", "RANGE CHANGED")):
+            return "AIDS_TO_NAVIGATION"
+
+    return classify_warning(text, structure=structure)
 
 # ---------------------------------------------------------------------------
 # Geometry builder
@@ -418,6 +567,13 @@ def build_geometry(
     implied_geom: Optional[str],
     warning_type: WarningType,
 ) -> Geometry:
+    
+    # MODU / offshore object lists are semantic multi-point collections,
+    # not connected route lines.
+    if warning_type == "MODU":
+        if len(coords) >= 1:
+            return Geometry(geom_type="POINT", vertices=coords, closed=False)
+        return Geometry(geom_type="POINT", vertices=[], closed=False)
     
     # Offshore installations behave as annotated point objects
     if warning_type in _PLATFORM_TYPES and coords:
@@ -506,26 +662,70 @@ def interpret_warning(
     normalized_body = normalize_text(body)
     combined = f"{normalized_title} {normalized_body}".strip()
 
+    from .semantic_packet_builder import build_semantic_packet
+    semantic_packet = build_semantic_packet(
+        raw_text=f"{title}\n{body}",
+        normalized_text=combined,
+    )
+
+    key_phrases = build_key_phrases(
+        warning_id=warning_id,
+        semantic_packet=semantic_packet,
+    )
+
     errors: List[str] = []
 
     structure = build_structure(title, body)
-    warning_type = classify_warning(combined, structure=structure)
     phrase_pattern, implied_geom = detect_phrase_pattern(combined)
 
     coords = collect_structure_coordinates(structure, combined)
     validity = parse_validity(combined, structure=structure)
     platform_name = extract_platform_name(combined)
+    cancellation_targets = extract_cancellation_targets(structure)
+
+    format_fingerprint = build_format_fingerprint(
+        title=title,
+        body=body,
+        combined_text=combined,
+        structure=structure,
+        coords=coords,
+        cancellation_targets=cancellation_targets,
+    )
+
+    warning_type = classify_warning_from_fingerprint(
+        combined_text=combined,
+        structure=structure,
+        fingerprint=format_fingerprint,
+        cancellation_targets=cancellation_targets,
+    )
+
     geometry = build_geometry(
         coords=coords,
         phrase_pattern=phrase_pattern,
         implied_geom=implied_geom,
         warning_type=warning_type,
+    )   
+    has_geometry = bool(geometry.vertices) or bool(structure.geometry_blocks)
+
+    has_cancel_this_msg_clause = any(
+        bool(block.extracted.get("has_cancel_this_msg"))
+        for block in structure.cancellation_blocks
     )
-    cancellation_targets = extract_cancellation_targets(structure)
-    is_cancellation = (
+
+    has_explicit_cancel_targets = bool(cancellation_targets)
+    is_modu_family = warning_type == "MODU"
+    
+    # Distinguish:
+    # 1) standalone cancellation bulletins
+    # 2) operational warnings that contain self-expiry text like "CANCEL THIS MSG ..."
+    embedded_cancel_clause = has_geometry and has_cancel_this_msg_clause
+    standalone_cancellation = (
         warning_type == "CANCELLATION"
-        and bool(cancellation_targets)
+        and has_explicit_cancel_targets
+        and not has_geometry
     )
+
+    is_cancellation = standalone_cancellation
     is_reference_message = warning_type == "CUMULATIVE"
 
     if not coords and not is_cancellation and not is_reference_message:
@@ -536,7 +736,50 @@ def interpret_warning(
 
     if not geometry.vertices and not is_cancellation and not is_reference_message:
         errors.append("Geometry could not be built from interpreted content.")
+    
+    # Preserve operational type if geometry exists and the message is active now,
+    # even if it contains future self-cancel wording.
+    #
+    # Do NOT downgrade to UNCLASSIFIED. These are still real operational warnings
+    # that just contain an embedded expiry clause like "CANCEL THIS MSG ...".
+    if embedded_cancel_clause and warning_type == "CANCELLATION":
+        operational_text = combined
 
+        if any(
+            kw in operational_text
+            for kw in (
+                "HAZARDOUS OPERATIONS",
+                "ROCKET",
+                "EXERCISE",
+                "FIRING",
+                "SURVEY OPERATIONS",
+                "CABLE OPERATIONS",
+                "PIPELINE OPERATIONS",
+                "DRILLING OPERATIONS",
+                "SUBSEA OPERATIONS",
+                "IN AREA BOUNDED BY",
+                "ALONG TRACKLINE JOINING",
+                "WITHIN",
+                "DANGEROUS WRECK",
+                "UNLIT",
+                "MISSING",
+                "DAMAGED",
+                "ESTABLISHED",
+                "RANGE CHANGED",
+                "SERVICES UNAVAILABLE",
+                "OFF AIR",
+            )
+        ):
+                warning_type = classify_warning_from_fingerprint(
+                    combined_text=operational_text.replace("CANCEL THIS MSG", ""),
+                    structure=structure,
+                    fingerprint=format_fingerprint,
+                    cancellation_targets=[],
+                )
+
+                if warning_type == "CANCELLATION":
+                    warning_type = "GENERAL_HAZARD"
+                        
     confidence, breakdown = compute_confidence(
         coords=coords,
         phrase_pattern=phrase_pattern,
@@ -577,6 +820,9 @@ def interpret_warning(
         is_cancellation=is_cancellation,
         is_reference_message=is_reference_message,
         platform_name=platform_name,
+        key_phrases=key_phrases,
+        semantic_packet=semantic_packet,
+        format_fingerprint=format_fingerprint,
     )
 
     return draft, result

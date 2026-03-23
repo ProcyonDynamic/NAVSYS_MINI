@@ -1,0 +1,16 @@
+[
+  {
+    "registry_id": "miami_radio",
+    "canonical_name": "MIAMI RADIO",
+    "entity_type": "RADIO_STATION",
+    "aliases": ["NMG", "MIAMI RADIO"],
+    "tags": ["GMDSS", "RADIO"]
+  },
+  {
+    "registry_id": "new_orleans_radio",
+    "canonical_name": "NEW ORLEANS RADIO",
+    "entity_type": "RADIO_STATION",
+    "aliases": ["WLO", "NEW ORLEANS RADIO"],
+    "tags": ["GMDSS", "RADIO"]
+  }
+]

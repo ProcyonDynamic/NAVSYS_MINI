@@ -35,10 +35,10 @@ class CoordinateExtractor:
         re.VERBOSE | re.IGNORECASE,
     )
 
-
     @classmethod
     def extract(cls, text: str) -> List[Coordinate]:
         results: List[Coordinate] = []
+        seen: set[tuple[float, float]] = set()
 
         for match in cls.MASTER_PATTERN.finditer(text or ""):
             raw = match.group(0)
@@ -50,14 +50,15 @@ class CoordinateExtractor:
                 continue
 
             if abs(lat) <= 90 and abs(lon) <= 180:
-                results.append(Coordinate(lat, lon, raw))
+                key = (round(lat, 8), round(lon, 8))
+                if key not in seen:
+                    seen.add(key)
+                    results.append(Coordinate(lat, lon, raw))
 
         return results
 
     @staticmethod
-
     def _parse_component(text: str, is_lat: bool) -> Optional[float]:
-
         text = (text or "").upper().strip()
 
         hemi = 1
@@ -75,22 +76,23 @@ class CoordinateExtractor:
                 .replace("°", " ")
                 .replace("'", " ")
                 .replace('"', " ")
-            )
+        )
 
         numbers = re.findall(r"\d+(?:\.\d+)?", clean)
 
         if not numbers:
             return None
 
+        if len(numbers) == 1:
+            deg = float(numbers[0])
+            return hemi * deg
+
         if len(numbers) == 2:
             deg = float(numbers[0])
             minutes = float(numbers[1])
-            return hemi * (deg + minutes / 60)
+            return hemi * (deg + minutes / 60.0)
 
-        if len(numbers) >= 3:
-            deg = float(numbers[0])
-            minutes = float(numbers[1])
-            seconds = float(numbers[2])
-            return hemi * (deg + minutes / 60 + seconds / 3600)
-
-        return None
+        deg = float(numbers[0])
+        minutes = float(numbers[1])
+        seconds = float(numbers[2])
+        return hemi * (deg + minutes / 60.0 + seconds / 3600.0)

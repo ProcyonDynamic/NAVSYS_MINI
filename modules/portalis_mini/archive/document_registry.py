@@ -26,8 +26,11 @@ class DocumentRegistry:
         source_file: Path,
         parsed_fields: Dict[str, Any],
         confidence: float,
+        review_required: bool = False,
+        review_reasons: list[str] | None = None,
+        warnings: list[str] | None = None,
     ) -> str:
-
+        
         registry = self._load_registry()
 
         doc_id = f"DOC_{len(registry['documents'])+1:06d}"
@@ -40,6 +43,9 @@ class DocumentRegistry:
             "source_file": str(source_file),
             "parsed_fields": parsed_fields,
             "confidence": confidence,
+            "review_required": review_required,
+            "review_reasons": review_reasons or [],
+            "warnings": warnings or [],
             "created_at": datetime.utcnow().isoformat(),
         }
 
@@ -51,10 +57,34 @@ class DocumentRegistry:
 
     def _load_registry(self):
 
-        with open(self.registry_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        if not self.registry_path.exists():
+            return {"documents": []}
 
+        with open(self.registry_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        if not isinstance(data, dict):
+            return {"documents": []}
+
+        if "documents" not in data or not isinstance(data["documents"], list):
+            data["documents"] = []
+
+        return data
+    
     def _save_registry(self, registry):
 
         with open(self.registry_path, "w", encoding="utf-8") as f:
-            json.dump(registry, f, indent=2)
+            json.dump(registry, f, indent=2, ensure_ascii=False)
+            
+    def list_documents(self) -> list[Dict[str, Any]]:
+        registry = self._load_registry()
+        return registry.get("documents", [])
+    
+    def get_document(self, document_id: str) -> Dict[str, Any] | None:
+        registry = self._load_registry()
+
+        for entry in registry.get("documents", []):
+            if entry.get("document_id") == document_id:
+                return entry
+
+        return None

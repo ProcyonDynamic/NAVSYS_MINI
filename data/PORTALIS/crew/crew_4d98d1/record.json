@@ -3,5 +3,20 @@
   "name": "Rufon Noel III",
   "rank": "SuperSayan",
   "nationality": "",
-  "documents": []
+  "documents": [
+    {
+      "doc_id": "_447a36",
+      "doc_type": "",
+      "doc_subtype": "",
+      "document_number": "",
+      "country": "",
+      "issue_date": "",
+      "expiry_date": "",
+      "is_primary": false,
+      "status": "ACTIVE",
+      "source_file": "",
+      "confidence": "",
+      "notes": ""
+    }
+  ]
 }

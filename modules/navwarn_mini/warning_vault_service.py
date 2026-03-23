@@ -50,24 +50,49 @@ def match_warning_profile(*, raw_text: str, interp_warning_type: str = "") -> Wa
 
         if interp_type:
             if profile.category_type == "OFFSHORE" and interp_type in ("MODU", "PLATFORM"):
-                score += 15
+                score += 25
                 reasons.append(f"interp_type:{interp_type}")
+
             elif profile.category_type == "CANCELLATION" and interp_type == "CANCELLATION":
-                score += 15
-                reasons.append(f"interp_type:{interp_type}")
-            elif profile.category_type == "REFERENCE" and interp_type == "REFERENCE":
-                score += 15
+                score += 25
                 reasons.append(f"interp_type:{interp_type}")
 
-        score -= profile.match_priority
+            elif profile.category_type == "REFERENCE" and interp_type in ("REFERENCE", "CUMULATIVE"):
+                score += 25
+                reasons.append(f"interp_type:{interp_type}")
 
+            elif profile.category_type == "AIDS_TO_NAVIGATION" and interp_type == "AIDS_TO_NAVIGATION":
+                score += 35
+                reasons.append(f"interp_type:{interp_type}")
+
+            elif profile.category_type == "OPERATIONAL_AREA" and interp_type in (
+                "AIDS_TO_NAVIGATION",
+                "ROCKET_LAUNCH",
+                "SURVEY",
+                "SUBMARINE_CABLE",
+                "WRECK",
+                "GENERAL_HAZARD",
+                "MILITARY_EXERCISE",
+                "DRILLING",
+            ):
+                score += 25
+                reasons.append(f"interp_type:{interp_type}")
+                
         if score > best_score:
             best_profile = profile
             best_score = score
             best_reasons = reasons
 
-    if best_profile is None or best_score < 0:
-        return WarningProfileMatch(profile=None, score=0, reasons=[])
+    if best_profile is None or best_score <= 0:
+        return WarningProfileMatch(
+            profile=None,
+            score=0,
+            reasons=["No profile matched"],
+        )
+
+    print("[PROFILE DEBUG] best profile:", best_profile.internal_id if best_profile else None)
+    print("[PROFILE DEBUG] best score:", best_score)
+    print("[PROFILE DEBUG] best reasons:", best_reasons)
 
     return WarningProfileMatch(
         profile=best_profile,

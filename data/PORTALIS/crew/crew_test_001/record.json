@@ -1,0 +1,65 @@
+{
+  "crew_id": "crew_test_001",
+  "rank": null,
+  "name": "",
+  "documents": [
+    {
+      "doc_id": "passport_AP3255765",
+      "doc_type": "PASSPORT",
+      "doc_subtype": "",
+      "document_number": "AP3255765",
+      "country": "EAAHNIKH J HELLENIC",
+      "issue_date": "48 Jul 23",
+      "expiry_date": "22 Jan 00",
+      "is_primary": true,
+      "status": "ACTIVE",
+      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "confidence": "",
+      "notes": "Imported from mapped fields"
+    },
+    {
+      "doc_id": "passport_AY4667152",
+      "doc_type": "PASSPORT",
+      "doc_subtype": "",
+      "document_number": "AY4667152",
+      "country": "EAAHNIKH J HELLENIC",
+      "issue_date": "48 Jul 23",
+      "expiry_date": "22 Jan 00",
+      "is_primary": true,
+      "status": "ACTIVE",
+      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "confidence": "",
+      "notes": "Imported from mapped fields"
+    }
+  ],
+  "family_name": "",
+  "given_name": "",
+  "middle_initial": null,
+  "nationality": "EAAHNIKH J HELLENIC",
+  "date_of_birth": "22 Jan 00",
+  "place_of_birth": "NAKHODKA",
+  "passports": [
+    {
+      "document_type": "passport",
+      "number": "AP3255765",
+      "issuing_state": null,
+      "issue_date": "48 Jul 23",
+      "expiry_date": "22 Jan 00",
+      "nationality": "EAAHNIKH J HELLENIC",
+      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf"
+    },
+    {
+      "document_type": "passport",
+      "number": "AY4667152",
+      "issuing_state": null,
+      "issue_date": "48 Jul 23",
+      "expiry_date": "22 Jan 00",
+      "nationality": "EAAHNIKH J HELLENIC",
+      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf"
+    }
+  ],
+  "seaman_books": [],
+  "visas": [],
+  "vaccinations": [],
+  "notes": null
+}
