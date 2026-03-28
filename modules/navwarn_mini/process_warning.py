@@ -92,6 +92,70 @@ def _safe_name(value: str) -> str:
     value = value.replace(" ", "_")
     return value
 
+def _interpret_stage(
+    *,
+    raw_text: str,
+    warning_id: str,
+    navarea: str,
+    source_kind: str,
+    title: str,
+    run_id: str,
+    created_utc: str,
+    source_title: str,
+    source_url: str,
+    operator_name: str,
+    output_root: str,
+):
+    src_ref = None
+    if source_title or source_url:
+        src_ref = SourceRef(
+            title=source_title,
+            url=source_url,
+            retrieved_utc=created_utc,
+        )
+
+    draft_struct, interp = interpret_warning(
+        warning_id=warning_id,
+        navarea=navarea,
+        source_kind=source_kind,
+        title=title,
+        body=raw_text,
+        run_id=run_id,
+        created_utc=created_utc,
+        source_ref=src_ref,
+        operator_name=operator_name,
+        operator_watch="",
+        operator_notes="",
+    )
+
+    print("[INTERP DEBUG] warning_id:", warning_id)
+    print("[INTERP DEBUG] interp.warning_type:", interp.warning_type)
+    print("[INTERP DEBUG] is_reference_message:", interp.is_reference_message)
+    print("[INTERP DEBUG] is_cancellation:", interp.is_cancellation)
+    print("[INTERP DEBUG] key_phrases:", interp.key_phrases)
+    if getattr(interp, "format_fingerprint", None) is not None:
+        print("[INTERP DEBUG] fingerprint:", interp.format_fingerprint)
+
+    profile_match = match_warning_profile(
+        raw_text=raw_text,
+        interp_warning_type=interp.warning_type,
+    )
+
+    plot_policy_match = resolve_plot_policy_for_profile(
+        output_root=output_root,
+        profile=profile_match.profile,
+    )
+
+    print("[DEBUG] plot_policy_match.matched:", plot_policy_match.matched)
+    print("[DEBUG] plot_policy_id:", plot_policy_match.policy_id)
+    print("[DEBUG] plot_policy_reasons:", plot_policy_match.reasons)
+
+    pattern_match = match_warning_pattern(
+        raw_text=raw_text,
+        profile_id=profile_match.profile.internal_id if profile_match.profile else None,
+    )
+
+    return src_ref, draft_struct, interp, profile_match, plot_policy_match, pattern_match
 
 def process_warning_text(
     *,
@@ -168,55 +232,19 @@ def process_warning_text(
     # Structural interpretation
     # ----------------------------------------------
 
-    src_ref = None
-    if source_title or source_url:
-        src_ref = SourceRef(
-            title=source_title,
-            url=source_url,
-            retrieved_utc=created_utc,
-        )
-
-    draft_struct, interp = interpret_warning(
+    src_ref, draft_struct, interp, profile_match, plot_policy_match, pattern_match = _interpret_stage(
+        raw_text=raw_text,
         warning_id=warning_id,
         navarea=navarea,
         source_kind=source_kind,
         title=title,
-        body=raw_text,
         run_id=run_id,
         created_utc=created_utc,
-        source_ref=src_ref,
+        source_title=source_title,
+        source_url=source_url,
         operator_name=operator_name,
-        operator_watch="",
-        operator_notes="",
-    )
-
-    print("[INTERP DEBUG] warning_id:", warning_id)
-    print("[INTERP DEBUG] interp.warning_type:", interp.warning_type)
-    print("[INTERP DEBUG] is_reference_message:", interp.is_reference_message)
-    print("[INTERP DEBUG] is_cancellation:", interp.is_cancellation)
-    print("[INTERP DEBUG] key_phrases:", interp.key_phrases)
-    if getattr(interp, "format_fingerprint", None) is not None:
-        print("[INTERP DEBUG] fingerprint:", interp.format_fingerprint)
-
-    profile_match = match_warning_profile(
-        raw_text=raw_text,
-        interp_warning_type=interp.warning_type,
-    )
-
-    plot_policy_match = resolve_plot_policy_for_profile(
         output_root=output_root,
-        profile=profile_match.profile,
     )
-
-    print("[DEBUG] plot_policy_match.matched:", plot_policy_match.matched)
-    print("[DEBUG] plot_policy_id:", plot_policy_match.policy_id)
-    print("[DEBUG] plot_policy_reasons:", plot_policy_match.reasons)
-
-    pattern_match = match_warning_pattern(
-        raw_text=raw_text,
-        profile_id=profile_match.profile.internal_id if profile_match.profile else None,
-    )
-    
 
 
 
