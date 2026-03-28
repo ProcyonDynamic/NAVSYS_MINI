@@ -157,6 +157,59 @@ def _interpret_stage(
 
     return src_ref, draft_struct, interp, profile_match, plot_policy_match, pattern_match
 
+def _state_stage(
+    *,
+    daily_ns01_csv: Path,
+    warning_id: str,
+    navarea: str,
+    created_utc: str,
+    active_table_csv: Path,
+    interp,
+    raw_text: str,
+):
+    existing_ids = _load_existing_warning_ids(daily_ns01_csv)
+
+    normalized_warning_id = " ".join(warning_id.upper().split())
+    is_duplicate = normalized_warning_id in existing_ids
+
+    dup_decision = handle_duplicate(
+        is_duplicate=is_duplicate,
+        warning_id=warning_id,
+    )
+
+    print("[DUPLICATE DEBUG]", {
+        "warning_id": warning_id,
+        "is_duplicate": is_duplicate,
+        "daily_ns01_csv": str(daily_ns01_csv),
+    })
+
+    if dup_decision.handled and False:
+        print("[DUPLICATE DEBUG] early return:", dup_decision.response)
+        return True, dup_decision.response, None
+
+    state_ctx = StateContext(
+        warning_id=warning_id,
+        navarea=navarea,
+        created_utc=created_utc,
+        active_table_csv=active_table_csv,
+    )
+
+    if interp.is_reference_message:
+        ref_decision = handle_reference(
+            ctx=state_ctx,
+            raw_text=raw_text,
+        )
+        return True, ref_decision.response, state_ctx
+
+    if interp.is_cancellation:
+        cancel_decision = handle_cancellation(
+            ctx=state_ctx,
+            cancellation_targets=interp.cancellation_targets,
+        )
+        return True, cancel_decision.response, state_ctx
+
+    return False, None, state_ctx
+
 def process_warning_text(
     *,
     raw_text: str,
@@ -252,54 +305,17 @@ def process_warning_text(
     # Duplicate detection
     # ----------------------------------------------
 
-    existing_ids = _load_existing_warning_ids(daily_ns01_csv)
-
-    normalized_warning_id = " ".join(warning_id.upper().split())
-    is_duplicate = normalized_warning_id in existing_ids
-
-    dup_decision = handle_duplicate(
-        is_duplicate=is_duplicate,
-        warning_id=warning_id,
-    )
-    
-    print("[DUPLICATE DEBUG]", {
-        "warning_id": warning_id,
-        "is_duplicate": is_duplicate,
-        "daily_ns01_csv": str(daily_ns01_csv),
-    })
-    
-    if dup_decision.handled and False:
-        print("[DUPLICATE DEBUG] early return:", dup_decision.response)
-        return dup_decision.response
-    
-    state_ctx = StateContext(
+    handled, response, state_ctx = _state_stage(
+        daily_ns01_csv=daily_ns01_csv,
         warning_id=warning_id,
         navarea=navarea,
         created_utc=created_utc,
         active_table_csv=active_table_csv,
-
+        interp=interp,
+        raw_text=raw_text,
     )
-
-    
-    
-    # ----------------------------------------------
-    # Semantic branching
-    # ----------------------------------------------
-
-    if interp.is_reference_message:
-        ref_decision = handle_reference(
-            ctx=state_ctx,
-            raw_text=raw_text,
-        )
-        return ref_decision.response
-
-
-    if interp.is_cancellation:
-        cancel_decision = handle_cancellation(
-            ctx=state_ctx,
-            cancellation_targets=interp.cancellation_targets,
-        )
-        return cancel_decision.response
+    if handled:
+        return response
 
 
     # --- PRIMARY: use interpreter geometry ---
