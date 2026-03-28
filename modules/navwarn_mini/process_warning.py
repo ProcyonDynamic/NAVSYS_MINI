@@ -210,6 +210,7 @@ def _state_stage(
 
     return False, None, state_ctx
 
+    
 def _geometry_stage(
     *,
     interp,
@@ -512,6 +513,111 @@ def _classification_stage(
 
     return False, None, warning_id, title, vertices, draft, ship_position, classified, ship_distance_nm, route_distance_nm, effective_distance_nm, effective_band
 
+def _plot_stage(
+    *,
+    plot_policy_match,
+    geom_type: str,
+    effective_band: str,
+    offshore_objects,
+    verts,
+    warning_id: str,
+    raw_text: str,
+    interp,
+    navarea: str,
+    output_root: str,
+):
+    plot_objects = []
+
+    if plot_policy_match.matched and plot_policy_match.policy is not None:
+        decision = build_effective_plot_decision(
+            policy=plot_policy_match.policy,
+            geom_type=geom_type,
+            band=effective_band,
+            offshore_object_count=len(offshore_objects),
+        )
+
+        print("[DEBUG] decision:", decision)
+        print("[DEBUG] decision.enable_plot:", getattr(decision, "enable_plot", None))
+        print("[DEBUG] geom_type:", geom_type)
+        print("[DEBUG] verts_count:", len(verts))
+
+        if not getattr(decision, "enable_plot", True):
+            print("[INFO] Plot disabled by policy")
+        else:
+            text_payload = build_plot_text_payload(
+                warning_id=warning_id,
+                raw_text=raw_text,
+                interp_warning_type=interp.warning_type,
+                key_phrases=interp.key_phrases,
+            )
+
+            plot_build = build_plot_objects(
+                warning_id=warning_id,
+                navarea=navarea,
+                verts=verts,
+                geom_type=geom_type,
+                offshore_objects=offshore_objects,
+                decision=decision,
+                text_payload=text_payload,
+            )
+
+            print("[DEBUG] plot_build:", plot_build)
+            print("[DEBUG] plot_object_count:", len(plot_build.objects) if hasattr(plot_build, "objects") else "NO_OBJECTS_ATTR")
+
+            plot_objects = plot_build.objects
+
+    if not plot_objects and verts:
+        print("[FORCED FALLBACK] No plot objects — forcing default build")
+
+        from .warning_plot_policy_registry import get_plot_policy
+
+        fallback_policy_id = None
+        if offshore_objects:
+            fallback_policy_id = "plot_offshore_points"
+        elif geom_type == "AREA":
+            fallback_policy_id = "plot_operational_area"
+        elif geom_type == "LINE":
+            fallback_policy_id = "plot_operational_line"
+        elif geom_type == "POINT":
+            fallback_policy_id = "plot_operational_point"
+
+        if fallback_policy_id is not None:
+            fallback_policy = get_plot_policy(
+                output_root=output_root,
+                policy_id=fallback_policy_id,
+            )
+
+            if fallback_policy is not None:
+                decision = build_effective_plot_decision(
+                    policy=fallback_policy,
+                    geom_type=geom_type,
+                    band=effective_band,
+                    offshore_object_count=len(offshore_objects),
+                )
+
+                text_payload = build_plot_text_payload(
+                    warning_id=warning_id,
+                    raw_text=raw_text,
+                    interp_warning_type=interp.warning_type,
+                    key_phrases=interp.key_phrases,
+                )
+
+                plot_build = build_plot_objects(
+                    warning_id=warning_id,
+                    navarea=navarea,
+                    verts=verts,
+                    geom_type=geom_type,
+                    offshore_objects=offshore_objects,
+                    decision=decision,
+                    text_payload=text_payload,
+                )
+
+                plot_objects = plot_build.objects
+
+    print("[FALLBACK] plot object count:", len(plot_objects))
+
+    return plot_objects
+
 def process_warning_text(
     *,
     raw_text: str,
@@ -619,7 +725,6 @@ def process_warning_text(
     if handled:
         return response
 
-
     # --- PRIMARY: use interpreter geometry ---
     # --- PRIMARY: use interpreter geometry ---
     handled, response, verts, geom_type, offshore_objects, geometry_hint_result, audit_result = _geometry_stage(
@@ -664,97 +769,19 @@ def process_warning_text(
     if handled:
         return response
     
-    plot_objects = []
+    plot_objects = _plot_stage(
+        plot_policy_match=plot_policy_match,
+        geom_type=geom_type,
+        effective_band=effective_band,
+        offshore_objects=offshore_objects,
+        verts=verts,
+        warning_id=warning_id,
+        raw_text=raw_text,
+        interp=interp,
+        navarea=navarea,
+        output_root=output_root,
+    )
 
-    if plot_policy_match.matched and plot_policy_match.policy is not None:
-        decision = build_effective_plot_decision(
-            policy=plot_policy_match.policy,
-            geom_type=geom_type,
-            band=effective_band,
-            offshore_object_count=len(offshore_objects),
-        )
-
-        print("[DEBUG] decision:", decision)
-        print("[DEBUG] decision.enable_plot:", getattr(decision, "enable_plot", None))
-        print("[DEBUG] geom_type:", geom_type),
-        print("[DEBUG] verts_count:", len(verts))
-
-        if not getattr(decision, "enable_plot", True):
-            print("[INFO] Plot disabled by policy")
-        else:
-            text_payload = build_plot_text_payload(
-                warning_id=warning_id,
-                raw_text=raw_text,
-                interp_warning_type=interp.warning_type,
-                key_phrases=interp.key_phrases,
-            )
-
-            plot_build = build_plot_objects(
-                warning_id=warning_id,
-                navarea=navarea,
-                verts=verts,
-                geom_type=geom_type,
-                offshore_objects=offshore_objects,
-                decision=decision,
-                text_payload=text_payload,
-            )
-                
-            print("[DEBUG] plot_build:", plot_build)
-            print("[DEBUG] plot_object_count:", len(plot_build.objects) if hasattr(plot_build, "objects") else "NO_OBJECTS_ATTR")
-
-            plot_objects = plot_build.objects
-
-    if not plot_objects and verts:
-        print("[FORCED FALLBACK] No plot objects — forcing default build")
-
-        from .warning_plot_policy_registry import get_plot_policy
-
-        fallback_policy_id = None
-        if offshore_objects:
-            fallback_policy_id = "plot_offshore_points"
-        elif geom_type == "AREA":
-            fallback_policy_id = "plot_operational_area"
-        elif geom_type == "LINE":
-            fallback_policy_id = "plot_operational_line"
-        elif geom_type == "POINT":
-            fallback_policy_id = "plot_operational_point"
-
-        if fallback_policy_id is not None:
-            fallback_policy = get_plot_policy(
-                output_root=output_root,
-                policy_id=fallback_policy_id,
-            )
-
-            if fallback_policy is not None:
-                decision = build_effective_plot_decision(
-                    policy=fallback_policy,
-                    geom_type=geom_type,
-                    band=effective_band,
-                    offshore_object_count=len(offshore_objects),
-                )
-
-                text_payload = build_plot_text_payload(
-                    warning_id=warning_id,
-                    raw_text=raw_text,
-                    interp_warning_type=interp.warning_type,
-                    key_phrases=interp.key_phrases,
-                )
-
-                plot_build = build_plot_objects(
-                    warning_id=warning_id,
-                    navarea=navarea,
-                    verts=verts,
-                    geom_type=geom_type,
-                    offshore_objects=offshore_objects,
-                    decision=decision,
-                    text_payload=text_payload,
-                )
-
-                plot_objects = plot_build.objects
-                
-
-
-    print("[FALLBACK] plot object count:", len(plot_objects))
     print("[DEBUG FINAL] plot_objects count before persist:", len(plot_objects))
     print("[DEBUG FINAL] route_id:", route_id)
 
