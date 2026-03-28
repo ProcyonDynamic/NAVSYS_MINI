@@ -210,6 +210,166 @@ def _state_stage(
 
     return False, None, state_ctx
 
+def _geometry_stage(
+    *,
+    interp,
+    raw_text: str,
+    warning_id: str,
+    navarea: str,
+    created_utc: str,
+    output_root: str,
+    plot_policy_match,
+    profile_match,
+    pattern_match,
+    run_id: str,
+    daily_ns01_csv: Path,
+    daily_ns01_txt: Path,
+):
+    geom_result = None
+
+    if interp.geometry and interp.geometry.vertices:
+        verts = [
+            (v.lat, v.lon)
+            for v in interp.geometry.vertices
+        ]
+        geom_type = interp.geometry.geom_type
+        offshore_objects = []
+
+        print("[PRIMARY] using interpreter geometry", {
+            "verts_len": len(verts),
+            "geom_type": geom_type,
+            "offshore_object_count": len(offshore_objects),
+        })
+
+    else:
+        geom_result = resolve_warning_geometry(
+            raw_text=raw_text,
+            warning_id=warning_id,
+            navarea=navarea,
+            created_utc=created_utc,
+            interp_warning_type=interp.warning_type,
+            interp_geometry_blocks=interp.structure.geometry_blocks,
+            output_root=output_root,
+        )
+
+        verts = geom_result.verts
+        geom_type = geom_result.geom_type
+        offshore_objects = geom_result.offshore_objects
+
+        print("[FALLBACK] using extractor geometry", {
+            "verts_len": len(verts),
+            "geom_type": geom_type,
+            "offshore_object_count": len(offshore_objects),
+        })
+
+    if offshore_objects and not verts:
+        print("[INFO] Offshore-only warning -deriving verts from offshore_objects")
+
+        verts = [
+            (
+                o.geometry.vertices[0].lat,
+                o.geometry.vertices[0].lon,
+            )
+            for o in offshore_objects
+            if getattr(o, "geometry", None) is not None
+            and getattr(o.geometry, "vertices", None)
+            and len(o.geometry.vertices) > 0
+        ]
+
+        if verts:
+            geom_type = "POINT"
+
+    if not plot_policy_match.matched:
+        fallback_policy_id = None
+
+        if offshore_objects:
+            fallback_policy_id = "plot_offshore_points"
+        elif geom_type == "AREA":
+            fallback_policy_id = "plot_operational_area"
+        elif geom_type == "LINE":
+            fallback_policy_id = "plot_operational_line"
+        elif geom_type == "POINT":
+            fallback_policy_id = "plot_operational_point"
+
+        if fallback_policy_id:
+            from .warning_plot_policy_registry import get_plot_policy
+
+            fallback_policy = get_plot_policy(
+                output_root=output_root,
+                policy_id=fallback_policy_id,
+            )
+
+            if fallback_policy is not None:
+                plot_policy_match.matched = True
+                plot_policy_match.policy_id = fallback_policy_id
+                plot_policy_match.policy = fallback_policy
+                plot_policy_match.reasons.append(
+                    f"Applied fallback policy: {fallback_policy_id}"
+                )
+
+    geometry_hint_result = build_geometry_hints(
+        profile_match=profile_match,
+        pattern_match=pattern_match,
+        actual_geom_type=geom_type,
+    )
+
+    audit_result = audit_warning_result(
+        profile_match=profile_match,
+        pattern_match=pattern_match,
+        geometry_hint_result=geometry_hint_result,
+        actual_geom_type=geom_type,
+        vertex_count=len(verts),
+        is_reference_message=interp.is_reference_message,
+        is_cancellation=interp.is_cancellation,
+        offshore_object_count=len(offshore_objects),
+    )
+
+    if not verts:
+        print("[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback")
+
+        if interp.geometry and interp.geometry.vertices:
+            verts = [
+                (v.lat, v.lon)
+                for v in interp.geometry.vertices
+            ]
+            geom_type = interp.geometry.geom_type
+
+        if offshore_objects and not verts:
+            verts = [
+                (
+                    o.geometry.vertices[0].lat,
+                    o.geometry.vertices[0].lon,
+                )
+                for o in offshore_objects
+                if getattr(o, "geometry", None) is not None
+                and getattr(o.geometry, "vertices", None)
+                and len(o.geometry.vertices) > 0
+            ]
+
+            if verts:
+                geom_type = "POINT"
+
+        if not verts:
+            return True, {
+                "ok": False,
+                "run_id": run_id,
+                "warning_id": warning_id,
+                "geom_type": geom_type,
+                "vertex_count": 0,
+                "ship_distance_nm": None,
+                "route_distance_nm": None,
+                "distance_nm": None,
+                "band": None,
+                "plot_csv_path": None,
+                "daily_ns01_csv_path": str(daily_ns01_csv),
+                "daily_ns01_txt_path": str(daily_ns01_txt),
+                "errors": ["No usable coordinates extracted from warning content."],
+                "offshore_object_count": len(offshore_objects),
+                "offshore_objects": [],
+            }, None, None, None, None, None
+
+    return False, None, verts, geom_type, offshore_objects, geometry_hint_result, audit_result
+
 def process_warning_text(
     *,
     raw_text: str,
@@ -320,170 +480,22 @@ def process_warning_text(
 
     # --- PRIMARY: use interpreter geometry ---
     # --- PRIMARY: use interpreter geometry ---
-    geom_result = None
-
-    if interp.geometry and interp.geometry.vertices:
-        verts = [
-            (v.lat, v.lon)
-            for v in interp.geometry.vertices
-        ]
-        geom_type = interp.geometry.geom_type
-        offshore_objects = []
-
-        print("[PRIMARY] using interpreter geometry", {
-            "verts_len": len(verts),
-            "geom_type": geom_type,
-            "offshore_object_count": len(offshore_objects),
-        })
-
-    else:
-        geom_result = resolve_warning_geometry(
-            raw_text=raw_text,
-            warning_id=warning_id,
-            navarea=navarea,
-            created_utc=created_utc,
-            interp_warning_type=interp.warning_type,
-            interp_geometry_blocks=interp.structure.geometry_blocks,
-            output_root=output_root,
-        )
-
-        verts = geom_result.verts
-        geom_type = geom_result.geom_type
-        offshore_objects = geom_result.offshore_objects
-
-        print("[FALLBACK] using extractor geometry", {
-            "verts_len": len(verts),
-            "geom_type": geom_type,
-            "offshore_object_count": len(offshore_objects),
-        })    
-    if offshore_objects and not verts:
-        print("[INFO] Offshore-only warning -deriving verts from offshore_objects")
-
-        verts = [
-            (
-                o.geometry.vertices[0].lat,
-                o.geometry.vertices[0].lon,
-            )
-            for o in offshore_objects
-            if getattr(o, "geometry", None) is not None
-            and getattr(o.geometry, "vertices", None)
-            and len(o.geometry.vertices) > 0
-        ]
-
-        if verts:
-            geom_type = "POINT"
-
-    if not plot_policy_match.matched:
-
-        fallback_policy_id = None
-        
-        if offshore_objects:
-            fallback_policy_id = "plot_offshore_points"
-        elif geom_type == "AREA":
-            fallback_policy_id = "plot_operational_area"
-        elif geom_type == "LINE":
-            fallback_policy_id = "plot_operational_line"
-        elif geom_type == "POINT":
-            fallback_policy_id = "plot_operational_point"
-
-        if fallback_policy_id:
-            from .warning_plot_policy_registry import get_plot_policy
-
-            fallback_policy = get_plot_policy(
-                output_root=output_root,
-                policy_id=fallback_policy_id,
-            )
-
-            if fallback_policy is not None:
-                plot_policy_match.matched = True
-                plot_policy_match.policy_id = fallback_policy_id
-                plot_policy_match.policy = fallback_policy
-                plot_policy_match.reasons.append(
-                    f"Applied fallback policy: {fallback_policy_id}"
-                )
-
-    geometry_hint_result = build_geometry_hints(
+    handled, response, verts, geom_type, offshore_objects, geometry_hint_result, audit_result = _geometry_stage(
+        interp=interp,
+        raw_text=raw_text,
+        warning_id=warning_id,
+        navarea=navarea,
+        created_utc=created_utc,
+        output_root=output_root,
+        plot_policy_match=plot_policy_match,
         profile_match=profile_match,
         pattern_match=pattern_match,
-        actual_geom_type=geom_type,
+        run_id=run_id,
+        daily_ns01_csv=daily_ns01_csv,
+        daily_ns01_txt=daily_ns01_txt,
     )
-    
-    audit_result = audit_warning_result(
-        profile_match=profile_match,
-        pattern_match=pattern_match,
-        geometry_hint_result=geometry_hint_result,
-        actual_geom_type=geom_type,
-        vertex_count=len(verts),
-        is_reference_message=interp.is_reference_message,
-        is_cancellation=interp.is_cancellation,
-        offshore_object_count=len(offshore_objects),
-    )
-
-
-    if not verts:
-        print("[WARN] resolve_warning_geometry produced no verts - trying interpreter fallback")
-
-        if interp.geometry and interp.geometry.vertices:
-            verts = [
-                (v.lat, v.lon)
-                for v in interp.geometry.vertices
-            ]
-            geom_type = interp.geometry.geom_type
-            print("[RECOVERY] interpreter fallback used", {
-                "verts_len": len(verts),
-                "geom_type": geom_type,
-            })
-
-        if offshore_objects and not verts:
-            verts = [
-                (
-                    o.geometry.vertices[0].lat,
-                    o.geometry.vertices[0].lon,
-                )
-                for o in offshore_objects
-                if getattr(o, "geometry", None) is not None
-                and getattr(o.geometry, "vertices", None)
-                and len(o.geometry.vertices) > 0
-            ]
-
-            if verts:
-                geom_type = "POINT"
-                print("[RECOVERY] offshore_objects fallback used", {
-                    "verts_len": len(verts),
-                    "geom_type": geom_type,
-                })
-
-        if not verts:
-            return {
-                "ok": False,
-                "run_id": run_id,
-                "warning_id": warning_id,
-                "geom_type": geom_type,
-                "vertex_count": 0,
-                "ship_distance_nm": None,
-                "route_distance_nm": None,
-                "distance_nm": None,
-                "band": None,
-                "plot_csv_path": None,
-                "daily_ns01_csv_path": str(daily_ns01_csv),
-                "daily_ns01_txt_path": str(daily_ns01_txt),
-                "errors": ["No usable coordinates extracted from warning content."],
-                "offshore_object_count": len(offshore_objects),
-                "offshore_objects": [
-                    {
-                        "platform_id": o.platform_id,
-                        "platform_name": o.platform_name,
-                        "platform_type": o.platform_type,
-                        "match_status": o.match_status,
-                        "identity_confidence": o.identity_confidence,
-                        "tce_thread_id": o.tce_thread_id,
-                        "lat": o.geometry.vertices[0].lat if o.geometry.vertices else None,
-                        "lon": o.geometry.vertices[0].lon if o.geometry.vertices else None,
-                    }
-                    for o in offshore_objects
-                ],
-            }
-
+    if handled:
+        return response
 
     vertices = [LatLon(lat=a, lon=b) for (a, b) in verts]
 
