@@ -398,3 +398,4 @@ def build_plot_objects(
 
     reasons.append(f"Unhandled object_mode={decision.object_mode}")
     return PlotBuildResult(objects=objects, reasons=reasons)
+
