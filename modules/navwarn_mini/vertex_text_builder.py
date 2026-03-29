@@ -12,7 +12,7 @@ class VertexTextPolicy:
     char_spacing_nm: float = 0.45
 
     text_line_type: int = 1
-    text_width: int = 1
+    text_width: int = 5
     text_color_no: int = 5
 
     connector_line_type: int = 3
@@ -59,7 +59,7 @@ def policy_for_phrase(
             char_height_nm=1.30,
             char_spacing_nm=0.28,
             text_line_type=1,
-            text_width=1,
+            text_width=5,
             text_color_no=5,
             connector_line_type=3,
             connector_width=1,
@@ -73,7 +73,7 @@ def policy_for_phrase(
             char_height_nm=1.55,
             char_spacing_nm=0.32,
             text_line_type=1,
-            text_width=1,
+            text_width=5,
             text_color_no=5,
             connector_line_type=3,
             connector_width=1,
@@ -87,7 +87,7 @@ def policy_for_phrase(
             char_height_nm=1.80,
             char_spacing_nm=0.38,
             text_line_type=1,
-            text_width=1,
+            text_width=5,
             text_color_no=5,
             connector_line_type=3,
             connector_width=1,
@@ -513,9 +513,9 @@ def build_phrase_line_aggregate(
                     (
                         glyph_start[0],
                         glyph_start[1],
-                        p.text_line_type,
-                        p.text_width,
-                        p.text_color_no,
+                        p.connector_line_type,
+                        p.connector_width,
+                        p.connector_color_no,
                     )
                 )
 
@@ -540,18 +540,18 @@ def build_phrase_line_aggregate(
                             (
                                 bridge_start[0],
                                 bridge_start[1],
-                                p.text_line_type,
-                                p.text_width,
-                                p.text_color_no,
+                                p.connector_line_type,
+                                p.connector_width,
+                                p.connector_color_no,
                             )
                         )
                         phrase_vertices_local.append(
                             (
                                 bridge_end[0],
                                 bridge_end[1],
-                                p.text_line_type,
-                                p.text_width,
-                                p.text_color_no,
+                                p.connector_line_type,
+                                p.connector_width,
+                                p.connector_color_no,
                             )
                         )
 
