@@ -42,3 +42,17 @@
 [0320/230503.860:VERBOSE1:installer\mini_installer\setup\installer_state.cc:90] Install Chrome
 [0320/230518.868:WARNING:installer\mini_installer\util\delete_old_versions.cc:93] Attempting to delete stray directory C:\Users\Edi\AppData\Local\Vivaldi\Application\7.9.3970.39
 [0320/230519.678:VERBOSE1:installer\mini_installer\setup\setup_main.cc:394] Successfully deleted all old files from --delete-old-versions process.
+[0328/200720.168:ERROR:installer\mini_installer\util\delete_after_reboot_helper.cc:80] Could not schedule C:\Users\Edi\AppData\Local\Vivaldi\Temp\scoped_dir23800_1567404985\old_vivaldi.exe for deletion.: Access is denied. (0x5)
+[0328/200720.183:ERROR:installer\mini_installer\util\delete_after_reboot_helper.cc:136] Failed to schedule file for deletion: C:\Users\Edi\AppData\Local\Vivaldi\Temp\scoped_dir23800_1567404985\old_vivaldi.exe
+[0328/200720.183:ERROR:installer\mini_installer\util\delete_after_reboot_helper.cc:151] Failed to schedule subdirectory for deletion: C:\Users\Edi\AppData\Local\Vivaldi\Temp\scoped_dir23800_1567404985
+[0328/200720.183:VERBOSE1:installer\util\vivaldi_setup_util.cc:445] Initial command line:
+
+"C:\Users\Edi\AppData\Local\Vivaldi\Application\7.9.3970.45\Installer\setup.exe" --vivaldi-install-dir="C:\Users\Edi\AppData\Local\Vivaldi" --vivaldi-enable-crashlog-uploading=0 --delete-old-versions --verbose-logging
+[0328/200720.183:VERBOSE1:installer\util\vivaldi_setup_util.cc:583] Vivaldi: install for current user - install_dir=C:\Users\Edi\AppData\Local\Vivaldi
+[0328/200720.183:VERBOSE1:installer\mini_installer\setup\setup_main.cc:1272] Command Line: "C:\Users\Edi\AppData\Local\Vivaldi\Application\7.9.3970.45\Installer\setup.exe" --vivaldi-install-dir="C:\Users\Edi\AppData\Local\Vivaldi" --vivaldi-enable-crashlog-uploading=0 --delete-old-versions --verbose-logging --vivaldi-update --vivaldi-install-dir="C:\Users\Edi\AppData\Local\Vivaldi" --vivaldi-enable-crashlog-uploading=0
+[0328/200720.183:VERBOSE1:installer\mini_installer\setup\setup_main.cc:1278] system install is 0
+[0328/200720.199:VERBOSE1:installer\mini_installer\setup\installer_state.cc:90] Install Chrome
+[0328/200720.199:VERBOSE1:installer\mini_installer\util\install_util.cc:258] Windows NT 10.0.19045
+[0328/200720.199:VERBOSE1:installer\mini_installer\setup\installer_state.cc:90] Install Chrome
+[0328/200735.209:WARNING:installer\mini_installer\util\delete_old_versions.cc:93] Attempting to delete stray directory C:\Users\Edi\AppData\Local\Vivaldi\Application\7.9.3970.41
+[0328/200735.554:VERBOSE1:installer\mini_installer\setup\setup_main.cc:394] Successfully deleted all old files from --delete-old-versions process.

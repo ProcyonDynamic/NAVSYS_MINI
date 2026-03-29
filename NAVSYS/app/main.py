@@ -137,6 +137,7 @@ from modules.portalis_mini.certificate_registry import (
 from modules.portalis_mini.certificate_checks import check_required_certificates
 
 from modules.navwarn_mini.active_warning_table import load_active_warning_table
+from modules.navwarn_mini.warning_editor_routes import warning_editor_bp
 
 def _safe_filename(s: str) -> str:
     return (
@@ -159,6 +160,7 @@ app = Flask(
     template_folder=str(TEMPLATES_DIR),
     static_folder=str(STATIC_DIR),
 )
+app.register_blueprint(warning_editor_bp)
 
 
 def utc_now_iso() -> str:

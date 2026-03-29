@@ -209,6 +209,8 @@ def export_plot_objects_to_csv(
     try:
         lines: list[str] = []
 
+        vertices: list[tuple[float, float]] = []
+
         for obj in plot_objects:
             if not obj.vertices and not obj.styled_vertices:
                 errors.append(
@@ -222,13 +224,16 @@ def export_plot_objects_to_csv(
                 )
                 continue
 
+            vertices = _materialize_vertices(obj)
+
             errors.append(
                 f"[EXPORT DEBUG] warning_id={obj.source_warning_id or 'UNKNOWN'} "
                 f"object_kind={obj.object_kind} geom_type={obj.geom_type} "
                 f"vertex_count={len(vertices)} line_type={obj.line_type} "
                 f"line_width={obj.line_width} color_no={obj.color_no}"
             )
-
+            
+            
             if len(vertices) < 2:
                 errors.append(
                     f"INVALID GEOMETRY: <2 vertices for "
