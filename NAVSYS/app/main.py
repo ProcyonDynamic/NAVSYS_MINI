@@ -94,11 +94,38 @@ from modules.portalis_mini.port_requirements import (
 from modules.portalis_mini.text_lists import textarea_to_list, list_to_textarea
 
 from modules.portalis_mini.storage import load_portalis_state, save_portalis_state
+from modules.portalis_mini.storage import (
+    append_generated_output,
+    build_portalis_state_snapshot,
+)
 from modules.portalis_mini.service import (
     update_vessel_from_form,
     update_voyage_from_form,
     update_documents_from_form,
 )
+from modules.portalis_mini.import_models import ImportRequest
+from modules.portalis_mini.import_service import import_declared_document
+from modules.portalis_mini.archive.document_registry import DocumentRegistry
+from modules.portalis_mini.review_resolution_service import (
+    ReviewResolutionCoupler,
+    ReviewResolutionService,
+)
+from modules.portalis_mini.review_dashboard_service import (
+    apply_alert_action,
+    apply_assignment_action,
+    apply_external_bridge_action,
+    apply_incident_action,
+    apply_notification_action,
+    apply_reminder_action,
+    apply_transport_action,
+    apply_triage_action,
+    apply_watch_action,
+    refresh_control_room_state,
+)
+try:
+    from NAVSYS.app.portalis_import_routes import portalis_import_bp
+except ModuleNotFoundError:
+    from portalis_import_routes import portalis_import_bp
 
 from modules.portalis_mini.document_generator import (
     generate_crew_list_txt,
@@ -148,6 +175,136 @@ def _safe_filename(s: str) -> str:
         .replace("/", "_")
         .replace("\\", "_")
     )
+
+
+def _build_review_field_rows(review_item, document_entry):
+    if not review_item:
+        return []
+
+    parsed_fields = dict(getattr(review_item, "parsed_fields", {}) or {})
+    final_fields = dict(getattr(review_item, "final_fields", {}) or {})
+    accepted_fields = dict(getattr(review_item, "accepted_fields", {}) or {})
+
+    doc_field_evidence = dict((document_entry or {}).get("field_evidence", {}))
+    item_field_evidence = dict(getattr(review_item, "field_evidence", {}) or {})
+    field_evidence = item_field_evidence or doc_field_evidence
+
+    doc_field_validation = dict((document_entry or {}).get("field_validation", {}))
+    item_field_validation = dict(getattr(review_item, "field_validation", {}) or {})
+    field_validation = item_field_validation or doc_field_validation
+    doc_field_conflicts = dict((document_entry or {}).get("field_conflicts", {}))
+    item_field_conflicts = dict(getattr(review_item, "field_conflicts", {}) or {})
+    field_conflicts = item_field_conflicts or doc_field_conflicts
+    doc_field_confidence = dict((document_entry or {}).get("field_confidence", {}))
+    item_field_confidence = dict(getattr(review_item, "field_confidence", {}) or {})
+    field_confidence = item_field_confidence or doc_field_confidence
+    doc_candidate_bundles = dict((document_entry or {}).get("candidate_bundles", {}))
+    item_candidate_bundles = dict(getattr(review_item, "candidate_bundles", {}) or {})
+    candidate_bundles = item_candidate_bundles or doc_candidate_bundles
+    accepted_candidate_refs = dict(getattr(review_item, "accepted_candidate_refs", {}) or (document_entry or {}).get("accepted_candidate_refs", {}))
+    operator_overrides = dict(getattr(review_item, "operator_overrides", {}) or (document_entry or {}).get("operator_overrides", {}))
+    field_statuses = dict(getattr(review_item, "field_statuses", {}) or (document_entry or {}).get("field_statuses", {}))
+    unresolved_fields = dict(getattr(review_item, "unresolved_fields", {}) or (document_entry or {}).get("unresolved_fields", {}))
+    field_policy = dict(getattr(review_item, "field_policy", {}) or (document_entry or {}).get("field_policy", {}))
+    prioritized_field_queue = list(getattr(review_item, "prioritized_field_queue", []) or (document_entry or {}).get("prioritized_field_queue", []))
+    escalation_policy = dict(getattr(review_item, "escalation_policy", {}) or (document_entry or {}).get("escalation_policy", {}))
+    triage_state = dict(getattr(review_item, "triage_state", {}) or (document_entry or {}).get("triage_state", {}))
+    routing_hints = dict(getattr(review_item, "routing_hints", {}) or (document_entry or {}).get("routing_hints", {}))
+    assignment_state = dict(getattr(review_item, "assignment_state", {}) or (document_entry or {}).get("assignment_state", {}))
+    sla_policy = dict(getattr(review_item, "sla_policy", {}) or (document_entry or {}).get("sla_policy", {}))
+    watch_state = dict(getattr(review_item, "watch_state", {}) or (document_entry or {}).get("watch_state", {}))
+    reminder_stage = dict(getattr(review_item, "reminder_stage", {}) or (document_entry or {}).get("reminder_stage", {}))
+    notification_prep = dict(getattr(review_item, "notification_prep", {}) or (document_entry or {}).get("notification_prep", {}))
+    notification_ledger = dict(getattr(review_item, "notification_ledger", {}) or (document_entry or {}).get("notification_ledger", {}))
+    delivery_attempts = dict(getattr(review_item, "delivery_attempts", {}) or (document_entry or {}).get("delivery_attempts", {}))
+    transport_requests = dict(getattr(review_item, "transport_requests", {}) or (document_entry or {}).get("transport_requests", {}))
+    transport_results = dict(getattr(review_item, "transport_results", {}) or (document_entry or {}).get("transport_results", {}))
+    local_alerts = dict(getattr(review_item, "local_alerts", {}) or (document_entry or {}).get("local_alerts", {}))
+    incident_threads = dict(getattr(review_item, "incident_threads", {}) or (document_entry or {}).get("incident_threads", {}))
+    external_bridge_exports = dict(getattr(review_item, "external_bridge_exports", {}) or (document_entry or {}).get("external_bridge_exports", {}))
+    external_bridge_results = dict(getattr(review_item, "external_bridge_results", {}) or (document_entry or {}).get("external_bridge_results", {}))
+
+    queue_map = {item.get("field_name"): item for item in prioritized_field_queue if item.get("field_name")}
+    ordered_field_names = [item.get("field_name") for item in prioritized_field_queue if item.get("field_name")]
+
+    field_names = []
+    for source in (parsed_fields, final_fields, accepted_fields, field_evidence, field_validation, field_conflicts, field_confidence, candidate_bundles):
+        for key in source.keys():
+            if key not in field_names:
+                field_names.append(key)
+    for key in ordered_field_names:
+        if key in field_names:
+            field_names.remove(key)
+    field_names = ordered_field_names + field_names
+
+    rows = []
+    for field_name in field_names:
+        evidence = dict(field_evidence.get(field_name, {}) or {})
+        validation = dict(field_validation.get(field_name, {}) or {})
+        conflict = dict(field_conflicts.get(field_name, {}) or {})
+        confidence = dict(field_confidence.get(field_name, {}) or {})
+        bundle = dict(candidate_bundles.get(field_name, {}) or {})
+        policy = dict(field_policy.get(field_name, {}) or {})
+        queue_item = dict(queue_map.get(field_name, {}) or {})
+        escalation = dict(escalation_policy.get(field_name, {}) or {})
+        routing_hint = dict(routing_hints.get(field_name, {}) or {})
+        sla = dict(sla_policy.get(field_name, {}) or {})
+        warnings = []
+        warnings.extend(list(evidence.get("warnings", []) or []))
+        warnings.extend(list(validation.get("validator_messages", []) or []))
+        warnings.extend(list(conflict.get("warning_flags", []) or []))
+        warnings.extend(list(confidence.get("warning_flags", []) or []))
+        rows.append(
+            {
+                "field_name": field_name,
+                "parsed_value": parsed_fields.get(field_name, ""),
+                "final_value": final_fields.get(field_name, parsed_fields.get(field_name, "")),
+                "accepted_value": accepted_fields.get(field_name, ""),
+                "evidence": evidence,
+                "validation": validation,
+                "conflict": conflict,
+                "confidence": confidence,
+                "candidate_bundle": bundle,
+                "accepted_candidate_id": accepted_candidate_refs.get(field_name, ""),
+                "operator_override": operator_overrides.get(field_name, ""),
+                "field_status": str((field_statuses.get(field_name) or {}).get("status") or "PENDING"),
+                "unresolved": dict(unresolved_fields.get(field_name, {}) or {}),
+                "policy": policy,
+                "queue_item": queue_item,
+                "escalation": escalation,
+                "triage_state": dict(triage_state.get(field_name, {}) or {}),
+                "routing_hint": routing_hint,
+                "assignment_state": dict(assignment_state.get(field_name, {}) or {}),
+                "sla": sla,
+                "watch_state": dict(watch_state.get(field_name, {}) or {}),
+                "reminder_stage": dict(reminder_stage.get(field_name, {}) or {}),
+                "notification_prep": dict(notification_prep.get(field_name, {}) or {}),
+                "notification_ledger": dict(notification_ledger.get(field_name, {}) or {}),
+                "delivery_attempts": list(delivery_attempts.get(field_name, []) or []),
+                "transport_request": dict(transport_requests.get(field_name, {}) or {}),
+                "transport_results": list(transport_results.get(field_name, []) or []),
+                "local_alert": dict(local_alerts.get(field_name, {}) or {}),
+                "incident_thread": dict(incident_threads.get(field_name, {}) or {}),
+                "external_bridge_export": dict(external_bridge_exports.get(field_name, {}) or {}),
+                "external_bridge_result": dict(external_bridge_results.get(field_name, {}) or {}),
+                "warnings": warnings,
+            }
+        )
+
+    return rows
+
+
+def _filter_review_field_rows(rows, mode: str):
+    mode = (mode or "").strip().lower()
+    if mode == "unresolved":
+        return [row for row in rows if row.get("field_status") == "UNRESOLVED" or row.get("unresolved")]
+    if mode == "attention":
+        return [row for row in rows if str((row.get("policy") or {}).get("attention_state") or "") == "ATTENTION"]
+    if mode == "conflicted":
+        return [row for row in rows if str((row.get("conflict") or {}).get("conflict_level") or "") in {"MEDIUM", "HIGH"}]
+    if mode == "low_confidence":
+        return [row for row in rows if str((row.get("confidence") or {}).get("confidence_band") or "") in {"LOW", "UNKNOWN"}]
+    return rows
     
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -161,6 +318,7 @@ app = Flask(
     static_folder=str(STATIC_DIR),
 )
 app.register_blueprint(warning_editor_bp)
+app.register_blueprint(portalis_import_bp)
 
 
 def utc_now_iso() -> str:
@@ -802,61 +960,133 @@ def astranav():
 def portalis():
     state_path = USB_ROOT / "data" / "PORTALIS" / "state.json"
     portalis_root = USB_ROOT / "data" / "PORTALIS"
+    registry = DocumentRegistry(portalis_root)
+    review_service = ReviewResolutionService(portalis_root)
 
-    state = load_portalis_state(str(state_path))
-    crew = list_crew(portalis_root)
-    certificates = list_certificates(portalis_root)
+    def build_ctx(state_obj, *, selected_crew_id_value="", selected_port_name_value="", selected_review_document_id_value="", review_filter_mode_value="all"):
+        crew_items = list_crew(portalis_root)
+        certificate_items = list_certificates(portalis_root)
+        port_items = list_ports(portalis_root)
+        control_room = refresh_control_room_state(portalis_root)
+        review_items = control_room["review_items"]
+        document_entries = registry.list_documents()
 
-    selected_crew_id = request.args.get("crew_id", "").strip()
-    selected_crew = None
-    
-    if selected_crew_id:
-        try:
-            selected_crew = load_crew_record(portalis_root, selected_crew_id)
-        except Exception:
-            selected_crew = None
-
-    arrival_port_value = ""
-    if getattr(state, "voyage", None) and getattr(state.voyage, "arrival_port", None):
-        arrival_port_value = state.voyage.arrival_port.strip()
-
-    selected_port_name = request.args.get("port_name", "").strip() or arrival_port_value
-    selected_port = None
-    if selected_port_name:
-        selected_port = load_port_requirement(portalis_root, selected_port_name)
-
-    required_cert_results = []
-    if selected_port:
-        required_cert_results = check_required_certificates(
-            selected_port["certificate_requirements"],
-            certificates,
+        state_obj.crew_registry.selected_crew_id = selected_crew_id_value or None
+        state_obj.port_requirements.selected_port_name = selected_port_name_value or None
+        build_portalis_state_snapshot(
+            state_obj,
+            crew_count=len(crew_items),
+            certificate_count=len(certificate_items),
+            port_count=len(port_items),
+            document_count=len(document_entries),
+            review_items=review_items,
         )
 
-    ctx = {
-        "usb_root": str(USB_ROOT),
-        "utc_now": utc_now_iso(),
-        "state": state,
-        "crew": crew,
-        "selected_crew": selected_crew,
-        "selected_crew_id": selected_crew_id,
-        "ports": list_ports(portalis_root),
-        "selected_port": selected_port,
-        "selected_port_name": selected_port_name,
-        "saved": False,
-        "errors": [],
-        "generated_paths": [],
-        "generated_preview": "",
-        "certificates": certificates,
-        "cert_check": required_cert_results,
-        "port_form": {
-            "port_name": selected_port["port_name"] if selected_port else selected_port_name,
-            "country": selected_port["country"] if selected_port else "",
-            "required_docs": list_to_textarea(selected_port["required_docs"]) if selected_port else "",
-            "non_standard_forms": list_to_textarea(selected_port["non_standard_forms"]) if selected_port else "",
-            "certificate_requirements": list_to_textarea(selected_port["certificate_requirements"]) if selected_port else "",
-            "notes": selected_port["notes"] if selected_port else "",
-        },
-    }
+        selected_crew_value = None
+        if selected_crew_id_value:
+            try:
+                selected_crew_value = load_crew_record(portalis_root, selected_crew_id_value)
+            except Exception:
+                selected_crew_value = None
+
+        selected_port_value = None
+        if selected_port_name_value:
+            selected_port_value = load_port_requirement(portalis_root, selected_port_name_value)
+
+        cert_check_value = []
+        if selected_port_value:
+            cert_check_value = check_required_certificates(
+                selected_port_value["certificate_requirements"],
+                certificate_items,
+            )
+
+        selected_review_item_value = None
+        for item in review_items:
+            if item.document_id == selected_review_document_id_value:
+                selected_review_item_value = item
+                break
+
+        selected_review_document_value = None
+        if selected_review_document_id_value:
+            selected_review_document_value = registry.get_document(selected_review_document_id_value)
+        review_field_rows_value = _build_review_field_rows(
+            selected_review_item_value,
+            selected_review_document_value,
+        )
+        filtered_review_field_rows_value = _filter_review_field_rows(
+            review_field_rows_value,
+            review_filter_mode_value,
+        )
+        global_review_queue_value = control_room["global_review_queue"]
+        watch_queue_value = control_room["watch_queue"]
+        reminder_queue_value = control_room.get("reminder_queue", [])
+        notification_queue_value = control_room.get("notification_queue", [])
+        transport_queue_value = control_room.get("transport_queue", [])
+        alert_feed_value = control_room.get("alert_feed", [])
+        incident_feed_value = control_room.get("incident_feed", [])
+        export_queue_value = control_room.get("export_queue", [])
+        dashboard_summary_value = control_room["dashboard_summary"]
+        dashboard_tce_delta_value = control_room["dashboard_tce_delta"]
+
+        return {
+            "usb_root": str(USB_ROOT),
+            "utc_now": utc_now_iso(),
+            "state": state_obj,
+            "crew": crew_items,
+            "selected_crew": selected_crew_value,
+            "selected_crew_id": selected_crew_id_value,
+            "ports": port_items,
+            "selected_port": selected_port_value,
+            "selected_port_name": selected_port_name_value,
+            "saved": False,
+            "errors": [],
+            "generated_paths": [],
+            "generated_preview": "",
+            "certificates": certificate_items,
+            "cert_check": cert_check_value,
+            "port_form": {
+                "port_name": selected_port_value["port_name"] if selected_port_value else selected_port_name_value,
+                "country": selected_port_value["country"] if selected_port_value else "",
+                "required_docs": list_to_textarea(selected_port_value["required_docs"]) if selected_port_value else "",
+                "non_standard_forms": list_to_textarea(selected_port_value["non_standard_forms"]) if selected_port_value else "",
+                "certificate_requirements": list_to_textarea(selected_port_value["certificate_requirements"]) if selected_port_value else "",
+                "notes": selected_port_value["notes"] if selected_port_value else "",
+            },
+            "document_entries": list(reversed(document_entries[-10:])),
+            "review_items": review_items,
+            "selected_review_document_id": selected_review_document_id_value,
+            "selected_review_item": selected_review_item_value,
+            "selected_review_document": selected_review_document_value,
+            "review_field_rows": filtered_review_field_rows_value,
+            "review_field_rows_all": review_field_rows_value,
+            "review_filter_mode": review_filter_mode_value,
+            "prioritized_field_queue": list(getattr(selected_review_item_value, "prioritized_field_queue", []) or (selected_review_document_value or {}).get("prioritized_field_queue", [])),
+            "global_review_queue": global_review_queue_value,
+            "watch_queue": watch_queue_value,
+            "reminder_queue": reminder_queue_value,
+            "notification_queue": notification_queue_value,
+            "transport_queue": transport_queue_value,
+            "alert_feed": alert_feed_value,
+            "incident_feed": incident_feed_value,
+            "export_queue": export_queue_value,
+            "dashboard_summary": dashboard_summary_value,
+            "dashboard_tce_delta": dashboard_tce_delta_value,
+            "last_import_document_id": state_obj.document_registry.last_import_document_id,
+            "last_import_manifest_path": state_obj.document_registry.last_import_manifest_path,
+        }
+
+    state = load_portalis_state(str(state_path))
+    selected_crew_id = request.args.get("crew_id", "").strip() or (state.crew_registry.selected_crew_id or "")
+    selected_port_name = request.args.get("port_name", "").strip() or (state.port_requirements.selected_port_name or state.voyage.arrival_port or "")
+    selected_review_document_id = request.args.get("review_document_id", "").strip() or (state.review_queue.last_document_id or "")
+    review_filter_mode = request.args.get("review_filter", "").strip() or "all"
+    ctx = build_ctx(
+        state,
+        selected_crew_id_value=selected_crew_id,
+        selected_port_name_value=selected_port_name,
+        selected_review_document_id_value=selected_review_document_id,
+        review_filter_mode_value=review_filter_mode,
+    )
 
     if request.method == "POST":
         try:
@@ -868,7 +1098,7 @@ def portalis():
                 state = update_voyage_from_form(state, form)
                 state = update_documents_from_form(state, request.form)
                 save_portalis_state(state, str(state_path))
-                ctx["state"] = state
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=state.voyage.arrival_port or selected_port_name, selected_review_document_id_value=selected_review_document_id)
                 ctx["saved"] = True
 
             elif action == "create_crew":
@@ -876,20 +1106,18 @@ def portalis():
                 rank = request.form.get("crew_rank", "").strip()
                 if name:
                     new_id = create_crew(portalis_root, name, rank)
-                    crew = list_crew(portalis_root)
+                    state.crew_registry.last_created_crew_id = new_id
+                    state.crew_registry.selected_crew_id = new_id
+                    save_portalis_state(state, str(state_path))
                     selected_crew_id = new_id
-                    selected_crew = load_crew_record(portalis_root, new_id)
-
-                    ctx["crew"] = crew
-                    ctx["selected_crew"] = selected_crew
-                    ctx["selected_crew_id"] = selected_crew_id
+                    ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
                     ctx["saved"] = True
 
             elif action == "add_crew_document":
                 crew_id = request.form.get("crew_id", "").strip()
                 if not crew_id:
                     raise ValueError("crew_id is required")
-                
+
                 add_document_to_crew(
                     portalis_root,
                     crew_id,
@@ -905,14 +1133,10 @@ def portalis():
                     confidence=request.form.get("confidence", "").strip(),
                     notes=request.form.get("doc_notes", "").strip(),
                 )
-
-                crew = list_crew(portalis_root)
                 selected_crew_id = crew_id
-                selected_crew = load_crew_record(portalis_root, crew_id)
-
-                ctx["crew"] = crew
-                ctx["selected_crew"] = selected_crew
-                ctx["selected_crew_id"] = selected_crew_id
+                state.crew_registry.selected_crew_id = crew_id
+                save_portalis_state(state, str(state_path))
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
                 ctx["saved"] = True
 
             elif action == "save_port_requirements":
@@ -929,31 +1153,19 @@ def portalis():
                     certificate_requirements=textarea_to_list(request.form.get("certificate_requirements_text", "")),
                     notes=request.form.get("port_notes", "").strip(),
                 )
-
                 selected_port_name = port_name
-                selected_port = load_port_requirement(portalis_root, port_name)
-
-                ctx["ports"] = list_ports(portalis_root)
-                ctx["selected_port"] = selected_port
-                ctx["selected_port_name"] = selected_port_name
-                ctx["port_form"] = {
-                    "port_name": selected_port["port_name"],
-                    "country": selected_port["country"],
-                    "required_docs": list_to_textarea(selected_port["required_docs"]),
-                    "non_standard_forms": list_to_textarea(selected_port["non_standard_forms"]),
-                    "certificate_requirements": list_to_textarea(selected_port["certificate_requirements"]),
-                    "notes": selected_port["notes"],
-                }
-                ctx["cert_check"] = check_required_certificates(
-                    selected_port["certificate_requirements"],
-                    ctx["certificates"],
-                )
+                state.port_requirements.selected_port_name = port_name
+                save_portalis_state(state, str(state_path))
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
                 ctx["saved"] = True
 
             elif action == "generate_crew_list":
                 text = generate_crew_list_txt(portalis_root, state)
                 filename = f"crew_list_{_safe_filename(state.voyage.arrival_port or 'port')}.txt"
                 out_path = save_generated_text(portalis_root, "crew_lists", filename, text)
+                append_generated_output(state, category="crew_lists", output_path=out_path)
+                save_portalis_state(state, str(state_path))
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
                 ctx["generated_paths"] = [out_path]
                 ctx["generated_preview"] = text
                 ctx["saved"] = True
@@ -962,6 +1174,9 @@ def portalis():
                 text = generate_health_declaration_txt(portalis_root, state)
                 filename = f"health_decl_{_safe_filename(state.voyage.arrival_port or 'port')}.txt"
                 out_path = save_generated_text(portalis_root, "health", filename, text)
+                append_generated_output(state, category="health", output_path=out_path)
+                save_portalis_state(state, str(state_path))
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
                 ctx["generated_paths"] = [out_path]
                 ctx["generated_preview"] = text
                 ctx["saved"] = True
@@ -970,6 +1185,9 @@ def portalis():
                 text = generate_port_checklist_txt(portalis_root, state)
                 filename = f"port_checklist_{_safe_filename(state.voyage.arrival_port or 'port')}.txt"
                 out_path = save_generated_text(portalis_root, "checklists", filename, text)
+                append_generated_output(state, category="checklists", output_path=out_path)
+                save_portalis_state(state, str(state_path))
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
                 ctx["generated_paths"] = [out_path]
                 ctx["generated_preview"] = text
                 ctx["saved"] = True
@@ -984,70 +1202,461 @@ def portalis():
                     expiry_date=request.form.get("cert_expiry_date"),
                     notes=request.form.get("cert_notes"),
                 )
+                save_portalis_state(state, str(state_path))
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
+                ctx["saved"] = True
 
- 
- 
+            elif action == "import_crew_passport":
+                source_path = request.form.get("passport_source_path", "").strip()
+                crew_id = request.form.get("passport_crew_id", "").strip() or selected_crew_id
+
+                if not source_path:
+                    raise ValueError("passport_source_path is required")
+                if not crew_id:
+                    raise ValueError("passport_crew_id is required")
+
+                import_result = import_declared_document(
+                    ImportRequest(
+                        source_path=source_path,
+                        document_type="CREW_PASSPORT",
+                        declared_entity_kind="crew",
+                        declared_entity_id=crew_id,
+                        notes="Portalis operator passport import",
+                        tags=["portalis_alpha", "passport"],
+                    ),
+                    portalis_root=portalis_root,
+                )
+
+                if not import_result.ok:
+                    ctx = build_ctx(state, selected_crew_id_value=crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
+                    ctx["errors"] = import_result.errors or ["Passport import failed"]
+                    return render_template("portalis.html", **ctx)
+
+                documents = registry.list_documents()
+                last_document = documents[-1] if documents else {}
+                state.document_registry.last_import_document_id = last_document.get("document_id")
+                state.document_registry.last_import_manifest_path = import_result.manifest_path
+                state.review_queue.last_document_id = last_document.get("document_id")
+                state.crew_registry.selected_crew_id = crew_id
+                save_portalis_state(state, str(state_path))
+
+                selected_review_document_id = last_document.get("document_id") or ""
+                ctx = build_ctx(state, selected_crew_id_value=crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
+                ctx["saved"] = True
+                ctx["generated_paths"] = [import_result.manifest_path] if import_result.manifest_path else []
+
+            elif action in {"accept_review_item", "resolve_review_item", "reject_review_item"}:
+                review_document_id = request.form.get("review_document_id", "").strip()
+                operator_name = request.form.get("review_operator_name", "").strip() or "operator"
+                resolution_reason = request.form.get("review_resolution_reason", "").strip()
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+
+                review_item = review_service.get_review_item(review_document_id)
+                edited_fields = {}
+                selected_candidate_ids = {}
+                field_actions = {}
+                unresolved_reasons = {}
+                for key, value in request.form.items():
+                    if key.startswith("review_field__"):
+                        field_name = key.replace("review_field__", "", 1)
+                        edited_fields[field_name] = value.strip()
+                    elif key.startswith("review_selected_candidate__"):
+                        field_name = key.replace("review_selected_candidate__", "", 1)
+                        selected_candidate_ids[field_name] = value.strip()
+                    elif key.startswith("review_field_action__"):
+                        field_name = key.replace("review_field_action__", "", 1)
+                        field_actions[field_name] = value.strip()
+                    elif key.startswith("review_unresolved_reason__"):
+                        field_name = key.replace("review_unresolved_reason__", "", 1)
+                        unresolved_reasons[field_name] = value.strip()
+
+                action_map = {
+                    "accept_review_item": "ACCEPT",
+                    "resolve_review_item": "RESOLVE",
+                    "reject_review_item": "REJECT",
+                }
+                write_result = review_service.resolve(
+                    ReviewResolutionCoupler(
+                        review_item=review_item,
+                        operator_action=action_map[action],
+                        edited_fields=edited_fields,
+                        selected_candidate_ids=selected_candidate_ids,
+                        field_actions=field_actions,
+                        unresolved_reasons=unresolved_reasons,
+                        operator_name=operator_name,
+                        resolution_reason=resolution_reason,
+                    )
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode)
+                ctx["saved"] = True
+                if write_result.crew_record_path:
+                    ctx["generated_paths"] = [write_result.crew_record_path]
+
+            elif action == "apply_queue_triage":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                triage_action = request.form.get("queue_triage_action", "").strip().upper()
+                triage_note = request.form.get("queue_triage_note", "").strip()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not triage_action:
+                    raise ValueError("queue_triage_action is required")
+
+                apply_triage_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    triage_action=triage_action,
+                    operator_name=queue_operator_name,
+                    triage_note=triage_note,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_queue_assignment":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                assignment_action = request.form.get("queue_assignment_action", "").strip().upper()
+                assignment_bucket = request.form.get("queue_assignment_bucket", "").strip().upper()
+                assignment_owner = request.form.get("queue_assignment_owner", "").strip().upper()
+                assignment_note = request.form.get("queue_assignment_note", "").strip()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not assignment_action:
+                    raise ValueError("queue_assignment_action is required")
+
+                apply_assignment_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    assignment_action=assignment_action,
+                    operator_name=queue_operator_name,
+                    assignment_note=assignment_note,
+                    assigned_bucket=assignment_bucket,
+                    owner_hint=assignment_owner,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_watch_action":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                watch_action = request.form.get("queue_watch_action", "").strip().upper()
+                watch_note = request.form.get("queue_watch_note", "").strip()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not watch_action:
+                    raise ValueError("queue_watch_action is required")
+
+                apply_watch_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    watch_action=watch_action,
+                    operator_name=queue_operator_name,
+                    watch_note=watch_note,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_reminder_action":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                reminder_action = request.form.get("queue_reminder_action", "").strip().upper()
+                reminder_note = request.form.get("queue_reminder_note", "").strip()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not reminder_action:
+                    raise ValueError("queue_reminder_action is required")
+
+                apply_reminder_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    reminder_action=reminder_action,
+                    operator_name=queue_operator_name,
+                    reminder_note=reminder_note,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_notification_action":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                notification_action = request.form.get("queue_notification_action", "").strip().upper()
+                notification_note = request.form.get("queue_notification_note", "").strip()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not notification_action:
+                    raise ValueError("queue_notification_action is required")
+
+                apply_notification_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    notification_action=notification_action,
+                    operator_name=queue_operator_name,
+                    notification_note=notification_note,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_transport_action":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                transport_action = request.form.get("queue_transport_action", "").strip().upper()
+                transport_note = request.form.get("queue_transport_note", "").strip()
+                transport_channel = request.form.get("queue_transport_channel", "").strip().upper()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not transport_action:
+                    raise ValueError("queue_transport_action is required")
+
+                apply_transport_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    transport_action=transport_action,
+                    operator_name=queue_operator_name,
+                    transport_note=transport_note,
+                    channel_hint=transport_channel,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_alert_action":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                alert_action = request.form.get("queue_alert_action", "").strip().upper()
+                alert_note = request.form.get("queue_alert_note", "").strip()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not alert_action:
+                    raise ValueError("queue_alert_action is required")
+
+                apply_alert_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    alert_action=alert_action,
+                    operator_name=queue_operator_name,
+                    alert_note=alert_note,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_incident_action":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                incident_action = request.form.get("queue_incident_action", "").strip().upper()
+                incident_note = request.form.get("queue_incident_note", "").strip()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not incident_action:
+                    raise ValueError("queue_incident_action is required")
+
+                apply_incident_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    incident_action=incident_action,
+                    operator_name=queue_operator_name,
+                    incident_note=incident_note,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_external_bridge_action":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                bridge_action = request.form.get("queue_bridge_action", "").strip().upper()
+                bridge_note = request.form.get("queue_bridge_note", "").strip()
+                bridge_target = request.form.get("queue_bridge_target", "").strip().upper()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not bridge_action:
+                    raise ValueError("queue_bridge_action is required")
+
+                apply_external_bridge_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    bridge_action=bridge_action,
+                    operator_name=queue_operator_name,
+                    bridge_note=bridge_note,
+                    target_hint=bridge_target,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
             elif action == "import_arrival_db":
                 crew_excel_path = request.form.get("crew_excel_path", "").strip()
                 ship_pdf_path = request.form.get("ship_pdf_path", "").strip()
                 cert_paths_raw = request.form.get("cert_paths", "").strip()
-
-                cert_paths = [x.strip() for x in cert_paths_raw.split(",") if x.strip()]
+                cert_paths = [item.strip() for item in cert_paths_raw.split(",") if item.strip()]
 
                 if not crew_excel_path:
-                    ctx["errors"] = ["crew_excel_path is required"]
-                    return render_template("portalis.html", **ctx)
-
+                    raise ValueError("crew_excel_path is required")
                 if not ship_pdf_path:
-                    ctx["errors"] = ["ship_pdf_path is required"]
-                    return render_template("portalis.html", **ctx)
+                    raise ValueError("ship_pdf_path is required")
 
-                ctx["errors"] = []
+                crew_rows = load_arrival_database(crew_excel_path)
+                ship_data = load_ship_particulars(ship_pdf_path)
+                certs = [load_certificate_pdf(path) for path in cert_paths]
 
-                try:
-                    crew_rows = load_arrival_database(crew_excel_path)
-                except Exception as e:
-                    ctx["errors"] = [f"crew load failed: {e}"]
-                    return render_template("portalis.html", **ctx)
+                state = apply_ship_to_state(state, ship_data)
+                import_crew_rows(portalis_root, crew_rows)
+                import_certificates(portalis_root, certs)
+                save_portalis_state(state, str(state_path))
 
-                try:
-                    ship_data = load_ship_particulars(ship_pdf_path)
-                except Exception as e:
-                    ctx["errors"] = [f"ship pdf load failed: {e}"]
-                    return render_template("portalis.html", **ctx)
-
-                try:
-                    certs = [load_certificate_pdf(p) for p in cert_paths]
-                except Exception as e:
-                    ctx["errors"] = [f"certificate load failed: {e}"]
-                    return render_template("portalis.html", **ctx)
-
-                try:
-                    state = apply_ship_to_state(state, ship_data)
-                    save_portalis_state(state, str(state_path))
-                except Exception as e:
-                    ctx["errors"] = [f"apply ship failed: {e}"]
-                    return render_template("portalis.html", **ctx)
-
-                try:
-                    import_crew_rows(portalis_root, crew_rows)
-                except Exception as e:
-                    ctx["errors"] = [f"crew import failed: {e}"]
-                    return render_template("portalis.html", **ctx)
-
-                try:
-                    import_certificates(portalis_root, certs)
-                except Exception as e:
-                    ctx["errors"] = [f"certificate import failed: {e}"]
-                    return render_template("portalis.html", **ctx)
-
-                ctx["state"] = load_portalis_state(str(state_path))
-                ctx["crew"] = list_crew(portalis_root)
-                ctx["certificates"] = list_certificates(portalis_root)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
                 ctx["saved"] = True
 
-
         except Exception as e:
+            ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id)
             ctx["errors"] = [str(e)]
 
     return render_template("portalis.html", **ctx)

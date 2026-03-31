@@ -27,7 +27,7 @@
       "expiry_date": "22 Jan 00",
       "is_primary": true,
       "status": "ACTIVE",
-      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "source_file": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
       "confidence": "",
       "notes": "Imported from mapped fields"
     }
@@ -55,7 +55,7 @@
       "issue_date": "48 Jul 23",
       "expiry_date": "22 Jan 00",
       "nationality": "EAAHNIKH J HELLENIC",
-      "source_file": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf"
+      "source_file": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf"
     }
   ],
   "seaman_books": [],

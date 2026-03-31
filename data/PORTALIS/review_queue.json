@@ -1,0 +1,379 @@
+{
+  "items": [
+    {
+      "document_id": "DOC_000021",
+      "review_required": true,
+      "review_reasons": [
+        "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+        "Could not normalize date for passport.expiry_date: 22 Jan 00",
+        "Could not normalize date for passport.issue_date: 48 Jul 23"
+      ],
+      "parsed_fields": {
+        "passport.number": "AY4667152",
+        "crew.surname": "Y SONE I",
+        "crew.given_names": "Y SONE I",
+        "crew.nationality": "EAAHNIKH J HELLENIC",
+        "crew.date_of_birth": "22 Jan 00",
+        "crew.sex": "M",
+        "passport.expiry_date": "22 Jan 00",
+        "crew.place_of_birth": "NAKHODKA",
+        "passport.issue_date": "48 Jul 23"
+      },
+      "final_fields": {},
+      "accepted_fields": {},
+      "field_evidence": {},
+      "field_validation": {},
+      "field_conflicts": {},
+      "field_confidence": {},
+      "candidate_bundles": {},
+      "compare_ledger": [],
+      "accepted_candidate_refs": {},
+      "operator_overrides": {},
+      "field_statuses": {},
+      "unresolved_fields": {},
+      "field_policy": {},
+      "prioritized_field_queue": [],
+      "escalation_policy": {},
+      "triage_actions": [],
+      "triage_state": {},
+      "routing_hints": {},
+      "assignment_actions": [],
+      "assignment_state": {},
+      "sla_policy": {},
+      "watch_actions": [],
+      "watch_state": {},
+      "reminder_stage": {},
+      "reminder_actions": [],
+      "notification_prep": {},
+      "notification_ledger": {},
+      "delivery_attempts": {},
+      "notification_actions": [],
+      "transport_requests": {},
+      "transport_results": {},
+      "transport_actions": [],
+      "local_alerts": {},
+      "alert_actions": [],
+      "incident_threads": {},
+      "incident_actions": [],
+      "external_bridge_exports": {},
+      "external_bridge_results": {},
+      "external_bridge_actions": [],
+      "status": "PENDING",
+      "tce": {
+        "WHAT": {
+          "document_type": "passport",
+          "declared_type": "CREW_PASSPORT",
+          "field_keys": [
+            "crew.date_of_birth",
+            "crew.given_names",
+            "crew.nationality",
+            "crew.place_of_birth",
+            "crew.sex",
+            "crew.surname",
+            "passport.expiry_date",
+            "passport.issue_date",
+            "passport.number"
+          ]
+        },
+        "WHO": {
+          "owner_entity": "crew",
+          "owner_id": "crew_test_001"
+        },
+        "WHEN": {
+          "imported_at": "2026-03-31T18:01:41Z",
+          "issue_date": "48 Jul 23",
+          "expiry_date": "22 Jan 00",
+          "escalated_at": "2026-03-31T23:50:11Z",
+          "triaged_at": "2026-03-31T23:50:11Z",
+          "assigned_at": "2026-03-31T23:50:11Z",
+          "routing_evaluated_at": "2026-03-31T23:50:11Z",
+          "watch_triggered_at": "2026-03-31T23:50:11Z",
+          "sla_evaluated_at": "2026-03-31T23:50:11Z",
+          "reminder_due_at": {},
+          "reminder_staged_at": "2026-03-31T23:50:11Z",
+          "reminder_sent_at": {},
+          "snoozed_until": {},
+          "notification_created_at": {},
+          "delivery_attempted_at": {},
+          "notification_canceled_at": {},
+          "handoff_requested_at": {},
+          "handoff_completed_at": {},
+          "alert_created_at": {},
+          "alert_acknowledged_at": {},
+          "alert_cleared_at": {},
+          "incident_opened_at": {},
+          "incident_last_seen_at": {},
+          "incident_closed_at": {},
+          "export_staged_at": {},
+          "export_completed_at": {}
+        },
+        "WHERE": {
+          "source_file": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+          "document_store": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT"
+        },
+        "HOW": {
+          "ocr_engine": "surya",
+          "ocr_engines_observed": [
+            "tesseract"
+          ],
+          "classification": "passport",
+          "preprocess_enabled": true,
+          "preprocess_steps": [
+            "crop_to_content",
+            "denoise",
+            "grayscale",
+            "contrast_boost",
+            "sharpen",
+            "deskew",
+            "crop_to_content",
+            "resize",
+            "denoise",
+            "grayscale",
+            "contrast_boost",
+            "sharpen",
+            "deskew"
+          ],
+          "warnings": [
+            "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+            "Could not normalize date for passport.expiry_date: 22 Jan 00",
+            "Could not normalize date for passport.issue_date: 48 Jul 23"
+          ],
+          "escalation_summary": {
+            "NONE": 0,
+            "LOW": 0,
+            "HIGH": 0,
+            "CRITICAL": 0
+          },
+          "triage_summary": {},
+          "routing_summary": {},
+          "assignment_summary": {},
+          "sla_summary": {},
+          "watch_summary": {},
+          "reminder_summary": {
+            "READY": 0,
+            "SNOOZED": 0,
+            "SENT": 0,
+            "CLEARED": 0
+          },
+          "notification_prep_summary": {},
+          "notification_ledger_summary": {
+            "READY": 0,
+            "EMITTED": 0,
+            "FAILED": 0,
+            "CANCELED": 0
+          },
+          "delivery_attempt_summary": {},
+          "transport_summary": {
+            "HANDOFF_READY": 0,
+            "HANDOFF_ACCEPTED": 0,
+            "HANDOFF_REJECTED": 0,
+            "HANDOFF_FAILED": 0
+          },
+          "handoff_summary": {},
+          "alert_feed_summary": {
+            "ACTIVE": 0,
+            "ACKNOWLEDGED": 0,
+            "CLEARED": 0,
+            "REOPENED": 0
+          },
+          "incident_summary": {
+            "OPEN": 0,
+            "ACKNOWLEDGED": 0,
+            "PINNED": 0,
+            "CLOSED": 0,
+            "REOPENED": 0
+          },
+          "export_summary": {
+            "EXPORT_READY": 0,
+            "EXPORT_ACCEPTED": 0,
+            "EXPORT_REJECTED": 0,
+            "EXPORT_FAILED": 0,
+            "EXPORT_SKIPPED": 0
+          },
+          "bridge_summary": {}
+        },
+        "WHY": {
+          "operational_reason": "Portalis import for Crew Passport",
+          "target_use": "document_registry_and_review",
+          "escalation_reason": {},
+          "triage_reason": {},
+          "routing_reason": {},
+          "assignment_reason": {},
+          "sla_reason": {},
+          "watch_reason": {},
+          "reminder_reason": {},
+          "notification_reason": {},
+          "delivery_reason": {},
+          "handoff_reason": {},
+          "transport_reason": {},
+          "alert_reason": {},
+          "incident_reason": {},
+          "export_reason": {},
+          "bridge_reason": {}
+        }
+      },
+      "resolution_reason": "",
+      "resolved_by": "",
+      "created_at": "2026-03-31T18:01:41Z",
+      "updated_at": "2026-03-31T18:01:41Z"
+    },
+    {
+      "document_id": "TEST_DOC",
+      "review_required": true,
+      "review_reasons": [
+        "x"
+      ],
+      "parsed_fields": {
+        "a": "b"
+      },
+      "final_fields": {},
+      "accepted_fields": {},
+      "field_evidence": {},
+      "field_validation": {},
+      "field_conflicts": {},
+      "field_confidence": {},
+      "candidate_bundles": {},
+      "compare_ledger": [],
+      "accepted_candidate_refs": {},
+      "operator_overrides": {},
+      "field_statuses": {},
+      "unresolved_fields": {},
+      "field_policy": {},
+      "prioritized_field_queue": [],
+      "escalation_policy": {},
+      "triage_actions": [],
+      "triage_state": {},
+      "routing_hints": {},
+      "assignment_actions": [],
+      "assignment_state": {},
+      "sla_policy": {},
+      "watch_actions": [],
+      "watch_state": {},
+      "reminder_stage": {},
+      "reminder_actions": [],
+      "notification_prep": {},
+      "notification_ledger": {},
+      "delivery_attempts": {},
+      "notification_actions": [],
+      "transport_requests": {},
+      "transport_results": {},
+      "transport_actions": [],
+      "local_alerts": {},
+      "alert_actions": [],
+      "incident_threads": {},
+      "incident_actions": [],
+      "external_bridge_exports": {},
+      "external_bridge_results": {},
+      "external_bridge_actions": [],
+      "status": "PENDING",
+      "tce": {
+        "WHAT": {
+          "document_type": "passport"
+        },
+        "WHO": {},
+        "WHEN": {
+          "escalated_at": "2026-03-31T23:50:11Z",
+          "triaged_at": "2026-03-31T23:50:11Z",
+          "assigned_at": "2026-03-31T23:50:11Z",
+          "routing_evaluated_at": "2026-03-31T23:50:11Z",
+          "watch_triggered_at": "2026-03-31T23:50:11Z",
+          "sla_evaluated_at": "2026-03-31T23:50:11Z",
+          "reminder_due_at": {},
+          "reminder_staged_at": "2026-03-31T23:50:11Z",
+          "reminder_sent_at": {},
+          "snoozed_until": {},
+          "notification_created_at": {},
+          "delivery_attempted_at": {},
+          "notification_canceled_at": {},
+          "handoff_requested_at": {},
+          "handoff_completed_at": {},
+          "alert_created_at": {},
+          "alert_acknowledged_at": {},
+          "alert_cleared_at": {},
+          "incident_opened_at": {},
+          "incident_last_seen_at": {},
+          "incident_closed_at": {},
+          "export_staged_at": {},
+          "export_completed_at": {}
+        },
+        "WHERE": {},
+        "HOW": {
+          "escalation_summary": {
+            "NONE": 0,
+            "LOW": 0,
+            "HIGH": 0,
+            "CRITICAL": 0
+          },
+          "triage_summary": {},
+          "routing_summary": {},
+          "assignment_summary": {},
+          "sla_summary": {},
+          "watch_summary": {},
+          "reminder_summary": {
+            "READY": 0,
+            "SNOOZED": 0,
+            "SENT": 0,
+            "CLEARED": 0
+          },
+          "notification_prep_summary": {},
+          "notification_ledger_summary": {
+            "READY": 0,
+            "EMITTED": 0,
+            "FAILED": 0,
+            "CANCELED": 0
+          },
+          "delivery_attempt_summary": {},
+          "transport_summary": {
+            "HANDOFF_READY": 0,
+            "HANDOFF_ACCEPTED": 0,
+            "HANDOFF_REJECTED": 0,
+            "HANDOFF_FAILED": 0
+          },
+          "handoff_summary": {},
+          "alert_feed_summary": {
+            "ACTIVE": 0,
+            "ACKNOWLEDGED": 0,
+            "CLEARED": 0,
+            "REOPENED": 0
+          },
+          "incident_summary": {
+            "OPEN": 0,
+            "ACKNOWLEDGED": 0,
+            "PINNED": 0,
+            "CLOSED": 0,
+            "REOPENED": 0
+          },
+          "export_summary": {
+            "EXPORT_READY": 0,
+            "EXPORT_ACCEPTED": 0,
+            "EXPORT_REJECTED": 0,
+            "EXPORT_FAILED": 0,
+            "EXPORT_SKIPPED": 0
+          },
+          "bridge_summary": {}
+        },
+        "WHY": {
+          "escalation_reason": {},
+          "triage_reason": {},
+          "routing_reason": {},
+          "assignment_reason": {},
+          "sla_reason": {},
+          "watch_reason": {},
+          "reminder_reason": {},
+          "notification_reason": {},
+          "delivery_reason": {},
+          "handoff_reason": {},
+          "transport_reason": {},
+          "alert_reason": {},
+          "incident_reason": {},
+          "export_reason": {},
+          "bridge_reason": {}
+        }
+      },
+      "resolution_reason": "",
+      "resolved_by": "",
+      "created_at": "now",
+      "updated_at": "now"
+    }
+  ]
+}

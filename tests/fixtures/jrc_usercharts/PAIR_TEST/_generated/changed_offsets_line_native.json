@@ -1,0 +1,32 @@
+[
+  {
+    "sample_a": "L01_base",
+    "sample_b": "L06_type",
+    "offset": 68,
+    "size": 2
+  },
+  {
+    "sample_a": "L01_base",
+    "sample_b": "L06_type",
+    "offset": 204,
+    "size": 4
+  },
+  {
+    "sample_a": "L01_base",
+    "sample_b": "L06_type",
+    "offset": 368,
+    "size": 1
+  },
+  {
+    "sample_a": "L01_base",
+    "sample_b": "L06_type",
+    "offset": 452,
+    "size": 1
+  },
+  {
+    "sample_a": "L01_base",
+    "sample_b": "L06_type",
+    "offset": 464,
+    "size": 4
+  }
+]

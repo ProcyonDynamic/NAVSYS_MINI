@@ -1,0 +1,12 @@
+// USER CHART SHEET exported by JRC ECDIS.
+// <<NOTE>>This strings // indicate comment column/cells. You can edit freely.
+// R01_line_roundtrip,,
+// LINE_AGGREGATE
+// Comment
+// Lat,,,Lon,,,Type,Width,ColorNo,Comment
+// Add "END" to the end of vertex.
+LINE_AGGREGATE
+
+24,24.034,N,057,42.810,W,1,2,9,
+23,21.812,N,055,16.279,W,1,2,9,
+END

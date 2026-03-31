@@ -1,0 +1,180 @@
+{
+  "candidates": {
+    "tail_0": [
+      {
+        "function": "and",
+        "consistency": 0.3915343915343915,
+        "tests": 378,
+        "bit_score": 0.3915343915343915
+      },
+      {
+        "function": "mirrored_copy",
+        "consistency": 0.2857142857142857,
+        "tests": 378,
+        "bit_score": 0.2857142857142857
+      },
+      {
+        "function": "or",
+        "consistency": 0.10582010582010581,
+        "tests": 378,
+        "bit_score": 0.10582010582010581
+      },
+      {
+        "function": "direct_copy",
+        "consistency": 0.10317460317460317,
+        "tests": 378,
+        "bit_score": 0.10317460317460317
+      },
+      {
+        "function": "xor",
+        "consistency": 0.10317460317460317,
+        "tests": 378,
+        "bit_score": 0.10317460317460317
+      },
+      {
+        "function": "sum_mod_256",
+        "consistency": 0.10317460317460317,
+        "tests": 378,
+        "bit_score": 0.10317460317460317
+      },
+      {
+        "function": "packed_bits",
+        "consistency": 0.10317460317460317,
+        "tests": 378,
+        "bit_score": 0.10317460317460317
+      }
+    ],
+    "tail_1": [
+      {
+        "function": "and",
+        "consistency": 0.3862433862433862,
+        "tests": 378,
+        "bit_score": 0.3862433862433862
+      },
+      {
+        "function": "mirrored_copy",
+        "consistency": 0.2804232804232804,
+        "tests": 378,
+        "bit_score": 0.2804232804232804
+      },
+      {
+        "function": "or",
+        "consistency": 0.10052910052910052,
+        "tests": 378,
+        "bit_score": 0.10052910052910052
+      },
+      {
+        "function": "direct_copy",
+        "consistency": 0.09788359788359788,
+        "tests": 378,
+        "bit_score": 0.09788359788359788
+      },
+      {
+        "function": "xor",
+        "consistency": 0.09788359788359788,
+        "tests": 378,
+        "bit_score": 0.09788359788359788
+      },
+      {
+        "function": "sum_mod_256",
+        "consistency": 0.09788359788359788,
+        "tests": 378,
+        "bit_score": 0.09788359788359788
+      },
+      {
+        "function": "packed_bits",
+        "consistency": 0.09788359788359788,
+        "tests": 378,
+        "bit_score": 0.09788359788359788
+      }
+    ],
+    "tail_2": [
+      {
+        "function": "and",
+        "consistency": 0.3862433862433862,
+        "tests": 378,
+        "bit_score": 0.3862433862433862
+      },
+      {
+        "function": "mirrored_copy",
+        "consistency": 0.2804232804232804,
+        "tests": 378,
+        "bit_score": 0.2804232804232804
+      },
+      {
+        "function": "or",
+        "consistency": 0.10052910052910052,
+        "tests": 378,
+        "bit_score": 0.10052910052910052
+      },
+      {
+        "function": "packed_bits",
+        "consistency": 0.10052910052910052,
+        "tests": 378,
+        "bit_score": 0.10052910052910052
+      },
+      {
+        "function": "direct_copy",
+        "consistency": 0.09788359788359788,
+        "tests": 378,
+        "bit_score": 0.09788359788359788
+      },
+      {
+        "function": "xor",
+        "consistency": 0.09788359788359788,
+        "tests": 378,
+        "bit_score": 0.09788359788359788
+      },
+      {
+        "function": "sum_mod_256",
+        "consistency": 0.09788359788359788,
+        "tests": 378,
+        "bit_score": 0.09788359788359788
+      }
+    ],
+    "tail_3": [
+      {
+        "function": "and",
+        "consistency": 0.3888888888888889,
+        "tests": 378,
+        "bit_score": 0.3888888888888889
+      },
+      {
+        "function": "mirrored_copy",
+        "consistency": 0.2830687830687831,
+        "tests": 378,
+        "bit_score": 0.2830687830687831
+      },
+      {
+        "function": "or",
+        "consistency": 0.10317460317460317,
+        "tests": 378,
+        "bit_score": 0.10317460317460317
+      },
+      {
+        "function": "direct_copy",
+        "consistency": 0.10052910052910052,
+        "tests": 378,
+        "bit_score": 0.10052910052910052
+      },
+      {
+        "function": "xor",
+        "consistency": 0.10052910052910052,
+        "tests": 378,
+        "bit_score": 0.10052910052910052
+      },
+      {
+        "function": "sum_mod_256",
+        "consistency": 0.10052910052910052,
+        "tests": 378,
+        "bit_score": 0.10052910052910052
+      },
+      {
+        "function": "packed_bits",
+        "consistency": 0.10052910052910052,
+        "tests": 378,
+        "bit_score": 0.10052910052910052
+      }
+    ]
+  }
+}

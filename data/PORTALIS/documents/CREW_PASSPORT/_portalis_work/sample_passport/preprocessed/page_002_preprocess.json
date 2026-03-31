@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "source_path": "data\\PORTALIS\\documents\\CREW_PASSPORT\\_portalis_work\\sample_passport\\pdf_pages\\page_002.png",
-  "output_path": "data\\PORTALIS\\documents\\CREW_PASSPORT\\_portalis_work\\sample_passport\\preprocessed\\page_002_preprocessed.png",
+  "source_path": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\_portalis_work\\sample_passport\\pdf_pages\\page_002.png",
+  "output_path": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\_portalis_work\\sample_passport\\preprocessed\\page_002_preprocessed.png",
   "width": 1800,
   "height": 2549,
   "channels": 1,

@@ -1,0 +1,140 @@
+{
+  "import_id": "IMP_20260331_180126Z_E46ADCE7",
+  "requested_at": "2026-03-31T18:01:41Z",
+  "request": {
+    "source_path": "d:\\NAVSYS_USB\\data\\PORTALIS\\test_inputs\\sample_passport.pdf",
+    "document_type": "CREW_PASSPORT",
+    "declared_entity_kind": "crew",
+    "declared_entity_id": "crew_test_001",
+    "notes": "verification run",
+    "tags": [
+      "verify"
+    ]
+  },
+  "result": {
+    "document_id": "DOC_000021",
+    "doc_type": "passport",
+    "stored_file": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+    "owner_entity": "crew",
+    "owner_id": "crew_test_001",
+    "confidence": 0.9,
+    "parsed_fields": {
+      "passport.number": "AY4667152",
+      "crew.surname": "Y SONE I",
+      "crew.given_names": "Y SONE I",
+      "crew.nationality": "EAAHNIKH J HELLENIC",
+      "crew.date_of_birth": "22 Jan 00",
+      "crew.sex": "M",
+      "passport.expiry_date": "22 Jan 00",
+      "crew.place_of_birth": "NAKHODKA",
+      "passport.issue_date": "48 Jul 23"
+    },
+    "review_required": true,
+    "review_reasons": [
+      "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+      "Could not normalize date for passport.expiry_date: 22 Jan 00",
+      "Could not normalize date for passport.issue_date: 48 Jul 23"
+    ],
+    "warnings": [
+      "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+      "Could not normalize date for passport.expiry_date: 22 Jan 00",
+      "Could not normalize date for passport.issue_date: 48 Jul 23"
+    ],
+    "crew_record_path": "d:\\NAVSYS_USB\\data\\PORTALIS\\crew\\crew_test_001\\record.json",
+    "crew_update_error": null
+  },
+  "document_entry": {
+    "document_id": "DOC_000021",
+    "doc_type": "passport",
+    "owner_entity": "crew",
+    "owner_id": "crew_test_001",
+    "source_file": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+    "parsed_fields": {
+      "passport.number": "AY4667152",
+      "crew.surname": "Y SONE I",
+      "crew.given_names": "Y SONE I",
+      "crew.nationality": "EAAHNIKH J HELLENIC",
+      "crew.date_of_birth": "22 Jan 00",
+      "crew.sex": "M",
+      "passport.expiry_date": "22 Jan 00",
+      "crew.place_of_birth": "NAKHODKA",
+      "passport.issue_date": "48 Jul 23"
+    },
+    "confidence": 0.9,
+    "review_required": true,
+    "review_reasons": [
+      "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+      "Could not normalize date for passport.expiry_date: 22 Jan 00",
+      "Could not normalize date for passport.issue_date: 48 Jul 23"
+    ],
+    "warnings": [
+      "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+      "Could not normalize date for passport.expiry_date: 22 Jan 00",
+      "Could not normalize date for passport.issue_date: 48 Jul 23"
+    ],
+    "tce_lite": {
+      "WHAT": {
+        "document_type": "passport",
+        "declared_type": "CREW_PASSPORT",
+        "field_keys": [
+          "crew.date_of_birth",
+          "crew.given_names",
+          "crew.nationality",
+          "crew.place_of_birth",
+          "crew.sex",
+          "crew.surname",
+          "passport.expiry_date",
+          "passport.issue_date",
+          "passport.number"
+        ]
+      },
+      "WHO": {
+        "owner_entity": "crew",
+        "owner_id": "crew_test_001"
+      },
+      "WHEN": {
+        "imported_at": "2026-03-31T18:01:41Z",
+        "issue_date": "48 Jul 23",
+        "expiry_date": "22 Jan 00"
+      },
+      "WHERE": {
+        "source_file": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+        "document_store": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT"
+      },
+      "HOW": {
+        "ocr_engine": "surya",
+        "ocr_engines_observed": [
+          "tesseract"
+        ],
+        "classification": "passport",
+        "preprocess_enabled": true,
+        "preprocess_steps": [
+          "crop_to_content",
+          "denoise",
+          "grayscale",
+          "contrast_boost",
+          "sharpen",
+          "deskew",
+          "crop_to_content",
+          "resize",
+          "denoise",
+          "grayscale",
+          "contrast_boost",
+          "sharpen",
+          "deskew"
+        ],
+        "warnings": [
+          "Could not normalize date for crew.date_of_birth: 22 Jan 00",
+          "Could not normalize date for passport.expiry_date: 22 Jan 00",
+          "Could not normalize date for passport.issue_date: 48 Jul 23"
+        ]
+      },
+      "WHY": {
+        "operational_reason": "Portalis import for Crew Passport",
+        "target_use": "document_registry_and_review"
+      }
+    },
+    "operational_reason": "Portalis declared import for Crew Passport",
+    "created_at": "2026-03-31T18:01:41.282029"
+  }
+}

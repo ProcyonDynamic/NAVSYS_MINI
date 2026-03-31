@@ -54,9 +54,13 @@ class RecordUpdateService:
         
         if "crew.family_name" in mapped_fields:
             record["family_name"] = mapped_fields["crew.family_name"]
+        elif "crew.surname" in mapped_fields:
+            record["family_name"] = mapped_fields["crew.surname"]
 
         if "crew.given_name" in mapped_fields:
             record["given_name"] = mapped_fields["crew.given_name"]
+        elif "crew.given_names" in mapped_fields:
+            record["given_name"] = mapped_fields["crew.given_names"]
 
         if "crew.middle_initial" in mapped_fields:
             record["middle_initial"] = mapped_fields["crew.middle_initial"]
@@ -76,16 +80,6 @@ class RecordUpdateService:
             middle_initial=record.get("middle_initial"),
             fallback=record.get("name"),
         )
-
-        passport_number = mapped_fields.get("passport.number")
-        passport_number = mapped_fields.get("passport.number")
-        
-        if passport_number:
-            passport_entry = self._find_or_create_document_entry(
-                record["passports"],
-                number=passport_number,
-                document_type="passport",
-            )
 
         passport_number = mapped_fields.get("passport.number")
         if passport_number:

@@ -1,0 +1,17 @@
+{
+  "family": "line_native",
+  "summary": {
+    "pairs_analyzed": 0,
+    "primary_trio_matches": 0,
+    "mirrored_trio_matches": 0,
+    "dependent_block_matches": 0,
+    "supervisory_matches": 0
+  },
+  "matched_pairs": {
+    "primary_trio": [],
+    "mirrored_trio": [],
+    "dependent_block": [],
+    "supervisory": []
+  },
+  "pair_reports": []
+}

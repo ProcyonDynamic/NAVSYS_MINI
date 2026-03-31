@@ -1,0 +1,33 @@
+{
+  "warning_id": "144",
+  "navarea": "IV",
+  "saved_utc": "",
+  "operator_name": null,
+  "geometry_override": {
+    "enabled": true,
+    "geom_type": "POINT",
+    "verts": [
+      {
+        "lat": 20.836666666666666,
+        "lon": -86.91666666666667
+      }
+    ]
+  },
+  "plot_override": {
+    "enabled": true,
+    "plot_policy_id": "plot_operational_area",
+    "plot_enabled": true,
+    "point_symbol_kind": "default",
+    "color_no": 1,
+    "line_type": 1,
+    "line_width": 5
+  },
+  "text_override": {
+    "enabled": true,
+    "text_enabled": true,
+    "label_text": "LIGHT UNRELIABLE"
+  },
+  "notes": {
+    "operator_note": null
+  }
+}

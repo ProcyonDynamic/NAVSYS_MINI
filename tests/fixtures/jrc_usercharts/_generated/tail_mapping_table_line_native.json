@@ -1,0 +1,308 @@
+{
+  "tables": {
+    "T01_text_short": {
+      "style_bytes": {
+        "style_0": 251,
+        "style_1": 87,
+        "style_2": 70
+      },
+      "tail_bytes": {}
+    },
+    "L07_two_lines": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 16,
+        "tail_1": 0,
+        "tail_2": 0,
+        "tail_3": 0
+      }
+    },
+    "L06_type": {
+      "style_bytes": {
+        "style_0": 3,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 3,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 211,
+        "tail_1": 56,
+        "tail_2": 244,
+        "tail_3": 196
+      }
+    },
+    "L05_width": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 5,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 5,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 15,
+        "tail_1": 172,
+        "tail_2": 215,
+        "tail_3": 140
+      }
+    },
+    "L04_color": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 4,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 4
+      },
+      "tail_bytes": {
+        "tail_0": 152,
+        "tail_1": 241,
+        "tail_2": 222,
+        "tail_3": 0
+      }
+    },
+    "L03_longer": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 253,
+        "tail_1": 175,
+        "tail_2": 2,
+        "tail_3": 158
+      }
+    },
+    "L02_move": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 137,
+        "tail_1": 119,
+        "tail_2": 77,
+        "tail_3": 5
+      }
+    },
+    "L01_base": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 137,
+        "tail_1": 187,
+        "tail_2": 179,
+        "tail_3": 77
+      }
+    },
+    "T03_text_move": {
+      "style_bytes": {
+        "style_0": 187,
+        "style_1": 67,
+        "style_2": 121
+      },
+      "tail_bytes": {}
+    },
+    "N01_native_object": {
+      "style_bytes": {},
+      "tail_bytes": {}
+    },
+    "N02_native_modified": {
+      "style_bytes": {},
+      "tail_bytes": {}
+    },
+    "T02_text_long": {
+      "style_bytes": {
+        "style_0": 48,
+        "style_1": 137,
+        "style_2": 245
+      },
+      "tail_bytes": {}
+    },
+    "A1": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 50,
+        "tail_1": 51,
+        "tail_2": 255,
+        "tail_3": 250
+      }
+    },
+    "A10_area_REDborder_ORANGEfill_WIDTH5_trans75%": {
+      "style_bytes": {},
+      "tail_bytes": {}
+    },
+    "A2_SCAMIN_UP_75000000": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 111,
+        "tail_1": 238,
+        "tail_2": 138,
+        "tail_3": 136
+      }
+    },
+    "A3_SCAMAX_UP_1250": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 231,
+        "tail_1": 80,
+        "tail_2": 241,
+        "tail_3": 223
+      }
+    },
+    "A4_All_off": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 95,
+        "tail_1": 253,
+        "tail_2": 142,
+        "tail_3": 146
+      }
+    },
+    "A5_comment_hidden": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 9,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 217,
+        "tail_1": 45,
+        "tail_2": 171,
+        "tail_3": 56
+      }
+    },
+    "A6_free_text": {
+      "style_bytes": {
+        "style_0": 204,
+        "style_1": 6,
+        "style_2": 166
+      },
+      "tail_bytes": {}
+    },
+    "A7_text_rotated_75_red": {
+      "style_bytes": {
+        "style_0": 82,
+        "style_1": 185,
+        "style_2": 97
+      },
+      "tail_bytes": {}
+    },
+    "A8_text_size_16": {
+      "style_bytes": {
+        "style_0": 58,
+        "style_1": 20,
+        "style_2": 63
+      },
+      "tail_bytes": {}
+    },
+    "A9_alarm_line_comment_all_showing": {
+      "style_bytes": {
+        "style_0": 0,
+        "style_1": 0,
+        "style_2": 9,
+        "style_3": 0,
+        "style_4": 0,
+        "style_5": 9
+      },
+      "tail_bytes": {
+        "tail_0": 100,
+        "tail_1": 12,
+        "tail_2": 42,
+        "tail_3": 94
+      }
+    },
+    "T1A": {
+      "style_bytes": {},
+      "tail_bytes": {}
+    },
+    "T1B": {
+      "style_bytes": {},
+      "tail_bytes": {}
+    },
+    "T1C": {
+      "style_bytes": {},
+      "tail_bytes": {}
+    },
+    "T2": {
+      "style_bytes": {},
+      "tail_bytes": {}
+    },
+    "T3": {
+      "style_bytes": {},
+      "tail_bytes": {}
+    },
+    "P09_color_both": {
+      "style_bytes": {
+        "style_0": 1,
+        "style_1": 2,
+        "style_2": 4,
+        "style_3": 1,
+        "style_4": 2,
+        "style_5": 4
+      },
+      "tail_bytes": {
+        "tail_0": 137,
+        "tail_1": 187,
+        "tail_2": 179,
+        "tail_3": 77
+      }
+    }
+  }
+}

@@ -17,6 +17,8 @@ from .profiles.profile_registry import ProfileRegistry
 class DocumentPipelineResult:
     source_path: str
     ocr_text: str
+    ocr_pages: List[dict] = field(default_factory=list)
+    field_evidence: dict = field(default_factory=dict)
     classification: Optional[DocumentClassification] = None
     extraction: Optional[ExtractionResult] = None
     canonical: Optional[CanonicalMappingResult] = None
@@ -69,6 +71,15 @@ class DocumentPipeline:
         result = DocumentPipelineResult(
             source_path=str(file_path),
             ocr_text=full_text,
+            ocr_pages=[
+                {
+                    "page_number": page.page_number,
+                    "engine": page.engine,
+                    "source_image_path": page.source_image_path,
+                    "preprocess_steps": list((page.preprocess_result or {}).get("steps_applied", [])),
+                }
+                for page in ocr_result.pages
+            ],
         )
 
         if not full_text.strip():
@@ -166,6 +177,11 @@ class DocumentPipeline:
         result.resolved_fields = {
             k: v.value for k, v in resolution.resolved_fields.items()
         }
+        result.field_evidence = self._build_field_evidence(
+            classification.document_type,
+            resolution.resolved_fields,
+            selected_pages,
+        )
 
         result.canonical_fields = canonical.mapped_fields or {}
         result.confidence = 0.9 if result.canonical_fields else 0.0
@@ -183,6 +199,49 @@ class DocumentPipeline:
             result.review_reasons.extend(canonical.warnings)
 
         return result
+
+    def _build_field_evidence(self, document_type: str, resolved_fields: dict, pages: list) -> dict:
+        page_engine_map = {page.page_number: page.engine for page in pages}
+        field_map = self._canonical_field_map(document_type)
+        evidence = {}
+
+        for source_field, resolved in resolved_fields.items():
+            canonical_field = field_map.get(source_field)
+            if not canonical_field:
+                continue
+
+            chosen = resolved.chosen_candidate
+            evidence[canonical_field] = {
+                "field_name": canonical_field,
+                "parsed_value": resolved.value,
+                "candidate_text": chosen.source_line or chosen.value,
+                "source_engine": page_engine_map.get(chosen.source_page),
+                "source_kind": chosen.candidate_type,
+                "source_method": chosen.source_method,
+                "source_line": chosen.source_line,
+                "source_snippet": chosen.source_line or chosen.value,
+                "source_page": chosen.source_page,
+                "candidate_index": 0,
+                "provenance_branch": "mrz" if chosen.candidate_type == "mrz_field" else "ocr",
+                "provenance_path": "mapped_canonical",
+                "notes": [f"mapped_from:{source_field}"],
+                "warnings": list(resolved.warnings),
+                "alternate_values": [
+                    {
+                        "value": candidate.value,
+                        "source_kind": candidate.candidate_type,
+                        "source_method": candidate.source_method,
+                        "source_line": candidate.source_line,
+                        "source_snippet": candidate.source_line or candidate.value,
+                        "candidate_index": idx + 1,
+                        "provenance_branch": "mrz" if candidate.candidate_type == "mrz_field" else "ocr",
+                        "provenance_path": "alternate_candidate",
+                    }
+                    for idx, candidate in enumerate(resolved.alternate_candidates)
+                ],
+            }
+
+        return evidence
     
     def _page_matches_document_type(self, text: str, document_type: str) -> bool:
         text_upper = (text or "").upper()
@@ -214,8 +273,18 @@ class DocumentPipeline:
         return True
     
     def _resolved_to_canonical_input(self, document_type: str, resolved_fields: dict) -> dict:
+        field_map = self._canonical_field_map(document_type)
+
+        out = {}
+        for src_key, resolved in resolved_fields.items():
+            dst_key = field_map.get(src_key)
+            if dst_key:
+                out[dst_key] = resolved.value
+        return out
+
+    def _canonical_field_map(self, document_type: str) -> dict:
         if document_type == "passport":
-            field_map = {
+            return {
                 "passport_number": "passport.number",
                 "surname": "crew.surname",
                 "given_names": "crew.given_names",
@@ -226,12 +295,4 @@ class DocumentPipeline:
                 "issue_date": "passport.issue_date",
                 "expiry_date": "passport.expiry_date",
             }
-        else:
-            field_map = {}
-
-        out = {}
-        for src_key, resolved in resolved_fields.items():
-            dst_key = field_map.get(src_key)
-            if dst_key:
-                out[dst_key] = resolved.value
-        return out
+        return {}

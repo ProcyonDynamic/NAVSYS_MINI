@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from flask import Blueprint, jsonify, request
 
@@ -20,7 +21,8 @@ def api_portalis_import():
     notes = (data.get("notes") or "").strip()
     tags = data.get("tags") or []
 
-    portalis_root = os.path.join("data", "PORTALIS")
+    project_root = Path(__file__).resolve().parents[2]
+    portalis_root = project_root / "data" / "PORTALIS"
 
     req = ImportRequest(
         source_path=source_path,

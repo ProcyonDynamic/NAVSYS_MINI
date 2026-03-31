@@ -1,0 +1,168 @@
+{
+  "rankings": {
+    "le": [
+      {
+        "range": "range_3+range_5",
+        "reducer": "sum_combine_mod_2pow32",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.765625,
+        "hamming_score": 0.765625,
+        "combined_score": 0.6770833333333334
+      },
+      {
+        "range": "range_3",
+        "reducer": "rolling_accumulator",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7589285714285714,
+        "hamming_score": 0.7589285714285714,
+        "combined_score": 0.6726190476190476
+      },
+      {
+        "range": "range_3",
+        "reducer": "concat_int",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7566964285714286,
+        "hamming_score": 0.7566964285714286,
+        "combined_score": 0.6711309523809524
+      },
+      {
+        "range": "range_5",
+        "reducer": "sum_mod_2pow32",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7544642857142857,
+        "hamming_score": 0.7544642857142857,
+        "combined_score": 0.6696428571428571
+      },
+      {
+        "range": "range_5",
+        "reducer": "concat_int",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7522321428571429,
+        "hamming_score": 0.7522321428571429,
+        "combined_score": 0.6681547619047619
+      },
+      {
+        "range": "range_3+range_5",
+        "reducer": "xor_combine",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7511160714285714,
+        "hamming_score": 0.7511160714285714,
+        "combined_score": 0.6674107142857143
+      },
+      {
+        "range": "range_5",
+        "reducer": "weighted_sum",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.75,
+        "hamming_score": 0.75,
+        "combined_score": 0.6666666666666666
+      },
+      {
+        "range": "range_5",
+        "reducer": "xor_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7477678571428571,
+        "hamming_score": 0.7477678571428571,
+        "combined_score": 0.6651785714285715
+      },
+      {
+        "range": "range_3",
+        "reducer": "xor_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7466517857142857,
+        "hamming_score": 0.7466517857142857,
+        "combined_score": 0.6644345238095237
+      },
+      {
+        "range": "range_3",
+        "reducer": "sum_mod_2pow32",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7466517857142857,
+        "hamming_score": 0.7466517857142857,
+        "combined_score": 0.6644345238095237
+      }
+    ],
+    "be": [
+      {
+        "range": "range_5",
+        "reducer": "sum_mod_2pow32",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7522321428571429,
+        "hamming_score": 0.7522321428571429,
+        "combined_score": 0.6681547619047619
+      },
+      {
+        "range": "range_3",
+        "reducer": "concat_int",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.75,
+        "hamming_score": 0.75,
+        "combined_score": 0.6666666666666666
+      },
+      {
+        "range": "range_3+range_5",
+        "reducer": "sum_combine_mod_2pow32",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7477678571428571,
+        "hamming_score": 0.7477678571428571,
+        "combined_score": 0.6651785714285715
+      },
+      {
+        "range": "range_3",
+        "reducer": "xor_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7466517857142857,
+        "hamming_score": 0.7466517857142857,
+        "combined_score": 0.6644345238095237
+      },
+      {
+        "range": "range_3",
+        "reducer": "sum_mod_2pow32",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7466517857142857,
+        "hamming_score": 0.7466517857142857,
+        "combined_score": 0.6644345238095237
+      },
+      {
+        "range": "range_5",
+        "reducer": "weighted_sum",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7410714285714286,
+        "hamming_score": 0.7410714285714286,
+        "combined_score": 0.6607142857142857
+      },
+      {
+        "range": "range_5",
+        "reducer": "rolling_accumulator",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7399553571428571,
+        "hamming_score": 0.7399553571428571,
+        "combined_score": 0.6599702380952381
+      },
+      {
+        "range": "range_3",
+        "reducer": "weighted_sum",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7388392857142857,
+        "hamming_score": 0.7388392857142857,
+        "combined_score": 0.6592261904761904
+      },
+      {
+        "range": "range_5",
+        "reducer": "concat_int",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7388392857142857,
+        "hamming_score": 0.7388392857142857,
+        "combined_score": 0.6592261904761904
+      },
+      {
+        "range": "range_3+range_5",
+        "reducer": "xor_combine",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7354910714285714,
+        "hamming_score": 0.7354910714285714,
+        "combined_score": 0.6569940476190476
+      }
+    ]
+  }
+}

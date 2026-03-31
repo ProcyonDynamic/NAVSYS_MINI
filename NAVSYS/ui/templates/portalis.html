@@ -16,32 +16,65 @@
       <h1>Portalis Mini</h1>
       <p>USB Root: <code>{{ usb_root }}</code></p>
 
+      <div class="statusbox">
+        <strong>Portalis State Snapshot</strong><br>
+        Crew Registry: {{ state.crew_registry.total_crew }}<br>
+        Certificate Vault: {{ state.certificate_vault.total_certificates }}<br>
+        Port Requirements: {{ state.port_requirements.total_ports }}<br>
+        Document Registry: {{ state.document_registry.total_documents }}<br>
+        Review Queue: {{ state.review_queue.pending_items }} pending / {{ state.review_queue.total_items }} total
+      </div>
+
       <h2>Port Call Intake</h2>
+      <div class="statusbox">
+        <form method="post">
+          <label>Arrival Database Excel</label>
+          <input name="crew_excel_path" type="text" placeholder="D:\NAVSYS_USB\03.03.2026--ARVL--Database.xlsx">
 
-<div class="statusbox">
-  <form method="post">
-    <label>Arrival Database Excel</label>
-    <input name="crew_excel_path" type="text" placeholder="D:\NAVSYS_USB\03.03.2026--ARVL--Database.xlsx">
+          <label>Ship Particulars PDF</label>
+          <input name="ship_pdf_path" type="text" placeholder="D:\NAVSYS_USB\Ship's Particulars - Energy Endurance.pdf">
 
-    <label>Ship Particulars PDF</label>
-    <input name="ship_pdf_path" type="text" placeholder="D:\NAVSYS_USB\Ship's Particulars - Energy Endurance.pdf">
+          <label>Certificate PDFs (comma separated)</label>
+          <input name="cert_paths" type="text" placeholder="D:\NAVSYS_USB\cert1.pdf, D:\NAVSYS_USB\cert2.pdf">
 
-    <label>Certificate PDFs (comma separated)</label>
-    <input name="cert_paths" type="text" placeholder="D:\NAVSYS_USB\cert1.pdf, D:\NAVSYS_USB\cert2.pdf">
+          <div class="row">
+            <button type="submit" name="action" value="import_arrival_db">Import & Auto-Fill</button>
+          </div>
+        </form>
+      </div>
 
-    <div class="row">
-      <button type="submit" name="action" value="import_arrival_db">Import & Auto-Fill</button>
-    </div>
-  </form>
-</div>
+      <h2>Passport Import</h2>
+      <div class="statusbox">
+        <form method="post">
+          <label>Passport Source Path</label>
+          <input name="passport_source_path" type="text" placeholder="D:\NAVSYS_USB\data\PORTALIS\test_inputs\sample_passport.pdf">
+
+          <label>Crew ID</label>
+          <input name="passport_crew_id" type="text" value="{{ selected_crew_id }}" placeholder="crew_test_001">
+
+          <div class="row">
+            <button type="submit" name="action" value="import_crew_passport">Import Passport</button>
+          </div>
+        </form>
+
+        {% if last_import_document_id %}
+        <br>
+        Last Import Document: <code>{{ last_import_document_id }}</code><br>
+        {% endif %}
+        {% if last_import_manifest_path %}
+        Last Import Manifest: <code>{{ last_import_manifest_path }}</code>
+        {% endif %}
+      </div>
 
       <form method="post">
         <h2>Vessel</h2>
         <input name="name" type="text" value="{{ state.vessel.name }}" placeholder="Ship Name">
-        <input name="imo_number" type="text" value="{{ state.vessel.imo_number }}" placeholder="IMO">
-        <input name="call_sign" type="text" value="{{ state.vessel.call_sign }}" placeholder="Call Sign">
-        <input name="flag_state" type="text" value="{{ state.vessel.flag_state }}" placeholder="Flag">        <h2>Voyage</h2>
-        <input name="voyage_no" type="text" value="{{ state.voyage.voyage_no }}" placeholder="Voyage No">
+        <input name="imo_number" type="text" value="{{ state.vessel.imo_number or '' }}" placeholder="IMO">
+        <input name="call_sign" type="text" value="{{ state.vessel.call_sign or '' }}" placeholder="Call Sign">
+        <input name="flag_state" type="text" value="{{ state.vessel.flag_state or '' }}" placeholder="Flag">
+
+        <h2>Voyage</h2>
+        <input name="voyage_no" type="text" value="{{ state.voyage.voyage_number }}" placeholder="Voyage No">
         <input name="departure_port" type="text" value="{{ state.voyage.departure_port }}" placeholder="Departure Port">
         <input name="arrival_port" type="text" value="{{ state.voyage.arrival_port }}" placeholder="Arrival Port">
         <input name="eta" type="text" value="{{ state.voyage.eta }}" placeholder="ETA">
@@ -51,6 +84,7 @@
         <input name="deadweight" type="text" value="{{ state.vessel.deadweight or '' }}" placeholder="Deadweight">
         <input name="owner_name" type="text" value="{{ state.vessel.owner_name or '' }}" placeholder="Owner">
         <input name="operator_name" type="text" value="{{ state.vessel.operator_name or '' }}" placeholder="Operator">
+
         <h2>Documents</h2>
         {% for doc in state.documents %}
         <div class="statusbox">
@@ -76,7 +110,6 @@
       </form>
 
       <h2>Crew</h2>
-
       <div class="statusbox">
         <form method="post">
           <input name="crew_name" placeholder="Crew Name">
@@ -87,18 +120,18 @@
 
       {% for c in crew %}
       <div class="statusbox">
-        <strong><a href="/portalis?crew_id={{ c.crew_id }}{% if selected_port_name %}&port_name={{ selected_port_name }}{% endif %}">{{ c.name }}</a></strong> — {{ c.rank }}
+        <strong><a href="/portalis?crew_id={{ c.crew_id }}{% if selected_port_name %}&port_name={{ selected_port_name }}{% endif %}">{{ c.name }}</a></strong> - {{ c.rank }}
         <br>
         Crew ID: <code>{{ c.crew_id }}</code>
         <br>
-        Documents: {{ c.documents_count }}
+        Documents: {{ c.document_counts.documents }}
       </div>
       {% endfor %}
 
       {% if selected_crew %}
       <h2>Selected Crew</h2>
       <div class="statusbox">
-        <strong>{{ selected_crew.name }}</strong> — {{ selected_crew.rank }}
+        <strong>{{ selected_crew.name }}</strong> - {{ selected_crew.rank }}
         <br>
         Crew ID: <code>{{ selected_crew.crew_id }}</code>
       </div>
@@ -149,7 +182,7 @@
       <h2>Document Registry</h2>
       {% for d in selected_crew.documents %}
       <div class="statusbox">
-        <strong>{{ d.doc_type }}</strong>{% if d.doc_subtype %} — {{ d.doc_subtype }}{% endif %}
+        <strong>{{ d.doc_type }}</strong>{% if d.doc_subtype %} - {{ d.doc_subtype }}{% endif %}
         <br>
         Number: {{ d.document_number }}
         <br>
@@ -172,7 +205,6 @@
       {% endif %}
 
       <h2>Port Requirements</h2>
-
       <div class="statusbox">
         {% if ports %}
         <strong>Known Ports</strong><br>
@@ -241,28 +273,20 @@
       {% endif %}
 
       {% if cert_check %}
-
       <h3>Certificate Validation</h3>
-
       <div class="statusbox">
-
       {% for name, ok in cert_check %}
-
       {% if ok %}
-      ✔ {{ name }}  
+      OK {{ name }}
       {% else %}
-      ⚠ Missing: {{ name }}
+      Missing: {{ name }}
       {% endif %}
       <br>
-
       {% endfor %}
-
       </div>
-
       {% endif %}
 
       <h2>Certificate Registry</h2>
-
       <div class="statusbox">
         <form method="post">
           <label>Certificate Name</label>
@@ -306,8 +330,813 @@
       </div>
       {% endif %}
 
-      <h2>Document Generator</h2>
+      <h2>Recent Imported Documents</h2>
+      <div class="statusbox">
+        {% if document_entries %}
+          {% for item in document_entries %}
+          <strong>{{ item.document_id }}</strong> - {{ item.doc_type }}<br>
+          Owner: {{ item.owner_entity }} / {{ item.owner_id }}<br>
+          Review Required: {{ item.review_required }}<br>
+          {% if item.tce_lite and item.tce_lite.WHY %}
+          Why: {{ item.tce_lite.WHY.operational_reason }}<br>
+          {% endif %}
+          <code>{{ item.source_file }}</code>
+          <hr>
+          {% endfor %}
+        {% else %}
+          No imported documents yet.
+        {% endif %}
+      </div>
 
+      <h2>Review Queue</h2>
+      <div class="statusbox">
+        {% if review_items %}
+          {% for item in review_items %}
+          <strong><a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a></strong> - {{ item.status }}<br>
+          Review Required: {{ item.review_required }}<br>
+          Reasons: {{ item.review_reasons|join(", ") if item.review_reasons else "None" }}<br>
+          {% if item.tce.WHAT %}
+          Type: {{ item.tce.WHAT.document_type }}<br>
+          {% endif %}
+          {% if item.tce.WHERE %}
+          Source: <code>{{ item.tce.WHERE.source_file }}</code><br>
+          {% endif %}
+          <hr>
+          {% endfor %}
+        {% else %}
+          Review queue is empty.
+        {% endif %}
+      </div>
+
+      <h2>Review Dashboard</h2>
+      <div class="statusbox">
+        Pending Review Documents: {{ dashboard_summary.total_pending_review_documents }}<br>
+        Unresolved Fields: {{ dashboard_summary.total_unresolved_fields }}<br>
+        Attention Fields: {{ dashboard_summary.total_attention_fields }}<br>
+        High Escalation Fields: {{ dashboard_summary.total_high_escalation_fields }}<br>
+        Critical Escalation Fields: {{ dashboard_summary.total_critical_escalation_fields }}<br>
+        Routed Fields: {{ dashboard_summary.total_routed_fields }}<br>
+        Assigned Fields: {{ dashboard_summary.total_assigned_fields }}<br>
+        Unassigned Escalated Fields: {{ dashboard_summary.total_unassigned_escalated_fields }}<br>
+        Watch Items: {{ dashboard_summary.total_watch_items }}<br>
+        Warning Watch Items: {{ dashboard_summary.total_warning_watch_items }}<br>
+        Breach Watch Items: {{ dashboard_summary.total_breach_watch_items }}<br>
+        Reminder Ready Items: {{ dashboard_summary.total_reminder_ready_items }}<br>
+        Reminder Snoozed Items: {{ dashboard_summary.total_reminder_snoozed_items }}<br>
+        Reminder Sent Items: {{ dashboard_summary.total_reminder_sent_items }}<br>
+        Notification Ready Items: {{ dashboard_summary.total_notification_ready_items }}<br>
+        Notification Emitted Items: {{ dashboard_summary.total_notification_emitted_items }}<br>
+        Notification Failed Items: {{ dashboard_summary.total_notification_failed_items }}<br>
+        Notification Canceled Items: {{ dashboard_summary.total_notification_canceled_items }}<br>
+        Transport Ready Items: {{ dashboard_summary.total_transport_ready_items }}<br>
+        Transport Accepted Items: {{ dashboard_summary.total_transport_accepted_items }}<br>
+        Transport Failed Items: {{ dashboard_summary.total_transport_failed_items }}<br>
+        Transport Rejected Items: {{ dashboard_summary.total_transport_rejected_items }}<br>
+        Active Alerts: {{ dashboard_summary.total_active_alerts }}<br>
+        Acknowledged Alerts: {{ dashboard_summary.total_acknowledged_alerts }}<br>
+        Cleared Alerts: {{ dashboard_summary.total_cleared_alerts }}<br>
+        Pinned Alerts: {{ dashboard_summary.total_pinned_alerts }}<br>
+        Open Incidents: {{ dashboard_summary.total_open_incidents }}<br>
+        Acknowledged Incidents: {{ dashboard_summary.total_acknowledged_incidents }}<br>
+        Closed Incidents: {{ dashboard_summary.total_closed_incidents }}<br>
+        Pinned Incidents: {{ dashboard_summary.total_pinned_incidents }}<br>
+        Export Ready Items: {{ dashboard_summary.total_export_ready_items }}<br>
+        Export Accepted Items: {{ dashboard_summary.total_export_accepted_items }}<br>
+        Export Failed Items: {{ dashboard_summary.total_export_failed_items }}<br>
+        Export Rejected Items: {{ dashboard_summary.total_export_rejected_items }}<br>
+        {% if dashboard_summary.highest_priority_items %}
+        <br>
+        <strong>Top Priority Items</strong><br>
+        {% for item in dashboard_summary.highest_priority_items %}
+        <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}&review_filter={{ 'unresolved' if item.attention_state == 'UNRESOLVED' else 'attention' }}">{{ item.document_id }}</a>
+        | {{ item.field_name }} | {{ item.priority_band }} ({{ item.priority_score }}) | {{ item.attention_state }} | {{ item.escalation_level }} | {{ item.age_bucket }}<br>
+        {% endfor %}
+        {% endif %}
+        {% if dashboard_summary.escalated_items %}
+        <br>
+        <strong>Escalated Items</strong><br>
+        {% for item in dashboard_summary.escalated_items %}
+        <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}&review_filter={{ 'unresolved' if item.attention_state == 'UNRESOLVED' else 'attention' }}">{{ item.document_id }}</a>
+        | {{ item.field_name }} | {{ item.escalation_level }}
+        {% if item.escalation_reason %}| {{ item.escalation_reason|join(", ") }}{% endif %}<br>
+        {% endfor %}
+        {% endif %}
+        {% if dashboard_summary.routed_items %}
+        <br>
+        <strong>Routed Items</strong><br>
+        {% for item in dashboard_summary.routed_items %}
+        <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a>
+        | {{ item.field_name }} | {{ item.routing_bucket }} | {{ item.owner_hint }}
+        {% if item.assignment_status %}| assigned={{ item.assignment_status }}{% endif %}<br>
+        {% endfor %}
+        {% endif %}
+        {% if dashboard_summary.oldest_pending_documents %}
+        <br>
+        <strong>Oldest Pending Documents</strong><br>
+        {% for item in dashboard_summary.oldest_pending_documents %}
+        <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a>
+        | {{ item.status }} | {{ item.age_bucket }} | {{ item.staleness_band }}<br>
+        {% endfor %}
+        {% endif %}
+        {% if dashboard_summary.reminder_items %}
+        <br>
+        <strong>Reminder-Ready Highlights</strong><br>
+        {% for item in dashboard_summary.reminder_items %}
+        <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a>
+        | {{ item.field_name }} | {{ item.reminder_state }}{% if item.reminder_due_at %} | due={{ item.reminder_due_at }}{% endif %}{% if item.snooze_until %} | snooze={{ item.snooze_until }}{% endif %}<br>
+        {% endfor %}
+        {% endif %}
+        {% if dashboard_summary.alert_items %}
+        <br>
+        <strong>Alert Highlights</strong><br>
+        {% for item in dashboard_summary.alert_items %}
+        <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a>
+        | {{ item.field_name }} | {{ item.severity }} | {{ item.alert_state }}
+        {% if item.alert_reason %}| {{ item.alert_reason|join(", ") }}{% endif %}<br>
+        {% endfor %}
+        {% endif %}
+        {% if dashboard_summary.incident_items %}
+        <br>
+        <strong>Incident Highlights</strong><br>
+        {% for item in dashboard_summary.incident_items %}
+        <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a>
+        | {{ item.field_name }} | {{ item.severity }} | {{ item.incident_state }} | occurrences={{ item.occurrence_count }}<br>
+        {% endfor %}
+        {% endif %}
+        {% if dashboard_summary.export_items %}
+        <br>
+        <strong>Export Highlights</strong><br>
+        {% for item in dashboard_summary.export_items %}
+        <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a>
+        | {{ item.field_name }} | {{ item.target_hint }} | {{ item.latest_result_state }}<br>
+        {% endfor %}
+        {% endif %}
+      </div>
+
+      <h2>Cross-Document Work Queue</h2>
+      <div class="statusbox">
+        {% if global_review_queue %}
+          {% for item in global_review_queue %}
+          <strong>#{{ item.queue_rank }}</strong>
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}&review_filter={{ 'unresolved' if item.attention_state == 'UNRESOLVED' else 'attention' }}">{{ item.document_id }}</a>
+          | {{ item.field_name }} | {{ item.priority_band }} ({{ item.priority_score }}) | {{ item.attention_state }}
+          | Escalation: {{ item.escalation_level }}
+          | Routing: {{ item.routing_bucket }} / {{ item.owner_hint }}
+          | {{ item.conflict_level }} | {{ item.confidence_band }} | {{ item.age_bucket }} / {{ item.staleness_band }}<br>
+          {% if item.escalation_reason %}
+          Escalation Reason: {{ item.escalation_reason|join(", ") }}<br>
+          {% endif %}
+          {% if item.assignment_reason %}
+          Routing Reason: {{ item.assignment_reason|join(", ") }}<br>
+          {% endif %}
+          {% if item.triage_status %}
+          Triage: {{ item.triage_status }}{% if item.triage_note %} | {{ item.triage_note }}{% endif %}{% if item.triaged_at %} | {{ item.triaged_at }}{% endif %}<br>
+          {% endif %}
+          {% if item.assignment_status %}
+          Assignment: {{ item.assignment_status }} | {{ item.assigned_bucket or item.routing_bucket }} / {{ item.assigned_owner_hint or item.owner_hint }}{% if item.assignment_note %} | {{ item.assignment_note }}{% endif %}{% if item.assigned_at %} | {{ item.assigned_at }}{% endif %}<br>
+          {% endif %}
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="{{ 'unresolved' if item.attention_state == 'UNRESOLVED' else 'attention' }}">
+            <label>Queue Operator</label>
+            <input name="queue_operator_name" value="{{ selected_review_item.resolved_by if selected_review_item else 'operator' }}">
+            <label>Triage Action</label>
+            <select name="queue_triage_action">
+              <option value="ACKNOWLEDGE">Acknowledge</option>
+              <option value="PIN">Pin</option>
+              <option value="DEFER">Defer</option>
+              <option value="MARK_FOR_REVIEW">Mark For Review</option>
+              <option value="ESCALATE_NOW">Escalate Now</option>
+              <option value="CLEAR_TRIAGE_FLAG">Clear Triage Flag</option>
+            </select>
+            <label>Triage Note</label>
+            <input name="queue_triage_note" value="{{ item.triage_note }}" placeholder="Queue note">
+            <button type="submit" name="action" value="apply_queue_triage">Apply Triage</button>
+          </form>
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="{{ 'unresolved' if item.attention_state == 'UNRESOLVED' else 'attention' }}">
+            <label>Queue Operator</label>
+            <input name="queue_operator_name" value="{{ selected_review_item.resolved_by if selected_review_item else 'operator' }}">
+            <label>Assignment Action</label>
+            <select name="queue_assignment_action">
+              <option value="ACCEPT_ROUTING_HINT">Accept Routing Hint</option>
+              <option value="ASSIGN_TO_BUCKET">Assign To Bucket</option>
+              <option value="CLEAR_ASSIGNMENT">Clear Assignment</option>
+            </select>
+            <label>Bucket</label>
+            <input name="queue_assignment_bucket" value="{{ item.assigned_bucket or item.routing_bucket }}" placeholder="ASSIGN_DOC_REVIEW">
+            <label>Owner Hint</label>
+            <input name="queue_assignment_owner" value="{{ item.assigned_owner_hint or item.owner_hint }}" placeholder="DOCUMENT_REVIEW">
+            <label>Assignment Note</label>
+            <input name="queue_assignment_note" value="{{ item.assignment_note }}" placeholder="Assignment note">
+            <button type="submit" name="action" value="apply_queue_assignment">Apply Assignment</button>
+          </form>
+          <br>
+          {% endfor %}
+        {% else %}
+          No cross-document review work queued.
+        {% endif %}
+      </div>
+
+      <h2>Watch Queue</h2>
+      <div class="statusbox">
+        {% if watch_queue %}
+          {% for item in watch_queue %}
+          <strong>{{ item.sla_state }}</strong>
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}&review_filter={{ 'unresolved' if item.attention_state == 'UNRESOLVED' else 'attention' }}">{{ item.document_id }}</a>
+          | {{ item.field_name }} | {{ item.watch_level }} | {{ item.notification_severity }}
+          | escalation={{ item.escalation_level }} | routing={{ item.routing_bucket }} | assignment={{ item.assignment_state or 'UNASSIGNED' }}
+          | {{ item.age_bucket }} / {{ item.staleness_band }}<br>
+          {% if item.watch_trigger_reason %}
+          Watch Reason: {{ item.watch_trigger_reason|join(", ") }}<br>
+          {% endif %}
+          Notification Ready: {{ item.notification_ready }}{% if item.requires_ack %} | requires_ack=True{% endif %}{% if item.watch_acknowledged_at %} | ack={{ item.watch_acknowledged_at }}{% endif %}<br>
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="{{ 'unresolved' if item.attention_state == 'UNRESOLVED' else 'attention' }}">
+            <label>Queue Operator</label>
+            <input name="queue_operator_name" value="{{ selected_review_item.resolved_by if selected_review_item else 'operator' }}">
+            <label>Watch Action</label>
+            <select name="queue_watch_action">
+              <option value="ACKNOWLEDGE_WATCH">Acknowledge Watch</option>
+              <option value="CLEAR_WATCH_ACK">Clear Watch Ack</option>
+            </select>
+            <label>Watch Note</label>
+            <input name="queue_watch_note" value="" placeholder="Watch note">
+            <button type="submit" name="action" value="apply_watch_action">Apply Watch Action</button>
+          </form>
+          <br>
+          {% endfor %}
+        {% else %}
+          No active watch items.
+        {% endif %}
+      </div>
+
+      <h2>Reminder Queue</h2>
+      <div class="statusbox">
+        {% if reminder_queue %}
+          {% for item in reminder_queue %}
+          <strong>{{ item.reminder_state }}</strong>
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}&review_filter=attention">{{ item.document_id }}</a>
+          | {{ item.field_name }} | {{ item.notification_severity }}
+          | watch={{ item.source_watch_level }} / {{ item.source_sla_state }}
+          {% if item.reminder_due_at %}| due={{ item.reminder_due_at }}{% endif %}
+          {% if item.snooze_until %}| snooze={{ item.snooze_until }}{% endif %}<br>
+          {% if item.staged_reason %}
+          Reminder Reason: {{ item.staged_reason|join(", ") }}<br>
+          {% endif %}
+          Notification Ready: {{ item.notification_ready }}{% if item.requires_ack %} | requires_ack=True{% endif %}<br>
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="attention">
+            <label>Queue Operator</label>
+            <input name="queue_operator_name" value="{{ selected_review_item.resolved_by if selected_review_item else 'operator' }}">
+            <label>Reminder Action</label>
+            <select name="queue_reminder_action">
+              <option value="SNOOZE_30M">Snooze 30m</option>
+              <option value="SNOOZE_2H">Snooze 2h</option>
+              <option value="SNOOZE_1D">Snooze 1d</option>
+              <option value="CLEAR_SNOOZE">Clear Snooze</option>
+              <option value="MARK_PREP_SENT">Mark Prep Sent</option>
+              <option value="CLEAR_PREP_STATE">Clear Prep State</option>
+            </select>
+            <label>Reminder Note</label>
+            <input name="queue_reminder_note" value="" placeholder="Reminder note">
+            <button type="submit" name="action" value="apply_reminder_action">Apply Reminder Action</button>
+          </form>
+          <br>
+          {% endfor %}
+        {% else %}
+          No reminder-prep items staged.
+        {% endif %}
+      </div>
+
+      <h2>Notification Staging Ledger</h2>
+      <div class="statusbox">
+        {% if notification_queue %}
+          {% for item in notification_queue %}
+          <strong>{{ item.prep_state }}</strong>
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}&review_filter=attention">{{ item.document_id }}</a>
+          | {{ item.field_name }} | {{ item.severity }}
+          | reminder={{ item.source_reminder_state }} | sla={{ item.source_sla_state }}
+          | active={{ item.is_active }} | attempts={{ item.attempt_count or 0 }}<br>
+          {% if item.notification_reason %}
+          Notification Reason: {{ item.notification_reason|join(", ") }}<br>
+          {% endif %}
+          {% if item.last_attempt %}
+          Last Attempt: {{ item.last_attempt.attempt_state }}{% if item.last_attempt.attempted_at %} | {{ item.last_attempt.attempted_at }}{% endif %}{% if item.last_attempt.result_reason %} | {{ item.last_attempt.result_reason }}{% endif %}<br>
+          {% endif %}
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="attention">
+            <label>Queue Operator</label>
+            <input name="queue_operator_name" value="{{ selected_review_item.resolved_by if selected_review_item else 'operator' }}">
+            <label>Notification Action</label>
+            <select name="queue_notification_action">
+              <option value="MARK_EMITTED">Mark Emitted</option>
+              <option value="MARK_FAILED">Mark Failed</option>
+              <option value="CANCEL_NOTIFICATION">Cancel Notification</option>
+              <option value="RESTAGE_NOTIFICATION">Restage Notification</option>
+              <option value="RETRY_NOTIFICATION">Retry Notification</option>
+              <option value="CLEAR_FAILED_STATE">Clear Failed State</option>
+            </select>
+            <label>Notification Note</label>
+            <input name="queue_notification_note" value="" placeholder="Notification note">
+            <button type="submit" name="action" value="apply_notification_action">Apply Notification Action</button>
+          </form>
+          <br>
+          {% endfor %}
+        {% else %}
+          No notification intents staged.
+        {% endif %}
+      </div>
+
+      <h2>Transport Handoff Queue</h2>
+      <div class="statusbox">
+        {% if transport_queue %}
+          {% for item in transport_queue %}
+          <strong>{{ item.latest_result_state or "HANDOFF_READY" }}</strong>
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}&review_filter=attention">{{ item.document_id }}</a>
+          | {{ item.field_name }} | {{ item.channel_hint }} | {{ item.severity }}
+          {% if item.latest_result_at %}| {{ item.latest_result_at }}{% endif %}
+          | results={{ item.result_count or 0 }}<br>
+          {% if item.handoff_reason %}
+          Handoff Reason: {{ item.handoff_reason|join(", ") }}<br>
+          {% endif %}
+          {% if item.latest_result_reason %}
+          Latest Result: {{ item.latest_result_reason }}<br>
+          {% endif %}
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="attention">
+            <label>Queue Operator</label>
+            <input name="queue_operator_name" value="{{ selected_review_item.resolved_by if selected_review_item else 'operator' }}">
+            <label>Channel Hint</label>
+            <select name="queue_transport_channel">
+              <option value="{{ item.channel_hint }}">{{ item.channel_hint }}</option>
+              <option value="LOCAL_UI">LOCAL_UI</option>
+              <option value="CONTROL_ROOM_FEED">CONTROL_ROOM_FEED</option>
+              <option value="FUTURE_EMAIL">FUTURE_EMAIL</option>
+              <option value="FUTURE_EXTERNAL">FUTURE_EXTERNAL</option>
+            </select>
+            <label>Transport Action</label>
+            <select name="queue_transport_action">
+              <option value="STAGE_FOR_HANDOFF">Stage For Handoff</option>
+              <option value="MARK_HANDOFF_ACCEPTED">Mark Handoff Accepted</option>
+              <option value="MARK_HANDOFF_REJECTED">Mark Handoff Rejected</option>
+              <option value="MARK_HANDOFF_FAILED">Mark Handoff Failed</option>
+              <option value="CLEAR_HANDOFF_STATE">Clear Handoff State</option>
+              <option value="RETRY_HANDOFF">Retry Handoff</option>
+              <option value="REQUEUE_HANDOFF">Requeue Handoff</option>
+            </select>
+            <label>Transport Note</label>
+            <input name="queue_transport_note" value="" placeholder="Transport note">
+            <button type="submit" name="action" value="apply_transport_action">Apply Transport Action</button>
+          </form>
+          <br>
+          {% endfor %}
+        {% else %}
+          No transport handoff items staged.
+        {% endif %}
+      </div>
+
+      <h2>Local Alert Feed</h2>
+      <div class="statusbox">
+        {% if alert_feed %}
+          {% for item in alert_feed %}
+          <strong><a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a></strong>
+          | {{ item.field_name }} | {{ item.severity }} | {{ item.alert_state }}
+          {% if item.is_pinned %}| pinned{% endif %}<br>
+          {{ item.message }}<br>
+          {% if item.alert_reason %}Reason: {{ item.alert_reason|join(", ") }}<br>{% endif %}
+          {% if item.source_type %}Source: {{ item.source_type }}<br>{% endif %}
+          {% if item.updated_at %}Updated: {{ item.updated_at }}<br>{% endif %}
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="{{ review_filter_mode }}">
+            <label>Operator</label>
+            <input name="queue_operator_name" value="operator">
+            <label>Alert Action</label>
+            <select name="queue_alert_action">
+              <option value="ACKNOWLEDGE_ALERT">Acknowledge Alert</option>
+              <option value="CLEAR_ALERT">Clear Alert</option>
+              <option value="PIN_ALERT">Pin Alert</option>
+              <option value="REOPEN_ALERT">Reopen Alert</option>
+            </select>
+            <label>Alert Note</label>
+            <input name="queue_alert_note" value="" placeholder="Alert note">
+            <button type="submit" name="action" value="apply_alert_action">Apply Alert Action</button>
+          </form>
+          <br>
+          {% endfor %}
+        {% else %}
+          No local alerts.
+        {% endif %}
+      </div>
+
+      <h2>Incident Feed</h2>
+      <div class="statusbox">
+        {% if incident_feed %}
+          {% for item in incident_feed %}
+          <strong><a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a></strong>
+          | {{ item.field_name }} | {{ item.severity }} | {{ item.incident_state }} | occurrences={{ item.occurrence_count }}<br>
+          {% if item.incident_reason %}Reason: {{ item.incident_reason|join(", ") }}<br>{% endif %}
+          {% if item.last_alert_at %}Last Alert: {{ item.last_alert_at }}<br>{% endif %}
+          {% if item.related_alert_ids %}Alerts: {{ item.related_alert_ids|join(", ") }}<br>{% endif %}
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="{{ review_filter_mode }}">
+            <label>Operator</label>
+            <input name="queue_operator_name" value="operator">
+            <label>Incident Action</label>
+            <select name="queue_incident_action">
+              <option value="ACK_INCIDENT">Acknowledge Incident</option>
+              <option value="PIN_INCIDENT">Pin Incident</option>
+              <option value="CLOSE_INCIDENT">Close Incident</option>
+              <option value="REOPEN_INCIDENT">Reopen Incident</option>
+              <option value="CLEAR_INCIDENT_PIN">Clear Incident Pin</option>
+            </select>
+            <label>Incident Note</label>
+            <input name="queue_incident_note" value="" placeholder="Incident note">
+            <button type="submit" name="action" value="apply_incident_action">Apply Incident Action</button>
+          </form>
+          <br>
+          {% endfor %}
+        {% else %}
+          No grouped incidents.
+        {% endif %}
+      </div>
+
+      <h2>External Bridge Export Queue</h2>
+      <div class="statusbox">
+        {% if export_queue %}
+          {% for item in export_queue %}
+          <strong><a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a></strong>
+          | {{ item.field_name }} | {{ item.target_hint }} | {{ item.latest_result_state }}<br>
+          Severity: {{ item.severity }} | Incident: {{ item.incident_state }} | Escalation: {{ item.escalation_level }}<br>
+          {% if item.latest_result_reason %}Result: {{ item.latest_result_reason }}<br>{% endif %}
+          {% if item.export_file_path %}Export File: <code>{{ item.export_file_path }}</code><br>{% endif %}
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="{{ review_filter_mode }}">
+            <label>Operator</label>
+            <input name="queue_operator_name" value="operator">
+            <label>Target</label>
+            <select name="queue_bridge_target">
+              <option value="LOCAL_EXPORT_FILE">LOCAL_EXPORT_FILE</option>
+              <option value="COUPLER_DROP">COUPLER_DROP</option>
+              <option value="ADMIN_BRIDGE">ADMIN_BRIDGE</option>
+              <option value="FUTURE_EXTERNAL_CHANNEL">FUTURE_EXTERNAL_CHANNEL</option>
+            </select>
+            <label>Bridge Action</label>
+            <select name="queue_bridge_action">
+              <option value="STAGE_EXPORT">Stage Export</option>
+              <option value="MARK_EXPORT_ACCEPTED">Mark Export Accepted</option>
+              <option value="MARK_EXPORT_REJECTED">Mark Export Rejected</option>
+              <option value="MARK_EXPORT_FAILED">Mark Export Failed</option>
+              <option value="CLEAR_EXPORT_STATE">Clear Export State</option>
+              <option value="RETRY_EXPORT">Retry Export</option>
+              <option value="REQUEUE_EXPORT">Requeue Export</option>
+            </select>
+            <label>Bridge Note</label>
+            <input name="queue_bridge_note" value="" placeholder="Bridge note">
+            <button type="submit" name="action" value="apply_external_bridge_action">Apply Bridge Action</button>
+          </form>
+          <br>
+          {% endfor %}
+        {% else %}
+          No external bridge exports staged.
+        {% endif %}
+      </div>
+
+      {% if selected_review_item %}
+      <h2>Review Detail</h2>
+      <div class="statusbox">
+        <strong>{{ selected_review_item.document_id }}</strong> - {{ selected_review_item.status }}<br>
+        Reasons: {{ selected_review_item.review_reasons|join(", ") if selected_review_item.review_reasons else "None" }}<br>
+        {% if selected_review_document %}
+        Owner: {{ selected_review_document.owner_entity }} / {{ selected_review_document.owner_id }}<br>
+        Source: <code>{{ selected_review_document.source_file }}</code><br>
+        {% endif %}
+      </div>
+
+      <div class="statusbox">
+        <form method="post">
+          <input type="hidden" name="review_document_id" value="{{ selected_review_item.document_id }}">
+          <input type="hidden" name="review_filter_mode" value="{{ review_filter_mode }}">
+
+          <label>Operator Name</label>
+          <input name="review_operator_name" value="{{ selected_review_item.resolved_by or 'operator' }}">
+
+          <label>Resolution Reason</label>
+          <input name="review_resolution_reason" value="{{ selected_review_item.resolution_reason }}">
+
+          <strong>Field Filter</strong><br>
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ selected_review_item.document_id }}&review_filter=all">All</a> |
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ selected_review_item.document_id }}&review_filter=unresolved">Unresolved Only</a> |
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ selected_review_item.document_id }}&review_filter=attention">Attention Only</a> |
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ selected_review_item.document_id }}&review_filter=conflicted">Conflicted Only</a> |
+          <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ selected_review_item.document_id }}&review_filter=low_confidence">Low Confidence Only</a>
+          <br><br>
+
+          {% if prioritized_field_queue %}
+          <strong>Prioritized Field Queue</strong><br>
+          {% for item in prioritized_field_queue %}
+          #{{ item.queue_rank }} {{ item.field_name }} | {{ item.priority_band }} ({{ item.priority_score }}) | {{ item.attention_state }} | {{ item.current_status }}<br>
+          {% endfor %}
+          <br>
+          {% endif %}
+
+          <strong>Field Review</strong><br><br>
+          {% for row in review_field_rows %}
+          <label>{{ row.field_name }}</label>
+          <input name="review_field__{{ row.field_name }}" value="{{ row.final_value }}">
+          Parsed: {{ row.parsed_value or "n/a" }}<br>
+          Accepted: {{ row.accepted_value or "n/a" }}<br>
+          Field Status: {{ row.field_status or "PENDING" }}<br>
+          {% if row.policy %}
+          Priority: {{ row.policy.priority_band or "LOW" }} ({{ row.policy.priority_score }}) | {{ row.policy.attention_state or "CLEAR" }}<br>
+          {% if row.policy.priority_reason %}
+          Priority Notes: {{ row.policy.priority_reason|join(", ") }}<br>
+          {% endif %}
+          {% endif %}
+          {% if row.escalation %}
+          Escalation: {{ row.escalation.escalation_level or "NONE" }}
+          {% if row.escalation.escalation_reason %}| {{ row.escalation.escalation_reason|join(", ") }}{% endif %}<br>
+          {% endif %}
+          {% if row.triage_state %}
+          Triage State: {{ row.triage_state.triage_status or row.triage_state.triage_action }}
+          {% if row.triage_state.triage_note %}| {{ row.triage_state.triage_note }}{% endif %}
+          {% if row.triage_state.acted_at %}| {{ row.triage_state.acted_at }}{% endif %}<br>
+          {% endif %}
+          {% if row.routing_hint %}
+          Routing: {{ row.routing_hint.routing_bucket or "CLEAR_NO_ROUTING" }} / {{ row.routing_hint.owner_hint or "OPERATOR" }}
+          {% if row.routing_hint.assignment_reason %}| {{ row.routing_hint.assignment_reason|join(", ") }}{% endif %}<br>
+          {% endif %}
+          {% if row.assignment_state %}
+          Assignment: {{ row.assignment_state.assignment_status }} | {{ row.assignment_state.assigned_bucket or row.assignment_state.routing_bucket }} / {{ row.assignment_state.owner_hint }}
+          {% if row.assignment_state.owner_note %}| {{ row.assignment_state.owner_note }}{% endif %}
+          {% if row.assignment_state.assigned_at %}| {{ row.assignment_state.assigned_at }}{% endif %}<br>
+          {% endif %}
+          {% if row.sla %}
+          SLA: {{ row.sla.sla_state or "NORMAL" }} / {{ row.sla.watch_level or "NONE" }}
+          {% if row.sla.notification_ready %}| notification_ready=True{% endif %}
+          {% if row.sla.requires_ack %}| requires_ack=True{% endif %}
+          {% if row.sla.watch_trigger_reason %}| {{ row.sla.watch_trigger_reason|join(", ") }}{% endif %}<br>
+          {% endif %}
+          {% if row.watch_state %}
+          Watch State: {{ row.watch_state.watch_status or "ACKNOWLEDGED" }}
+          {% if row.watch_state.watch_note %}| {{ row.watch_state.watch_note }}{% endif %}
+          {% if row.watch_state.watch_acknowledged_at %}| {{ row.watch_state.watch_acknowledged_at }}{% endif %}<br>
+          {% endif %}
+          {% if row.reminder_stage %}
+          Reminder: {{ row.reminder_stage.reminder_state or "CLEARED" }}
+          {% if row.reminder_stage.reminder_due_at %}| due={{ row.reminder_stage.reminder_due_at }}{% endif %}
+          {% if row.reminder_stage.snooze_until %}| snooze={{ row.reminder_stage.snooze_until }}{% endif %}
+          {% if row.reminder_stage.staged_reason %}| {{ row.reminder_stage.staged_reason|join(", ") }}{% endif %}<br>
+          {% endif %}
+          {% if row.notification_prep %}
+          Notification Prep: {{ row.notification_prep.prep_state or "CLEAR" }}
+          {% if row.notification_prep.ready_at %}| ready={{ row.notification_prep.ready_at }}{% endif %}
+          {% if row.notification_prep.sent_at %}| sent={{ row.notification_prep.sent_at }}{% endif %}
+          {% if row.notification_prep.snoozed_until %}| snooze={{ row.notification_prep.snoozed_until }}{% endif %}<br>
+          {% endif %}
+          {% if row.notification_ledger %}
+          Notification Ledger: {{ row.notification_ledger.prep_state or "CANCELED" }}
+          {% if row.notification_ledger.severity %}| severity={{ row.notification_ledger.severity }}{% endif %}
+          {% if row.notification_ledger.updated_at %}| updated={{ row.notification_ledger.updated_at }}{% endif %}
+          {% if row.notification_ledger.notification_reason %}| {{ row.notification_ledger.notification_reason|join(", ") }}{% endif %}<br>
+          {% endif %}
+          {% if row.delivery_attempts %}
+          Delivery Attempts: {{ row.delivery_attempts|length }}
+          {% if row.delivery_attempts[-1] %}| last={{ row.delivery_attempts[-1].attempt_state }}{% if row.delivery_attempts[-1].attempted_at %} @ {{ row.delivery_attempts[-1].attempted_at }}{% endif %}{% endif %}<br>
+          {% endif %}
+          {% if row.transport_request %}
+          Transport Request: {{ row.transport_request.channel_hint or "LOCAL_UI" }}
+          {% if row.transport_request.request_id %}| request={{ row.transport_request.request_id }}{% endif %}
+          {% if row.transport_request.created_at %}| created={{ row.transport_request.created_at }}{% endif %}
+          {% if row.transport_request.handoff_reason %}| {{ row.transport_request.handoff_reason|join(", ") }}{% endif %}<br>
+          {% endif %}
+          {% if row.transport_results %}
+          Transport Results: {{ row.transport_results|length }}
+          {% if row.transport_results[-1] %}| last={{ row.transport_results[-1].result_state }}{% if row.transport_results[-1].handed_off_at %} @ {{ row.transport_results[-1].handed_off_at }}{% endif %}{% if row.transport_results[-1].result_reason %} | {{ row.transport_results[-1].result_reason }}{% endif %}{% endif %}<br>
+          {% endif %}
+          {% if row.local_alert %}
+          Alert: {{ row.local_alert.alert_state or "ACTIVE" }} | {{ row.local_alert.severity or "LOW" }}
+          {% if row.local_alert.is_pinned %}| pinned{% endif %}
+          {% if row.local_alert.message %}| {{ row.local_alert.message }}{% endif %}
+          {% if row.local_alert.alert_reason %}<br>Alert Reason: {{ row.local_alert.alert_reason|join(", ") }}{% endif %}
+          {% if row.local_alert.acknowledged_at %}<br>Acknowledged: {{ row.local_alert.acknowledged_at }}{% endif %}
+          {% if row.local_alert.cleared_at %}<br>Cleared: {{ row.local_alert.cleared_at }}{% endif %}
+          <br>
+          {% endif %}
+          {% if row.incident_thread %}
+          Incident: {{ row.incident_thread.incident_state or "OPEN" }} | {{ row.incident_thread.severity or "LOW" }} | occurrences={{ row.incident_thread.occurrence_count or 1 }}
+          {% if row.incident_thread.incident_reason %}<br>Incident Reason: {{ row.incident_thread.incident_reason|join(", ") }}{% endif %}
+          {% if row.incident_thread.last_alert_at %}<br>Last Seen: {{ row.incident_thread.last_alert_at }}{% endif %}
+          {% if row.incident_thread.related_alert_ids %}<br>Related Alerts: {{ row.incident_thread.related_alert_ids|join(", ") }}{% endif %}
+          <br>
+          {% endif %}
+          {% if row.external_bridge_export %}
+          External Bridge Export: {{ row.external_bridge_export.target_hint or "LOCAL_EXPORT_FILE" }} | {{ row.external_bridge_export.export_state or "EXPORT_READY" }}
+          {% if row.external_bridge_export.export_type %}| {{ row.external_bridge_export.export_type }}{% endif %}
+          {% if row.external_bridge_export.source_summary and row.external_bridge_export.source_summary.incident_reason %}<br>Export Reason: {{ row.external_bridge_export.source_summary.incident_reason|join(", ") }}{% endif %}
+          <br>
+          {% endif %}
+          {% if row.external_bridge_result %}
+          External Bridge Result: {{ row.external_bridge_result.result_state or "EXPORT_READY" }}
+          {% if row.external_bridge_result.target_hint %}| {{ row.external_bridge_result.target_hint }}{% endif %}
+          {% if row.external_bridge_result.result_reason %}| {{ row.external_bridge_result.result_reason }}{% endif %}
+          {% if row.external_bridge_result.export_file_path %}<br>Export File: <code>{{ row.external_bridge_result.export_file_path }}</code>{% endif %}
+          <br>
+          {% endif %}
+          <label>Field Action</label>
+          <select name="review_field_action__{{ row.field_name }}">
+            <option value="">No Change</option>
+            <option value="ACCEPT_SELECTED_CANDIDATE">Accept Selected Candidate</option>
+            <option value="APPLY_OPERATOR_OVERRIDE">Apply Operator Override</option>
+            <option value="MARK_UNRESOLVED">Mark Unresolved</option>
+          </select>
+          <label>Unresolved Reason</label>
+          <input name="review_unresolved_reason__{{ row.field_name }}" value="{{ row.unresolved.unresolved_reason if row.unresolved else '' }}">
+          {% if row.candidate_bundle %}
+          Selected Candidate: {{ row.candidate_bundle.selected_candidate_id or "n/a" }}
+          {% if row.candidate_bundle.selected_value %}| value={{ row.candidate_bundle.selected_value }}{% endif %}
+          {% if row.operator_override %}| operator_override={{ row.operator_override }}{% endif %}
+          <br>
+          {% if row.candidate_bundle.candidates %}
+          Candidates:<br>
+          {% for candidate in row.candidate_bundle.candidates %}
+          <label>
+            <input
+              type="radio"
+              name="review_selected_candidate__{{ row.field_name }}"
+              value="{{ candidate.candidate_id }}"
+              {% if candidate.candidate_id == row.candidate_bundle.selected_candidate_id %}checked{% endif %}
+            >
+            {{ candidate.candidate_value }}
+            {% if candidate.source_engine %}[{{ candidate.source_engine }}]{% endif %}
+            {% if candidate.provenance_branch %}<{{ candidate.provenance_branch }}>{% endif %}
+            {% if candidate.source_kind %}{{ candidate.source_kind }}{% endif %}
+          </label><br>
+          {% endfor %}
+          Bundle Conflict: {{ row.candidate_bundle.conflict_level or "UNKNOWN" }}
+          {% if row.candidate_bundle.recommended_action %}| action={{ row.candidate_bundle.recommended_action }}{% endif %}
+          <br>
+          {% endif %}
+          {% endif %}
+          {% if row.evidence %}
+          Evidence:
+          {{ row.evidence.candidate_text or row.evidence.parsed_value or "n/a" }}
+          {% if row.evidence.source_engine %}(engine={{ row.evidence.source_engine }}){% endif %}
+          {% if row.evidence.source_kind %}(kind={{ row.evidence.source_kind }}){% endif %}
+          <br>
+          Provenance:
+          {{ row.evidence.provenance_branch or "unknown" }} / {{ row.evidence.provenance_path or "unknown" }}
+          {% if row.evidence.source_method %}/ {{ row.evidence.source_method }}{% endif %}
+          {% if row.evidence.candidate_index is not none %}/ candidate={{ row.evidence.candidate_index }}{% endif %}
+          <br>
+          {% if row.evidence.source_line %}
+          Source Line: {{ row.evidence.source_line }}<br>
+          {% elif row.evidence.source_snippet %}
+          Source Snippet: {{ row.evidence.source_snippet }}<br>
+          {% endif %}
+          {% if row.evidence.notes %}
+          Notes: {{ row.evidence.notes|join(", ") }}<br>
+          {% endif %}
+          {% if row.evidence.alternate_values %}
+          Alternates:
+          {% for alt in row.evidence.alternate_values %}
+          {{ alt.value }}{% if alt.source_kind %} [{{ alt.source_kind }}]{% endif %}{% if alt.provenance_branch %} <{{ alt.provenance_branch }}>{% endif %}{% if not loop.last %}; {% endif %}
+          {% endfor %}
+          <br>
+          {% endif %}
+          {% endif %}
+          {% if row.validation %}
+          Validation: {{ row.validation.status or "UNKNOWN" }}
+          {% if row.validation.normalized_value %}| normalized={{ row.validation.normalized_value }}{% endif %}
+          <br>
+          {% if row.validation.validator_messages %}
+          Validation Notes: {{ row.validation.validator_messages|join(", ") }}<br>
+          {% endif %}
+          {% endif %}
+          {% if row.conflict %}
+          Conflict: {{ row.conflict.conflict_level or "UNKNOWN" }}
+          {% if row.conflict.agreement_present is not none %}| agreement={{ row.conflict.agreement_present }}{% endif %}
+          {% if row.conflict.agreement_source_count is not none %}| sources={{ row.conflict.agreement_source_count }}{% endif %}
+          <br>
+          {% if row.conflict.compared_sources %}
+          Compared Sources: {{ row.conflict.compared_sources|join(", ") }}<br>
+          {% endif %}
+          {% if row.conflict.rationale %}
+          Conflict Notes: {{ row.conflict.rationale|join(", ") }}<br>
+          {% endif %}
+          {% endif %}
+          {% if row.confidence %}
+          Confidence: {{ row.confidence.confidence_band or "UNKNOWN" }}
+          {% if row.confidence.confidence_score is not none %}| score={{ row.confidence.confidence_score }}{% endif %}
+          {% if row.confidence.recommended_action %}| action={{ row.confidence.recommended_action }}{% endif %}
+          <br>
+          {% if row.confidence.rationale %}
+          Confidence Notes: {{ row.confidence.rationale|join(", ") }}<br>
+          {% endif %}
+          {% endif %}
+          {% if row.unresolved %}
+          Unresolved: {{ row.unresolved.unresolved_reason or "pending attention" }}
+          {% if row.unresolved.status %}| {{ row.unresolved.status }}{% endif %}
+          <br>
+          {% endif %}
+          {% if row.warnings %}
+          Warnings: {{ row.warnings|join(", ") }}<br>
+          {% endif %}
+          <br>
+          {% endfor %}
+
+          <div class="row">
+            <button type="submit" name="action" value="accept_review_item">Accept</button>
+            <button type="submit" name="action" value="resolve_review_item">Resolve With Edits</button>
+            <button type="submit" name="action" value="reject_review_item">Reject</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="statusbox">
+        <strong>Accepted Canonical Fields</strong><br>
+        {% if selected_review_item.accepted_fields %}
+          {% for key, value in selected_review_item.accepted_fields.items() %}
+          {{ key }} = {{ value }}<br>
+          {% endfor %}
+        {% else %}
+          No accepted canonical fields yet.<br>
+        {% endif %}
+        <br>
+        <strong>TCE-Lite</strong><br>
+        {% if selected_review_item.tce.WHAT %}
+        WHAT: {{ selected_review_item.tce.WHAT }}<br>
+        {% endif %}
+        {% if selected_review_item.tce.WHO %}
+        WHO: {{ selected_review_item.tce.WHO }}<br>
+        {% endif %}
+        {% if selected_review_item.tce.WHEN %}
+        WHEN: {{ selected_review_item.tce.WHEN }}<br>
+        {% endif %}
+        {% if selected_review_item.tce.WHERE %}
+        WHERE: {{ selected_review_item.tce.WHERE }}<br>
+        {% endif %}
+        {% if selected_review_item.tce.HOW %}
+        HOW: {{ selected_review_item.tce.HOW }}<br>
+        {% endif %}
+        {% if selected_review_item.tce.WHY %}
+        WHY: {{ selected_review_item.tce.WHY }}<br>
+        {% endif %}
+        {% if selected_review_item.field_validation %}
+        <br>
+        <strong>Validation Summary</strong><br>
+        {% for key, value in selected_review_item.field_validation.items() %}
+        {{ key }} = {{ value.status }}{% if value.normalized_value %} ({{ value.normalized_value }}){% endif %}<br>
+        {% endfor %}
+        {% endif %}
+        {% if selected_review_item.field_confidence %}
+        <br>
+        <strong>Confidence Summary</strong><br>
+        {% for key, value in selected_review_item.field_confidence.items() %}
+        {{ key }} = {{ value.confidence_band }} / {{ value.recommended_action }}{% if value.confidence_score is not none %} ({{ value.confidence_score }}){% endif %}<br>
+        {% endfor %}
+        {% endif %}
+        {% if selected_review_item.compare_ledger %}
+        <br>
+        <strong>Compare Ledger</strong><br>
+        {% for entry in selected_review_item.compare_ledger[-14:] %}
+        {{ entry.field_name }} | {{ entry.review_status }} | {{ entry.conflict_level }}
+        {% if entry.selected_candidate_id %}| {{ entry.selected_candidate_id }}{% endif %}
+        {% if entry.operator_override %}| override={{ entry.operator_selected_value }}{% endif %}
+        {% if entry.field_status %}| field_status={{ entry.field_status }}{% endif %}
+        {% if entry.unresolved_reason %}| unresolved={{ entry.unresolved_reason }}{% endif %}
+        {% if entry.compared_at %}| {{ entry.compared_at }}{% endif %}
+        <br>
+        {% endfor %}
+        {% endif %}
+        {% if selected_review_item.unresolved_fields %}
+        <br>
+        <strong>Unresolved Lane</strong><br>
+        {% for key, value in selected_review_item.unresolved_fields.items() %}
+        {{ key }} | {{ value.status }} | {{ value.unresolved_reason }} | {{ value.conflict_level }} | {{ value.confidence_band }}<br>
+        {% endfor %}
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <h2>Document Generator</h2>
       <div class="statusbox">
         <form method="post">
           <div class="row">

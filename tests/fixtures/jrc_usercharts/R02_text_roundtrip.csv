@@ -1,0 +1,9 @@
+// USER CHART SHEET exported by JRC ECDIS.
+// <<NOTE>>This strings // indicate comment column/cells. You can edit freely.
+// R02_text_roundtrip,,
+// TEXT
+// Comment
+// Lat,,,Lon,Rotation
+TEXT,NO GO
+
+25,10.425,N,054,37.785,W,0,20,

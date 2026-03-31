@@ -1,0 +1,45 @@
+[
+  {
+    "sample_a_id": "L01_base",
+    "sample_b_id": "L06_type",
+    "total_bytes": 468,
+    "differing_bytes": 12,
+    "diff_ranges": [
+      {
+        "start": 68,
+        "end": 70,
+        "size": 2,
+        "sample_a": "L01_base",
+        "sample_b": "L06_type"
+      },
+      {
+        "start": 204,
+        "end": 208,
+        "size": 4,
+        "sample_a": "L01_base",
+        "sample_b": "L06_type"
+      },
+      {
+        "start": 368,
+        "end": 369,
+        "size": 1,
+        "sample_a": "L01_base",
+        "sample_b": "L06_type"
+      },
+      {
+        "start": 452,
+        "end": 453,
+        "size": 1,
+        "sample_a": "L01_base",
+        "sample_b": "L06_type"
+      },
+      {
+        "start": 464,
+        "end": 468,
+        "size": 4,
+        "sample_a": "L01_base",
+        "sample_b": "L06_type"
+      }
+    ]
+  }
+]

@@ -1,0 +1,1630 @@
+{
+  "trials": {
+    "tail_0": [
+      {
+        "range": "range_0",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6607142857142857,
+        "combined_score": 0.4732142857142857
+      },
+      {
+        "range": "range_0",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.6428571428571429,
+        "combined_score": 0.4821428571428572
+      },
+      {
+        "range": "range_0",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6964285714285714,
+        "combined_score": 0.49107142857142855
+      },
+      {
+        "range": "range_0",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.5982142857142857,
+        "combined_score": 0.4598214285714286
+      },
+      {
+        "range": "range_0",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.6205357142857143,
+        "combined_score": 0.4709821428571429
+      },
+      {
+        "range": "range_0",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6026785714285714,
+        "combined_score": 0.44419642857142855
+      },
+      {
+        "range": "range_0",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.7008928571428571,
+        "combined_score": 0.4933035714285714
+      },
+      {
+        "range": "range_0",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.7142857142857143,
+        "combined_score": 0.5178571428571429
+      },
+      {
+        "range": "range_1",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7767857142857143,
+        "combined_score": 0.6383928571428572
+      },
+      {
+        "range": "range_1",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.5357142857142857,
+        "bit_similarity": 0.7366071428571429,
+        "combined_score": 0.6361607142857143
+      },
+      {
+        "range": "range_1",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7723214285714286,
+        "combined_score": 0.6361607142857143
+      },
+      {
+        "range": "range_1",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.5357142857142857,
+        "bit_similarity": 0.7678571428571429,
+        "combined_score": 0.6517857142857143
+      },
+      {
+        "range": "range_1",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.5357142857142857,
+        "bit_similarity": 0.7366071428571429,
+        "combined_score": 0.6361607142857143
+      },
+      {
+        "range": "range_1",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7232142857142857,
+        "combined_score": 0.6116071428571428
+      },
+      {
+        "range": "range_1",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7857142857142857,
+        "combined_score": 0.6428571428571428
+      },
+      {
+        "range": "range_1",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7544642857142857,
+        "combined_score": 0.6272321428571428
+      },
+      {
+        "range": "range_2",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5446428571428571,
+        "combined_score": 0.27232142857142855
+      },
+      {
+        "range": "range_2",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.46875,
+        "combined_score": 0.234375
+      },
+      {
+        "range": "range_2",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.6517857142857143,
+        "combined_score": 0.34375
+      },
+      {
+        "range": "range_2",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.3794642857142857,
+        "combined_score": 0.18973214285714285
+      },
+      {
+        "range": "range_2",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.53125,
+        "combined_score": 0.28348214285714285
+      },
+      {
+        "range": "range_2",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5,
+        "combined_score": 0.25
+      },
+      {
+        "range": "range_2",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5,
+        "combined_score": 0.25
+      },
+      {
+        "range": "range_2",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.21428571428571427,
+        "bit_similarity": 0.7276785714285714,
+        "combined_score": 0.47098214285714285
+      },
+      {
+        "range": "range_3",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.49107142857142855,
+        "combined_score": 0.24553571428571427
+      },
+      {
+        "range": "range_3",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.3705357142857143,
+        "combined_score": 0.18526785714285715
+      },
+      {
+        "range": "range_3",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.10714285714285714,
+        "bit_similarity": 0.6473214285714286,
+        "combined_score": 0.37723214285714285
+      },
+      {
+        "range": "range_3",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.2767857142857143,
+        "combined_score": 0.13839285714285715
+      },
+      {
+        "range": "range_3",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.45982142857142855,
+        "combined_score": 0.24776785714285712
+      },
+      {
+        "range": "range_3",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.45535714285714285,
+        "combined_score": 0.22767857142857142
+      },
+      {
+        "range": "range_3",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5491071428571429,
+        "combined_score": 0.27455357142857145
+      },
+      {
+        "range": "range_3",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.6383928571428571,
+        "combined_score": 0.31919642857142855
+      },
+      {
+        "range": "range_0+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.625,
+        "combined_score": 0.45535714285714285
+      },
+      {
+        "range": "range_0+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6294642857142857,
+        "combined_score": 0.4575892857142857
+      },
+      {
+        "range": "range_0+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5446428571428571,
+        "combined_score": 0.27232142857142855
+      },
+      {
+        "range": "range_0+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.53125,
+        "combined_score": 0.265625
+      },
+      {
+        "range": "range_0+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.4732142857142857,
+        "combined_score": 0.23660714285714285
+      },
+      {
+        "range": "range_0+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.48660714285714285,
+        "combined_score": 0.2611607142857143
+      },
+      {
+        "range": "range_1+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.625,
+        "combined_score": 0.45535714285714285
+      },
+      {
+        "range": "range_1+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6294642857142857,
+        "combined_score": 0.4575892857142857
+      },
+      {
+        "range": "range_1+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_1+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.53125,
+        "combined_score": 0.265625
+      },
+      {
+        "range": "range_1+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.4732142857142857,
+        "combined_score": 0.23660714285714285
+      },
+      {
+        "range": "range_1+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.4642857142857143,
+        "combined_score": 0.25
+      },
+      {
+        "range": "range_2+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5446428571428571,
+        "combined_score": 0.27232142857142855
+      },
+      {
+        "range": "range_2+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.53125,
+        "combined_score": 0.265625
+      },
+      {
+        "range": "range_2+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_2+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.53125,
+        "combined_score": 0.265625
+      },
+      {
+        "range": "range_2+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_2+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5178571428571429,
+        "combined_score": 0.2767857142857143
+      },
+      {
+        "range": "range_3+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.4732142857142857,
+        "combined_score": 0.23660714285714285
+      },
+      {
+        "range": "range_3+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.48660714285714285,
+        "combined_score": 0.2611607142857143
+      },
+      {
+        "range": "range_3+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.4732142857142857,
+        "combined_score": 0.23660714285714285
+      },
+      {
+        "range": "range_3+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.4642857142857143,
+        "combined_score": 0.25
+      },
+      {
+        "range": "range_3+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_3+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5178571428571429,
+        "combined_score": 0.2767857142857143
+      }
+    ],
+    "tail_1": [
+      {
+        "range": "range_0",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6205357142857143,
+        "combined_score": 0.453125
+      },
+      {
+        "range": "range_0",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6473214285714286,
+        "combined_score": 0.46651785714285715
+      },
+      {
+        "range": "range_0",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.65625,
+        "combined_score": 0.47098214285714285
+      },
+      {
+        "range": "range_0",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.5758928571428571,
+        "combined_score": 0.4308035714285714
+      },
+      {
+        "range": "range_0",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6160714285714286,
+        "combined_score": 0.45089285714285715
+      },
+      {
+        "range": "range_0",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6428571428571429,
+        "combined_score": 0.4642857142857143
+      },
+      {
+        "range": "range_0",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6964285714285714,
+        "combined_score": 0.49107142857142855
+      },
+      {
+        "range": "range_0",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.6919642857142857,
+        "combined_score": 0.5066964285714286
+      },
+      {
+        "range": "range_1",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7366071428571429,
+        "combined_score": 0.6183035714285714
+      },
+      {
+        "range": "range_1",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7410714285714286,
+        "combined_score": 0.6205357142857143
+      },
+      {
+        "range": "range_1",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7321428571428571,
+        "combined_score": 0.6160714285714286
+      },
+      {
+        "range": "range_1",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7455357142857143,
+        "combined_score": 0.6227678571428572
+      },
+      {
+        "range": "range_1",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7321428571428571,
+        "combined_score": 0.6160714285714286
+      },
+      {
+        "range": "range_1",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7633928571428571,
+        "combined_score": 0.6316964285714286
+      },
+      {
+        "range": "range_1",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.78125,
+        "combined_score": 0.640625
+      },
+      {
+        "range": "range_1",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7321428571428571,
+        "combined_score": 0.6160714285714286
+      },
+      {
+        "range": "range_2",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5133928571428571,
+        "combined_score": 0.25669642857142855
+      },
+      {
+        "range": "range_2",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5178571428571429,
+        "combined_score": 0.25892857142857145
+      },
+      {
+        "range": "range_2",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.6205357142857143,
+        "combined_score": 0.31026785714285715
+      },
+      {
+        "range": "range_2",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.4107142857142857,
+        "combined_score": 0.20535714285714285
+      },
+      {
+        "range": "range_2",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5,
+        "combined_score": 0.25
+      },
+      {
+        "range": "range_2",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.48660714285714285,
+        "combined_score": 0.24330357142857142
+      },
+      {
+        "range": "range_2",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.48660714285714285,
+        "combined_score": 0.24330357142857142
+      },
+      {
+        "range": "range_2",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.21428571428571427,
+        "bit_similarity": 0.7053571428571429,
+        "combined_score": 0.4598214285714286
+      },
+      {
+        "range": "range_3",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.46875,
+        "combined_score": 0.234375
+      },
+      {
+        "range": "range_3",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.4017857142857143,
+        "combined_score": 0.20089285714285715
+      },
+      {
+        "range": "range_3",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.625,
+        "combined_score": 0.33035714285714285
+      },
+      {
+        "range": "range_3",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.29910714285714285,
+        "combined_score": 0.14955357142857142
+      },
+      {
+        "range": "range_3",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.4732142857142857,
+        "combined_score": 0.2544642857142857
+      },
+      {
+        "range": "range_3",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.47767857142857145,
+        "combined_score": 0.23883928571428573
+      },
+      {
+        "range": "range_3",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.49107142857142855,
+        "combined_score": 0.24553571428571427
+      },
+      {
+        "range": "range_3",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5982142857142857,
+        "combined_score": 0.29910714285714285
+      },
+      {
+        "range": "range_0+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.6116071428571429,
+        "combined_score": 0.4665178571428572
+      },
+      {
+        "range": "range_0+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6071428571428571,
+        "combined_score": 0.4464285714285714
+      },
+      {
+        "range": "range_0+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5401785714285714,
+        "combined_score": 0.2700892857142857
+      },
+      {
+        "range": "range_0+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5535714285714286,
+        "combined_score": 0.29464285714285715
+      },
+      {
+        "range": "range_0+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.45982142857142855,
+        "combined_score": 0.22991071428571427
+      },
+      {
+        "range": "range_0+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.4732142857142857,
+        "combined_score": 0.2544642857142857
+      },
+      {
+        "range": "range_1+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.6116071428571429,
+        "combined_score": 0.4665178571428572
+      },
+      {
+        "range": "range_1+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6071428571428571,
+        "combined_score": 0.4464285714285714
+      },
+      {
+        "range": "range_1+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5223214285714286,
+        "combined_score": 0.2611607142857143
+      },
+      {
+        "range": "range_1+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5535714285714286,
+        "combined_score": 0.29464285714285715
+      },
+      {
+        "range": "range_1+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.45982142857142855,
+        "combined_score": 0.22991071428571427
+      },
+      {
+        "range": "range_1+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.45089285714285715,
+        "combined_score": 0.24330357142857142
+      },
+      {
+        "range": "range_2+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5401785714285714,
+        "combined_score": 0.2700892857142857
+      },
+      {
+        "range": "range_2+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5535714285714286,
+        "combined_score": 0.29464285714285715
+      },
+      {
+        "range": "range_2+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5223214285714286,
+        "combined_score": 0.2611607142857143
+      },
+      {
+        "range": "range_2+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5535714285714286,
+        "combined_score": 0.29464285714285715
+      },
+      {
+        "range": "range_2+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.45089285714285715,
+        "combined_score": 0.22544642857142858
+      },
+      {
+        "range": "range_2+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5044642857142857,
+        "combined_score": 0.25223214285714285
+      },
+      {
+        "range": "range_3+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.45982142857142855,
+        "combined_score": 0.22991071428571427
+      },
+      {
+        "range": "range_3+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.4732142857142857,
+        "combined_score": 0.2544642857142857
+      },
+      {
+        "range": "range_3+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.45982142857142855,
+        "combined_score": 0.22991071428571427
+      },
+      {
+        "range": "range_3+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.45089285714285715,
+        "combined_score": 0.24330357142857142
+      },
+      {
+        "range": "range_3+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.45089285714285715,
+        "combined_score": 0.22544642857142858
+      },
+      {
+        "range": "range_3+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5044642857142857,
+        "combined_score": 0.25223214285714285
+      }
+    ],
+    "tail_2": [
+      {
+        "range": "range_0",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6160714285714286,
+        "combined_score": 0.45089285714285715
+      },
+      {
+        "range": "range_0",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6696428571428571,
+        "combined_score": 0.4776785714285714
+      },
+      {
+        "range": "range_0",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6517857142857143,
+        "combined_score": 0.46875
+      },
+      {
+        "range": "range_0",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.5892857142857143,
+        "combined_score": 0.4375
+      },
+      {
+        "range": "range_0",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6205357142857143,
+        "combined_score": 0.453125
+      },
+      {
+        "range": "range_0",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6205357142857143,
+        "combined_score": 0.453125
+      },
+      {
+        "range": "range_0",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.65625,
+        "combined_score": 0.47098214285714285
+      },
+      {
+        "range": "range_0",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.7142857142857143,
+        "combined_score": 0.5178571428571429
+      },
+      {
+        "range": "range_1",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7321428571428571,
+        "combined_score": 0.6160714285714286
+      },
+      {
+        "range": "range_1",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7633928571428571,
+        "combined_score": 0.6316964285714286
+      },
+      {
+        "range": "range_1",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7276785714285714,
+        "combined_score": 0.6138392857142857
+      },
+      {
+        "range": "range_1",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7589285714285714,
+        "combined_score": 0.6294642857142857
+      },
+      {
+        "range": "range_1",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7366071428571429,
+        "combined_score": 0.6183035714285714
+      },
+      {
+        "range": "range_1",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7410714285714286,
+        "combined_score": 0.6205357142857143
+      },
+      {
+        "range": "range_1",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7410714285714286,
+        "combined_score": 0.6205357142857143
+      },
+      {
+        "range": "range_1",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7544642857142857,
+        "combined_score": 0.6272321428571428
+      },
+      {
+        "range": "range_2",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_2",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5133928571428571,
+        "combined_score": 0.25669642857142855
+      },
+      {
+        "range": "range_2",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.6071428571428571,
+        "combined_score": 0.30357142857142855
+      },
+      {
+        "range": "range_2",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.38839285714285715,
+        "combined_score": 0.19419642857142858
+      },
+      {
+        "range": "range_2",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5044642857142857,
+        "combined_score": 0.25223214285714285
+      },
+      {
+        "range": "range_2",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5,
+        "combined_score": 0.25
+      },
+      {
+        "range": "range_2",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5,
+        "combined_score": 0.25
+      },
+      {
+        "range": "range_2",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.21428571428571427,
+        "bit_similarity": 0.7098214285714286,
+        "combined_score": 0.46205357142857145
+      },
+      {
+        "range": "range_3",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5089285714285714,
+        "combined_score": 0.2544642857142857
+      },
+      {
+        "range": "range_3",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.38839285714285715,
+        "combined_score": 0.19419642857142858
+      },
+      {
+        "range": "range_3",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.6383928571428571,
+        "combined_score": 0.3370535714285714
+      },
+      {
+        "range": "range_3",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.29464285714285715,
+        "combined_score": 0.14732142857142858
+      },
+      {
+        "range": "range_3",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.45982142857142855,
+        "combined_score": 0.24776785714285712
+      },
+      {
+        "range": "range_3",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5535714285714286,
+        "combined_score": 0.29464285714285715
+      },
+      {
+        "range": "range_3",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.45982142857142855,
+        "combined_score": 0.22991071428571427
+      },
+      {
+        "range": "range_3",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.6026785714285714,
+        "combined_score": 0.3013392857142857
+      },
+      {
+        "range": "range_0+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.6160714285714286,
+        "combined_score": 0.46875
+      },
+      {
+        "range": "range_0+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6294642857142857,
+        "combined_score": 0.4575892857142857
+      },
+      {
+        "range": "range_0+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_0+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.47767857142857145,
+        "combined_score": 0.23883928571428573
+      },
+      {
+        "range": "range_0+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_0+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5223214285714286,
+        "combined_score": 0.27901785714285715
+      },
+      {
+        "range": "range_1+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.6160714285714286,
+        "combined_score": 0.46875
+      },
+      {
+        "range": "range_1+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6294642857142857,
+        "combined_score": 0.4575892857142857
+      },
+      {
+        "range": "range_1+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5089285714285714,
+        "combined_score": 0.2544642857142857
+      },
+      {
+        "range": "range_1+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.47767857142857145,
+        "combined_score": 0.23883928571428573
+      },
+      {
+        "range": "range_1+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_1+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5,
+        "combined_score": 0.26785714285714285
+      },
+      {
+        "range": "range_2+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_2+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.47767857142857145,
+        "combined_score": 0.23883928571428573
+      },
+      {
+        "range": "range_2+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5089285714285714,
+        "combined_score": 0.2544642857142857
+      },
+      {
+        "range": "range_2+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.47767857142857145,
+        "combined_score": 0.23883928571428573
+      },
+      {
+        "range": "range_2+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.48214285714285715,
+        "combined_score": 0.24107142857142858
+      },
+      {
+        "range": "range_2+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5357142857142857,
+        "combined_score": 0.2857142857142857
+      },
+      {
+        "range": "range_3+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_3+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5223214285714286,
+        "combined_score": 0.27901785714285715
+      },
+      {
+        "range": "range_3+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.26339285714285715
+      },
+      {
+        "range": "range_3+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5,
+        "combined_score": 0.26785714285714285
+      },
+      {
+        "range": "range_3+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.48214285714285715,
+        "combined_score": 0.24107142857142858
+      },
+      {
+        "range": "range_3+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5357142857142857,
+        "combined_score": 0.2857142857142857
+      }
+    ],
+    "tail_3": [
+      {
+        "range": "range_0",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6473214285714286,
+        "combined_score": 0.46651785714285715
+      },
+      {
+        "range": "range_0",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6919642857142857,
+        "combined_score": 0.4888392857142857
+      },
+      {
+        "range": "range_0",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.6919642857142857,
+        "combined_score": 0.5066964285714286
+      },
+      {
+        "range": "range_0",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.59375,
+        "combined_score": 0.43973214285714285
+      },
+      {
+        "range": "range_0",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6696428571428571,
+        "combined_score": 0.4776785714285714
+      },
+      {
+        "range": "range_0",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6339285714285714,
+        "combined_score": 0.45982142857142855
+      },
+      {
+        "range": "range_0",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6517857142857143,
+        "combined_score": 0.46875
+      },
+      {
+        "range": "range_0",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.32142857142857145,
+        "bit_similarity": 0.7098214285714286,
+        "combined_score": 0.515625
+      },
+      {
+        "range": "range_1",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7633928571428571,
+        "combined_score": 0.6316964285714286
+      },
+      {
+        "range": "range_1",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7857142857142857,
+        "combined_score": 0.6428571428571428
+      },
+      {
+        "range": "range_1",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.5357142857142857,
+        "bit_similarity": 0.7678571428571429,
+        "combined_score": 0.6517857142857143
+      },
+      {
+        "range": "range_1",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7633928571428571,
+        "combined_score": 0.6316964285714286
+      },
+      {
+        "range": "range_1",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7857142857142857,
+        "combined_score": 0.6428571428571428
+      },
+      {
+        "range": "range_1",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7544642857142857,
+        "combined_score": 0.6272321428571428
+      },
+      {
+        "range": "range_1",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.7366071428571429,
+        "combined_score": 0.6183035714285714
+      },
+      {
+        "range": "range_1",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.5,
+        "bit_similarity": 0.75,
+        "combined_score": 0.625
+      },
+      {
+        "range": "range_2",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.4955357142857143,
+        "combined_score": 0.24776785714285715
+      },
+      {
+        "range": "range_2",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.45535714285714285,
+        "combined_score": 0.22767857142857142
+      },
+      {
+        "range": "range_2",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.65625,
+        "combined_score": 0.34598214285714285
+      },
+      {
+        "range": "range_2",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.32142857142857145,
+        "combined_score": 0.16071428571428573
+      },
+      {
+        "range": "range_2",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.4642857142857143,
+        "combined_score": 0.23214285714285715
+      },
+      {
+        "range": "range_2",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5133928571428571,
+        "combined_score": 0.25669642857142855
+      },
+      {
+        "range": "range_2",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5133928571428571,
+        "combined_score": 0.25669642857142855
+      },
+      {
+        "range": "range_2",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.25,
+        "bit_similarity": 0.7410714285714286,
+        "combined_score": 0.4955357142857143
+      },
+      {
+        "range": "range_3",
+        "transform": "direct_copy",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5223214285714286,
+        "combined_score": 0.2611607142857143
+      },
+      {
+        "range": "range_3",
+        "transform": "xor_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.4642857142857143,
+        "combined_score": 0.23214285714285715
+      },
+      {
+        "range": "range_3",
+        "transform": "and_reduce",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.6339285714285714,
+        "combined_score": 0.33482142857142855
+      },
+      {
+        "range": "range_3",
+        "transform": "or_reduce",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.3080357142857143,
+        "combined_score": 0.15401785714285715
+      },
+      {
+        "range": "range_3",
+        "transform": "sum_mod_256",
+        "exact_match_rate": 0.07142857142857142,
+        "bit_similarity": 0.5,
+        "combined_score": 0.2857142857142857
+      },
+      {
+        "range": "range_3",
+        "transform": "weighted_sum_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5133928571428571,
+        "combined_score": 0.25669642857142855
+      },
+      {
+        "range": "range_3",
+        "transform": "rolling_accumulator",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.5267857142857143,
+        "combined_score": 0.28125
+      },
+      {
+        "range": "range_3",
+        "transform": "packed_bits",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.6160714285714286,
+        "combined_score": 0.3080357142857143
+      },
+      {
+        "range": "range_0+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.35714285714285715,
+        "bit_similarity": 0.6741071428571429,
+        "combined_score": 0.515625
+      },
+      {
+        "range": "range_0+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6875,
+        "combined_score": 0.48660714285714285
+      },
+      {
+        "range": "range_0+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5044642857142857,
+        "combined_score": 0.25223214285714285
+      },
+      {
+        "range": "range_0+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.49107142857142855,
+        "combined_score": 0.24553571428571427
+      },
+      {
+        "range": "range_0+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5133928571428571,
+        "combined_score": 0.25669642857142855
+      },
+      {
+        "range": "range_0+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.4732142857142857,
+        "combined_score": 0.2544642857142857
+      },
+      {
+        "range": "range_1+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.35714285714285715,
+        "bit_similarity": 0.6741071428571429,
+        "combined_score": 0.515625
+      },
+      {
+        "range": "range_1+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.2857142857142857,
+        "bit_similarity": 0.6875,
+        "combined_score": 0.48660714285714285
+      },
+      {
+        "range": "range_1+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.48660714285714285,
+        "combined_score": 0.24330357142857142
+      },
+      {
+        "range": "range_1+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.49107142857142855,
+        "combined_score": 0.24553571428571427
+      },
+      {
+        "range": "range_1+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5133928571428571,
+        "combined_score": 0.25669642857142855
+      },
+      {
+        "range": "range_1+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.45089285714285715,
+        "combined_score": 0.24330357142857142
+      },
+      {
+        "range": "range_2+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5044642857142857,
+        "combined_score": 0.25223214285714285
+      },
+      {
+        "range": "range_2+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.49107142857142855,
+        "combined_score": 0.24553571428571427
+      },
+      {
+        "range": "range_2+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.48660714285714285,
+        "combined_score": 0.24330357142857142
+      },
+      {
+        "range": "range_2+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.49107142857142855,
+        "combined_score": 0.24553571428571427
+      },
+      {
+        "range": "range_2+range_3",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.47767857142857145,
+        "combined_score": 0.23883928571428573
+      },
+      {
+        "range": "range_2+range_3",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.47767857142857145,
+        "combined_score": 0.23883928571428573
+      },
+      {
+        "range": "range_3+range_0",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5133928571428571,
+        "combined_score": 0.25669642857142855
+      },
+      {
+        "range": "range_3+range_0",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.4732142857142857,
+        "combined_score": 0.2544642857142857
+      },
+      {
+        "range": "range_3+range_1",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.5133928571428571,
+        "combined_score": 0.25669642857142855
+      },
+      {
+        "range": "range_3+range_1",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.03571428571428571,
+        "bit_similarity": 0.45089285714285715,
+        "combined_score": 0.24330357142857142
+      },
+      {
+        "range": "range_3+range_2",
+        "transform": "xor_combine",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.47767857142857145,
+        "combined_score": 0.23883928571428573
+      },
+      {
+        "range": "range_3+range_2",
+        "transform": "sum_combine_mod_256",
+        "exact_match_rate": 0.0,
+        "bit_similarity": 0.47767857142857145,
+        "combined_score": 0.23883928571428573
+      }
+    ]
+  },
+  "regressions": {
+    "tail_0": {
+      "score": 0.6584821428571428,
+      "coeffs": [
+        0,
+        -3,
+        0,
+        0,
+        0
+      ],
+      "exact_match_rate": 0.5357142857142857,
+      "bit_similarity": 0.78125
+    },
+    "tail_1": {
+      "score": 0.6607142857142857,
+      "coeffs": [
+        0,
+        -3,
+        0,
+        0,
+        0
+      ],
+      "exact_match_rate": 0.5357142857142857,
+      "bit_similarity": 0.7857142857142857
+    },
+    "tail_2": {
+      "score": 0.6584821428571428,
+      "coeffs": [
+        0,
+        -1,
+        0,
+        0,
+        0
+      ],
+      "exact_match_rate": 0.5357142857142857,
+      "bit_similarity": 0.78125
+    },
+    "tail_3": {
+      "score": 0.6808035714285714,
+      "coeffs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "exact_match_rate": 0.5714285714285714,
+      "bit_similarity": 0.7901785714285714
+    }
+  }
+}

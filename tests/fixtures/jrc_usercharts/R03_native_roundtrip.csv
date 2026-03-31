@@ -1,0 +1,9 @@
+// USER CHART SHEET exported by JRC ECDIS.
+// <<NOTE>>This strings // indicate comment column/cells. You can edit freely.
+// R03_native_roundtrip,,
+// SYMBOL,InstName
+// Comment
+// Lat,,,Lon
+SYMBOL,~XSHAPE0,***,***
+
+23,18.441,N,056,28.048,W
