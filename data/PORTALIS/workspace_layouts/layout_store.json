@@ -1,0 +1,361 @@
+{
+  "layout_editor_state": {},
+  "layout_profiles": {
+    "layout_bridge_ops": {
+      "active_split_mode": "SINGLE",
+      "bottom_collapsed": true,
+      "bottom_height": "140px",
+      "created_at": "2026-04-01T23:07:20Z",
+      "layout_profile_id": "layout_bridge_ops",
+      "left_collapsed": false,
+      "left_width": "92px",
+      "name": "Bridge Ops Layout",
+      "panel_configuration_id": "panel_bridge_ops",
+      "right_collapsed": true,
+      "right_width": "220px",
+      "split_view_state": {
+        "enabled": false,
+        "mode": "SINGLE",
+        "pane_ids": [
+          "LEFT",
+          "RIGHT"
+        ]
+      },
+      "updated_at": "2026-04-01T23:07:20Z",
+      "workspace_mode_id": "BRIDGE_OPS"
+    },
+    "layout_package": {
+      "active_split_mode": "SINGLE",
+      "bottom_collapsed": false,
+      "bottom_height": "220px",
+      "created_at": "2026-04-01T23:07:20Z",
+      "layout_profile_id": "layout_package",
+      "left_collapsed": false,
+      "left_width": "140px",
+      "name": "Package Layout",
+      "panel_configuration_id": "panel_package",
+      "right_collapsed": true,
+      "right_width": "220px",
+      "split_view_state": {
+        "enabled": false,
+        "mode": "SINGLE",
+        "pane_ids": [
+          "LEFT",
+          "RIGHT"
+        ]
+      },
+      "updated_at": "2026-04-01T23:07:20Z",
+      "workspace_mode_id": "PACKAGE"
+    },
+    "layout_review": {
+      "active_split_mode": "TWO_PANE_VERTICAL",
+      "bottom_collapsed": false,
+      "bottom_height": "220px",
+      "created_at": "2026-04-01T23:07:20Z",
+      "layout_profile_id": "layout_review",
+      "left_collapsed": false,
+      "left_width": "92px",
+      "name": "Review Layout",
+      "panel_configuration_id": "panel_review",
+      "right_collapsed": false,
+      "right_width": "320px",
+      "split_view_state": {
+        "enabled": true,
+        "mode": "TWO_PANE_VERTICAL",
+        "pane_ids": [
+          "LEFT",
+          "RIGHT"
+        ]
+      },
+      "updated_at": "2026-04-01T23:07:20Z",
+      "workspace_mode_id": "REVIEW"
+    },
+    "layout_studio": {
+      "active_split_mode": "SINGLE",
+      "bottom_collapsed": true,
+      "bottom_height": "140px",
+      "created_at": "2026-04-01T23:07:20Z",
+      "layout_profile_id": "layout_studio",
+      "left_collapsed": false,
+      "left_width": "92px",
+      "name": "Studio Layout",
+      "panel_configuration_id": "panel_studio",
+      "right_collapsed": false,
+      "right_width": "320px",
+      "split_view_state": {
+        "enabled": false,
+        "mode": "SINGLE",
+        "pane_ids": [
+          "LEFT",
+          "RIGHT"
+        ]
+      },
+      "updated_at": "2026-04-01T23:07:20Z",
+      "workspace_mode_id": "STUDIO"
+    },
+    "layout_task_execution": {
+      "active_split_mode": "SINGLE",
+      "bottom_collapsed": false,
+      "bottom_height": "220px",
+      "created_at": "2026-04-01T23:07:20Z",
+      "layout_profile_id": "layout_task_execution",
+      "left_collapsed": false,
+      "left_width": "92px",
+      "name": "Task Execution Layout",
+      "panel_configuration_id": "panel_task_execution",
+      "right_collapsed": false,
+      "right_width": "320px",
+      "split_view_state": {
+        "enabled": false,
+        "mode": "SINGLE",
+        "pane_ids": [
+          "LEFT",
+          "RIGHT"
+        ]
+      },
+      "updated_at": "2026-04-01T23:07:20Z",
+      "workspace_mode_id": "TASK_EXECUTION"
+    },
+    "layout_validation": {
+      "active_split_mode": "TWO_PANE_VERTICAL",
+      "bottom_collapsed": false,
+      "bottom_height": "220px",
+      "created_at": "2026-04-01T23:07:20Z",
+      "layout_profile_id": "layout_validation",
+      "left_collapsed": false,
+      "left_width": "92px",
+      "name": "Validation Layout",
+      "panel_configuration_id": "panel_validation",
+      "right_collapsed": false,
+      "right_width": "320px",
+      "split_view_state": {
+        "enabled": true,
+        "mode": "TWO_PANE_VERTICAL",
+        "pane_ids": [
+          "LEFT",
+          "RIGHT"
+        ]
+      },
+      "updated_at": "2026-04-01T23:07:20Z",
+      "workspace_mode_id": "VALIDATION"
+    }
+  },
+  "panel_configurations": {
+    "panel_bridge_ops": {
+      "active_sections": [
+        "LEFT_SIDEBAR",
+        "BOTTOM_PANEL"
+      ],
+      "bottom_panel_visible": false,
+      "command_palette_enabled": true,
+      "compare_summary_visible": false,
+      "created_at": "2026-04-01T23:07:20Z",
+      "left_sidebar_visible": true,
+      "name": "Bridge Ops Panels",
+      "panel_configuration_id": "panel_bridge_ops",
+      "review_summary_visible": false,
+      "right_inspector_visible": false,
+      "task_header_visible": false,
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "panel_package": {
+      "active_sections": [
+        "LEFT_SIDEBAR",
+        "BOTTOM_PANEL",
+        "REVIEW_SUMMARY"
+      ],
+      "bottom_panel_visible": true,
+      "command_palette_enabled": true,
+      "compare_summary_visible": false,
+      "created_at": "2026-04-01T23:07:20Z",
+      "left_sidebar_visible": true,
+      "name": "Package Panels",
+      "panel_configuration_id": "panel_package",
+      "review_summary_visible": true,
+      "right_inspector_visible": false,
+      "task_header_visible": false,
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "panel_review": {
+      "active_sections": [
+        "LEFT_SIDEBAR",
+        "RIGHT_INSPECTOR",
+        "BOTTOM_PANEL",
+        "REVIEW_SUMMARY",
+        "COMPARE_SUMMARY"
+      ],
+      "bottom_panel_visible": true,
+      "command_palette_enabled": true,
+      "compare_summary_visible": true,
+      "created_at": "2026-04-01T23:07:20Z",
+      "left_sidebar_visible": true,
+      "name": "Review Panels",
+      "panel_configuration_id": "panel_review",
+      "review_summary_visible": true,
+      "right_inspector_visible": true,
+      "task_header_visible": false,
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "panel_studio": {
+      "active_sections": [
+        "LEFT_SIDEBAR",
+        "RIGHT_INSPECTOR",
+        "BOTTOM_PANEL",
+        "TASK_HEADER"
+      ],
+      "bottom_panel_visible": false,
+      "command_palette_enabled": true,
+      "compare_summary_visible": false,
+      "created_at": "2026-04-01T23:07:20Z",
+      "left_sidebar_visible": true,
+      "name": "Studio Panels",
+      "panel_configuration_id": "panel_studio",
+      "review_summary_visible": false,
+      "right_inspector_visible": true,
+      "task_header_visible": false,
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "panel_task_execution": {
+      "active_sections": [
+        "LEFT_SIDEBAR",
+        "RIGHT_INSPECTOR",
+        "BOTTOM_PANEL",
+        "TASK_HEADER"
+      ],
+      "bottom_panel_visible": true,
+      "command_palette_enabled": true,
+      "compare_summary_visible": false,
+      "created_at": "2026-04-01T23:07:20Z",
+      "left_sidebar_visible": true,
+      "name": "Task Execution Panels",
+      "panel_configuration_id": "panel_task_execution",
+      "review_summary_visible": false,
+      "right_inspector_visible": true,
+      "task_header_visible": true,
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "panel_validation": {
+      "active_sections": [
+        "LEFT_SIDEBAR",
+        "RIGHT_INSPECTOR",
+        "BOTTOM_PANEL",
+        "COMPARE_SUMMARY",
+        "REVIEW_SUMMARY"
+      ],
+      "bottom_panel_visible": true,
+      "command_palette_enabled": true,
+      "compare_summary_visible": true,
+      "created_at": "2026-04-01T23:07:20Z",
+      "left_sidebar_visible": true,
+      "name": "Validation Panels",
+      "panel_configuration_id": "panel_validation",
+      "review_summary_visible": true,
+      "right_inspector_visible": true,
+      "task_header_visible": false,
+      "updated_at": "2026-04-01T23:07:20Z"
+    }
+  },
+  "workspace_modes": {
+    "BRIDGE_OPS": {
+      "allowed_panels": [
+        "LEFT_SIDEBAR",
+        "BOTTOM_PANEL"
+      ],
+      "code": "BRIDGE_OPS",
+      "created_at": "2026-04-01T23:07:20Z",
+      "default_layout_profile_id": "layout_bridge_ops",
+      "default_ribbon_tab": "HOME",
+      "description": "Reduced-clutter operational posture for control-room work.",
+      "mode_id": "BRIDGE_OPS",
+      "name": "Bridge Ops",
+      "preferred_split_mode": "SINGLE",
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "PACKAGE": {
+      "allowed_panels": [
+        "LEFT_SIDEBAR",
+        "BOTTOM_PANEL",
+        "REVIEW_SUMMARY"
+      ],
+      "code": "PACKAGE",
+      "created_at": "2026-04-01T23:07:20Z",
+      "default_layout_profile_id": "layout_package",
+      "default_ribbon_tab": "QTR",
+      "description": "Packaging posture with explorer and output summaries emphasized.",
+      "mode_id": "PACKAGE",
+      "name": "Package",
+      "preferred_split_mode": "SINGLE",
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "REVIEW": {
+      "allowed_panels": [
+        "LEFT_SIDEBAR",
+        "RIGHT_INSPECTOR",
+        "BOTTOM_PANEL",
+        "REVIEW_SUMMARY",
+        "COMPARE_SUMMARY"
+      ],
+      "code": "REVIEW",
+      "created_at": "2026-04-01T23:07:20Z",
+      "default_layout_profile_id": "layout_review",
+      "default_ribbon_tab": "REVIEW",
+      "description": "Review and audit posture with bottom review surfaces emphasized.",
+      "mode_id": "REVIEW",
+      "name": "Review",
+      "preferred_split_mode": "TWO_PANE_VERTICAL",
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "STUDIO": {
+      "allowed_panels": [
+        "LEFT_SIDEBAR",
+        "RIGHT_INSPECTOR",
+        "BOTTOM_PANEL",
+        "TASK_HEADER"
+      ],
+      "code": "STUDIO",
+      "created_at": "2026-04-01T23:07:20Z",
+      "default_layout_profile_id": "layout_studio",
+      "default_ribbon_tab": "STUDIO",
+      "description": "Editing-heavy posture with a larger active canvas.",
+      "mode_id": "STUDIO",
+      "name": "Studio",
+      "preferred_split_mode": "SINGLE",
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "TASK_EXECUTION": {
+      "allowed_panels": [
+        "LEFT_SIDEBAR",
+        "RIGHT_INSPECTOR",
+        "BOTTOM_PANEL",
+        "TASK_HEADER"
+      ],
+      "code": "TASK_EXECUTION",
+      "created_at": "2026-04-01T23:07:20Z",
+      "default_layout_profile_id": "layout_task_execution",
+      "default_ribbon_tab": "TASKS",
+      "description": "Task-guided posture with header and checklist visibility.",
+      "mode_id": "TASK_EXECUTION",
+      "name": "Task Execution",
+      "preferred_split_mode": "SINGLE",
+      "updated_at": "2026-04-01T23:07:20Z"
+    },
+    "VALIDATION": {
+      "allowed_panels": [
+        "LEFT_SIDEBAR",
+        "RIGHT_INSPECTOR",
+        "BOTTOM_PANEL",
+        "COMPARE_SUMMARY",
+        "REVIEW_SUMMARY"
+      ],
+      "code": "VALIDATION",
+      "created_at": "2026-04-01T23:07:20Z",
+      "default_layout_profile_id": "layout_validation",
+      "default_ribbon_tab": "REVIEW",
+      "description": "Validation-focused posture with comparison and inspector support.",
+      "mode_id": "VALIDATION",
+      "name": "Validation",
+      "preferred_split_mode": "TWO_PANE_VERTICAL",
+      "updated_at": "2026-04-01T23:07:20Z"
+    }
+  }
+}

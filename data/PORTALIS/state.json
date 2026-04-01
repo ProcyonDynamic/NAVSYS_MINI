@@ -1,0 +1,104 @@
+{
+  "vessel": {
+    "vessel_id": "default_vessel",
+    "name": "",
+    "imo_number": null,
+    "call_sign": null,
+    "flag_state": null,
+    "vessel_type": null,
+    "gross_tonnage": null,
+    "net_tonnage": null,
+    "deadweight": null,
+    "owner_name": null,
+    "operator_name": null
+  },
+  "voyage": {
+    "voyage_id": "default_voyage",
+    "voyage_number": "",
+    "departure_port": "",
+    "arrival_port": "",
+    "eta": "",
+    "etb": "",
+    "etc": "",
+    "cargo_summary": "",
+    "port_history": "",
+    "current_port": "",
+    "next_port": ""
+  },
+  "documents": [
+    {
+      "doc_name": "Crew List",
+      "required": true,
+      "filled": false,
+      "printed": false,
+      "signed": false,
+      "recorded": false,
+      "sent": false,
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "doc_name": "Maritime Declaration of Health",
+      "required": true,
+      "filled": false,
+      "printed": false,
+      "signed": false,
+      "recorded": false,
+      "sent": false,
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "doc_name": "Port Requirement Checklist",
+      "required": true,
+      "filled": false,
+      "printed": false,
+      "signed": false,
+      "recorded": false,
+      "sent": false,
+      "status": "pending",
+      "notes": ""
+    },
+    {
+      "doc_name": "Certificate Pack",
+      "required": false,
+      "filled": false,
+      "printed": false,
+      "signed": false,
+      "recorded": false,
+      "sent": false,
+      "status": "pending",
+      "notes": ""
+    }
+  ],
+  "crew_registry": {
+    "selected_crew_id": null,
+    "total_crew": 6,
+    "last_created_crew_id": null
+  },
+  "certificate_vault": {
+    "total_certificates": 1,
+    "last_updated_certificate": null
+  },
+  "port_requirements": {
+    "selected_port_name": null,
+    "total_ports": 1
+  },
+  "document_registry": {
+    "total_documents": 21,
+    "last_import_document_id": null,
+    "last_import_manifest_path": null
+  },
+  "review_queue": {
+    "total_items": 2,
+    "pending_items": 2,
+    "last_document_id": null
+  },
+  "generated_outputs": [
+    {
+      "category": "crew_lists",
+      "output_path": "E:\\NAVSYS_USB\\data\\PORTALIS\\generated\\crew_lists\\crew_list_port.txt",
+      "generated_at": "2026-04-01T00:25:17Z"
+    }
+  ]
+}

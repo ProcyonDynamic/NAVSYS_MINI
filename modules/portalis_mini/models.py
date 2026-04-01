@@ -148,6 +148,12 @@ class ReviewQueueItem:
     intake_contracts: Dict[str, Any] = field(default_factory=dict)
     intake_acks: Dict[str, Any] = field(default_factory=dict)
     intake_actions: List[Dict[str, Any]] = field(default_factory=list)
+    dropzone_handshakes: Dict[str, Any] = field(default_factory=dict)
+    dropzone_receipts: Dict[str, Any] = field(default_factory=dict)
+    dropzone_receipt_history: Dict[str, Any] = field(default_factory=dict)
+    dropzone_reconciliation: Dict[str, Any] = field(default_factory=dict)
+    dropzone_recovery: Dict[str, Any] = field(default_factory=dict)
+    dropzone_actions: List[Dict[str, Any]] = field(default_factory=list)
     status: ReviewStatus = "PENDING"
     tce: TCELiteEnvelope = field(default_factory=TCELiteEnvelope)
     resolution_reason: str = ""

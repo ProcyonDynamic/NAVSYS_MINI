@@ -5,6 +5,7 @@ import traceback
 import webbrowser
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlencode
 
 import sys
 from pathlib import Path
@@ -116,6 +117,7 @@ from modules.portalis_mini.review_dashboard_service import (
     apply_external_bridge_action,
     apply_incident_action,
     apply_intake_action,
+    apply_dropzone_action,
     apply_notification_action,
     apply_reminder_action,
     apply_transport_action,
@@ -123,11 +125,38 @@ from modules.portalis_mini.review_dashboard_service import (
     apply_watch_action,
     refresh_control_room_state,
 )
+from modules.portalis_mini.navsys_shell_service import (
+    build_navsys_shell_state,
+    build_navsys_shell_tce_delta,
+)
+from modules.portalis_mini.workspace_persistence_service import WorkspacePersistenceService
+from modules.portalis_mini.workspace_layout_service import WorkspaceLayoutService
+from modules.portalis_mini.file_lifecycle_service import FileLifecycleService
+from modules.portalis_mini.task_workspace_service import TaskWorkspaceService
+from modules.portalis_mini.task_template_service import TaskTemplateService
+from modules.portalis_mini.review_layer_service import ReviewLayerService
 from modules.portalis_mini.studio_workbench_service import (
+    add_document_anchor,
+    add_workbench_annotation,
+    add_workbench_scratchpad_field,
     build_document_workbench,
+    clear_reconstruction_cell,
+    delete_document_anchor,
+    delete_workbench_annotation,
+    delete_workbench_scratchpad_field,
+    merge_reconstruction_cells,
     open_document_in_workbench,
     resolve_document_source_path,
+    select_reconstruction_block,
+    select_reconstruction_cell,
+    select_document_anchor,
+    split_reconstruction_block,
+    update_reconstruction_block,
+    update_reconstruction_cell,
+    update_document_anchor,
     update_document_workbench,
+    update_workbench_annotation,
+    update_workbench_scratchpad_field,
 )
 try:
     from NAVSYS.app.portalis_import_routes import portalis_import_bp
@@ -232,6 +261,10 @@ def _build_review_field_rows(review_item, document_entry):
     external_bridge_results = dict(getattr(review_item, "external_bridge_results", {}) or (document_entry or {}).get("external_bridge_results", {}))
     intake_contracts = dict(getattr(review_item, "intake_contracts", {}) or (document_entry or {}).get("intake_contracts", {}))
     intake_acks = dict(getattr(review_item, "intake_acks", {}) or (document_entry or {}).get("intake_acks", {}))
+    dropzone_handshakes = dict(getattr(review_item, "dropzone_handshakes", {}) or (document_entry or {}).get("dropzone_handshakes", {}))
+    dropzone_receipts = dict(getattr(review_item, "dropzone_receipts", {}) or (document_entry or {}).get("dropzone_receipts", {}))
+    dropzone_reconciliation = dict(getattr(review_item, "dropzone_reconciliation", {}) or (document_entry or {}).get("dropzone_reconciliation", {}))
+    dropzone_recovery = dict(getattr(review_item, "dropzone_recovery", {}) or (document_entry or {}).get("dropzone_recovery", {}))
 
     queue_map = {item.get("field_name"): item for item in prioritized_field_queue if item.get("field_name")}
     ordered_field_names = [item.get("field_name") for item in prioritized_field_queue if item.get("field_name")]
@@ -298,6 +331,10 @@ def _build_review_field_rows(review_item, document_entry):
                 "external_bridge_result": dict(external_bridge_results.get(field_name, {}) or {}),
                 "intake_contract": dict(intake_contracts.get(field_name, {}) or {}),
                 "intake_ack": dict(intake_acks.get(field_name, {}) or {}),
+                "dropzone_handshake": dict(dropzone_handshakes.get(field_name, {}) or {}),
+                "dropzone_receipt": dict(dropzone_receipts.get(field_name, {}) or {}),
+                "dropzone_reconciliation": dict(dropzone_reconciliation.get(field_name, {}) or {}),
+                "dropzone_recovery": dict(dropzone_recovery.get(field_name, {}) or {}),
                 "warnings": warnings,
             }
         )
@@ -986,6 +1023,249 @@ def portalis():
     portalis_root = USB_ROOT / "data" / "PORTALIS"
     registry = DocumentRegistry(portalis_root)
     review_service = ReviewResolutionService(portalis_root)
+    workspace_service = WorkspacePersistenceService(portalis_root)
+    layout_service = WorkspaceLayoutService(portalis_root)
+    file_service = FileLifecycleService(portalis_root)
+    task_service = TaskWorkspaceService(portalis_root)
+    template_service = TaskTemplateService(portalis_root)
+    review_layer_service = ReviewLayerService(portalis_root)
+
+    def infer_nav_submodule(action_name: str, current_value: str) -> str:
+        action_name = str(action_name or "").strip().lower()
+        if not action_name:
+            return current_value or "STUDIO"
+        if any(
+            action_name.startswith(prefix)
+            for prefix in (
+                "open_workbench",
+                "update_workbench",
+                "add_workbench",
+                "delete_workbench",
+                "select_workbench",
+                "clear_workbench",
+                "merge_workbench",
+                "split_workbench",
+            )
+        ):
+            return "STUDIO"
+        if action_name.startswith("apply_"):
+            return "CONTROL_ROOM"
+        if action_name in {"accept_review_item", "resolve_review_item", "reject_review_item", "select_review_document"}:
+            return "REVIEW"
+        if action_name.startswith("generate_"):
+            return "OUTPUT"
+        if action_name in {
+            "save_portalis",
+            "import_arrival_db",
+            "import_crew_passport",
+            "create_crew",
+            "add_crew_document",
+            "save_port_requirements",
+            "save_certificate",
+        }:
+            return "ARCHIVE"
+        return current_value or "STUDIO"
+
+    def _as_bool_flag(value: str) -> bool:
+        return str(value or "").strip().lower() in {"1", "true", "yes", "open", "collapsed"}
+
+    def build_workspace_payload(
+        *,
+        workspace_name: str,
+        ui_mode: str,
+        open_document_tabs: list,
+        active_document_tab_id: str,
+        active_ribbon_tab_value: str,
+        left_pane_collapsed_value: bool,
+        right_pane_collapsed_value: bool,
+        bottom_pane_collapsed_value: bool,
+        selected_file_id: str,
+        workbench_bottom_tab_value: str,
+        workbench_inspector_mode_value: str,
+        split_view_enabled_value: bool = False,
+        split_view_mode_value: str = "SINGLE",
+        split_orientation_value: str = "VERTICAL",
+        active_pane_id_value: str = "LEFT",
+        left_pane_document_id_value: str = "",
+        right_pane_document_id_value: str = "",
+        compare_session_value: dict | None = None,
+        inspector_follow_mode_value: str = "FOLLOW_ACTIVE_PANE",
+        selected_review_item_id_value: str = "",
+        review_session_id_value: str = "",
+        review_filter_value: str = "all",
+        selected_workspace_mode_id_value: str = "STUDIO",
+        selected_layout_profile_id_value: str = "DEFAULT",
+        selected_panel_configuration_id_value: str = "",
+        panel_visibility_state_value: dict | None = None,
+    ):
+        panel_visibility_state_value = dict(panel_visibility_state_value or {})
+        return {
+            "workspace_name": workspace_name,
+            "ui_mode": ui_mode,
+            "open_tabs": list(open_document_tabs or []),
+            "tab_order": [str(tab.get("tab_id") or "") for tab in list(open_document_tabs or [])],
+            "active_document_tab_id": str(active_document_tab_id or ""),
+            "pinned_tabs": [],
+            "tab_groups": [{"group_id": "PRIMARY", "label": "Primary View", "tab_ids": [str(tab.get("tab_id") or "") for tab in list(open_document_tabs or [])]}],
+            "layout_profile_id": str(selected_layout_profile_id_value or "DEFAULT"),
+            "selected_workspace_mode_id": str(selected_workspace_mode_id_value or "STUDIO"),
+            "selected_panel_configuration_id": str(selected_panel_configuration_id_value or ""),
+            "linked_context_files": [],
+            "selected_file_id": str(selected_file_id or ""),
+            "active_ribbon_tab": str(active_ribbon_tab_value or ""),
+            "left_pane_state": "COLLAPSED" if left_pane_collapsed_value else "VISIBLE",
+            "right_pane_state": "COLLAPSED" if right_pane_collapsed_value else workbench_inspector_mode_value,
+            "bottom_pane_state": "COLLAPSED" if bottom_pane_collapsed_value else workbench_bottom_tab_value,
+            "left_section_state": {
+                "WORKSPACES": True,
+                "FILE_EXPLORER": True,
+                "ARCHIVE": True,
+            },
+            "favorites": {},
+            "autosave_enabled": True,
+            "split_view_enabled": bool(split_view_enabled_value),
+            "split_view_mode": str(split_view_mode_value or "SINGLE"),
+            "active_pane_id": str(active_pane_id_value or "LEFT"),
+            "pane_documents": {
+                "LEFT": {"document_id": str(left_pane_document_id_value or active_document_tab_id or "")},
+                "RIGHT": {"document_id": str(right_pane_document_id_value or "")},
+            },
+            "compare_session": dict(compare_session_value or {}),
+            "inspector_follow_mode": str(inspector_follow_mode_value or "FOLLOW_ACTIVE_PANE"),
+            "selected_review_item_id": str(selected_review_item_id_value or ""),
+            "review_session_id": str(review_session_id_value or ""),
+            "review_filter": str(review_filter_value or "all"),
+            "panel_visibility_state": panel_visibility_state_value,
+            "layout_profile": {
+                "layout_profile_id": str(selected_layout_profile_id_value or "DEFAULT"),
+                "workspace_mode_id": str(selected_workspace_mode_id_value or "STUDIO"),
+                "panel_configuration_id": str(selected_panel_configuration_id_value or ""),
+                "name": "Default Layout",
+                "left_width": "92px",
+                "right_width": "320px",
+                "bottom_height": "180px",
+                "left_collapsed": bool(left_pane_collapsed_value),
+                "right_collapsed": bool(right_pane_collapsed_value),
+                "bottom_collapsed": bool(bottom_pane_collapsed_value),
+                "split_view_state": {
+                    "enabled": bool(split_view_enabled_value),
+                    "mode": str(split_view_mode_value or "SINGLE"),
+                    "pane_ids": ["LEFT", "RIGHT"],
+                    "active_pane_id": str(active_pane_id_value or "LEFT"),
+                    "orientation": str(split_orientation_value or "VERTICAL"),
+                    "divider_positions": {"primary": "50%"},
+                    "compare_mode": str((compare_session_value or {}).get("compare_type") or ""),
+                    "group_ids": ["PRIMARY"],
+                },
+                "active_split_mode": str(split_view_mode_value or "SINGLE"),
+            },
+        }
+
+    def apply_workspace_payload(payload: dict):
+        open_tabs = list(payload.get("open_tabs", []))
+        active_tab_id = str(payload.get("active_document_tab_id") or "")
+        active_tab = next((tab for tab in open_tabs if str(tab.get("tab_id") or "") == active_tab_id), {})
+        if not active_tab and open_tabs:
+            active_tab = dict(open_tabs[0])
+        source_lane = str(active_tab.get("source_lane") or "STUDIO").upper()
+        active_document_id = str(active_tab.get("document_id") or active_tab.get("tab_id") or "")
+        pane_documents = dict(payload.get("pane_documents", {}) or {})
+        split_view_state = dict((payload.get("layout_profile", {}) or {}).get("split_view_state", {}) or {})
+        return {
+            "selected_nav_submodule": "REVIEW" if source_lane == "REVIEW" else "STUDIO",
+            "selected_workbench_document_id": active_document_id if source_lane == "STUDIO" else "",
+            "selected_review_document_id": active_document_id if source_lane == "REVIEW" else "",
+            "active_ribbon_tab": str(payload.get("active_ribbon_tab") or ""),
+            "shell_ui_mode": str(payload.get("ui_mode") or ""),
+            "left_pane_collapsed": bool((payload.get("layout_profile", {}) or {}).get("left_collapsed", False)),
+            "right_pane_collapsed": bool((payload.get("layout_profile", {}) or {}).get("right_collapsed", False)),
+            "bottom_pane_collapsed": bool((payload.get("layout_profile", {}) or {}).get("bottom_collapsed", False)),
+            "workbench_bottom_tab": str(payload.get("bottom_pane_state") or "SCRATCHPAD"),
+            "workbench_inspector_mode": str(payload.get("right_pane_state") or "DOCUMENT"),
+            "active_document_tab_id": active_tab_id,
+            "split_view_enabled": bool(payload.get("split_view_enabled") or split_view_state.get("enabled")),
+            "split_view_mode": str(payload.get("split_view_mode") or split_view_state.get("mode") or "SINGLE"),
+            "split_orientation": str(split_view_state.get("orientation") or "VERTICAL"),
+            "active_pane_id": str(payload.get("active_pane_id") or split_view_state.get("active_pane_id") or "LEFT"),
+            "pane_documents": pane_documents,
+            "compare_session": dict(payload.get("compare_session", {}) or {}),
+            "inspector_follow_mode": str(payload.get("inspector_follow_mode") or "FOLLOW_ACTIVE_PANE"),
+            "selected_review_item_id": str(payload.get("selected_review_item_id") or ""),
+            "review_session_id": str(payload.get("review_session_id") or ""),
+            "review_filter": str(payload.get("review_filter") or "all"),
+            "selected_workspace_mode_id": str(payload.get("selected_workspace_mode_id") or (payload.get("layout_profile", {}) or {}).get("workspace_mode_id") or "STUDIO"),
+            "selected_layout_profile_id": str(payload.get("layout_profile_id") or (payload.get("layout_profile", {}) or {}).get("layout_profile_id") or "DEFAULT"),
+            "selected_panel_configuration_id": str(payload.get("selected_panel_configuration_id") or (payload.get("layout_profile", {}) or {}).get("panel_configuration_id") or ""),
+            "panel_visibility_state": dict(payload.get("panel_visibility_state", {})),
+        }
+
+    def task_type_options():
+        return [
+            "ARRIVAL",
+            "DEPARTURE",
+            "CREW_CHANGE",
+            "INSPECTION",
+            "CERTIFICATE_RENEWAL",
+            "PORT_PACKAGE",
+            "CUSTOMS_IMMIGRATION",
+            "FORM_RECONSTRUCTION",
+            "VALIDATION_LAB",
+        ]
+
+    def template_type_options():
+        return [
+            "STANDARD_WORKSPACE",
+            "TASK_WORKSPACE",
+            "OPERATIONAL_WORKFLOW",
+            "STUDIO_RECONSTRUCTION",
+        ]
+
+    def parse_slot_definitions(raw_text: str):
+        slot_defs = []
+        for index, raw_line in enumerate(str(raw_text or "").splitlines(), start=1):
+            line = raw_line.strip()
+            if not line:
+                continue
+            parts = [part.strip() for part in line.split("|")]
+            label = parts[0] if parts else f"Slot {index}"
+            required = (parts[1].upper() if len(parts) > 1 else "REQUIRED") != "OPTIONAL"
+            file_types = [value.strip().upper() for value in (parts[2] if len(parts) > 2 else "PDF").split(",") if value.strip()]
+            source_role = parts[3].upper() if len(parts) > 3 else "REFERENCE"
+            allow_multiple = (parts[4].upper() if len(parts) > 4 else "SINGLE") == "MULTI"
+            slot_defs.append(
+                {
+                    "slot_id": f"{_safe_filename(label).upper()}_SLOT",
+                    "label": label,
+                    "required": required,
+                    "accepted_file_types": file_types,
+                    "binding_type": "DOCUMENT",
+                    "validation_rules": ["required"] if required else [],
+                    "tce_relationship": source_role,
+                    "default_usage": label,
+                    "allow_multiple": allow_multiple,
+                    "source_role": source_role,
+                }
+            )
+        return slot_defs
+
+    def parse_checklist_template(raw_text: str):
+        checklist = []
+        for raw_line in str(raw_text or "").splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            parts = [part.strip() for part in line.split("|")]
+            group = parts[0] if len(parts) > 1 else "GENERAL"
+            label = parts[-2] if len(parts) > 2 else (parts[1] if len(parts) > 1 else parts[0])
+            required_token = parts[-1].upper() if len(parts) > 1 else "REQUIRED"
+            checklist.append(
+                {
+                    "group": group,
+                    "label": label,
+                    "required": required_token != "OPTIONAL",
+                }
+            )
+        return checklist
 
     def build_ctx(
         state_obj,
@@ -995,10 +1275,154 @@ def portalis():
         selected_review_document_id_value="",
         review_filter_mode_value="all",
         selected_workbench_document_id_value="",
+        selected_workbench_anchor_id_value="",
+        selected_workbench_cell_id_value="",
+        selected_workbench_block_id_value="",
+        workbench_selected_page_value=1,
+        workbench_tool_mode_value="SELECT",
+        workbench_center_mode_value="PREVIEW",
+        workbench_bottom_tab_value="SCRATCHPAD",
+        workbench_inspector_mode_value="DOCUMENT",
         workbench_filter_document_type_value="",
         workbench_filter_status_value="",
         workbench_search_text_value="",
+        active_menu_value=None,
+        active_dropdown_value=None,
+        active_dialog_value=None,
+        command_palette_open_value=None,
+        command_palette_query_value=None,
+        selected_command_id_value=None,
+        left_pane_collapsed_value=None,
+        right_pane_collapsed_value=None,
+        bottom_pane_collapsed_value=None,
+        active_ribbon_tab_value=None,
+        selected_workspace_id_value=None,
+        workspace_snapshot_id_value=None,
+        workspace_dirty_value=None,
+        restore_candidate_workspace_id_value=None,
+        restore_candidate_snapshot_id_value=None,
+        selected_task_workspace_id_value=None,
+        selected_template_id_value=None,
+        template_wizard_id_value=None,
+        recent_file_action_result_value=None,
+        selected_file_action_value=None,
+        explorer_active_section_value=None,
+        split_view_enabled_value=None,
+        split_view_mode_value=None,
+        split_orientation_value=None,
+        active_pane_id_value=None,
+        left_pane_document_id_value=None,
+        right_pane_document_id_value=None,
+        compare_session_value=None,
+        inspector_follow_mode_value=None,
+        selected_review_item_id_value=None,
+        review_mode_enabled_value=None,
+        review_annotation_tool_value=None,
+        review_comment_draft_value=None,
+        selected_workspace_mode_id_value=None,
+        selected_layout_profile_id_value=None,
+        selected_panel_configuration_id_value=None,
+        layout_editor_enabled_value=None,
+        layout_editor_dirty_value=None,
+        panel_visibility_state_value=None,
+        workspace_mode_switch_pending_value=None,
     ):
+        active_menu_effective = active_nav_menu if active_menu_value is None else active_menu_value
+        active_dropdown_effective = active_nav_dropdown if active_dropdown_value is None else active_dropdown_value
+        active_dialog_effective = active_nav_dialog if active_dialog_value is None else active_dialog_value
+        command_palette_open_effective = command_palette_open if command_palette_open_value is None else bool(command_palette_open_value)
+        command_palette_query_effective = command_palette_query if command_palette_query_value is None else str(command_palette_query_value or "")
+        selected_command_id_effective = selected_command_id if selected_command_id_value is None else str(selected_command_id_value or "")
+        left_pane_collapsed_effective = left_pane_collapsed if left_pane_collapsed_value is None else bool(left_pane_collapsed_value)
+        right_pane_collapsed_effective = right_pane_collapsed if right_pane_collapsed_value is None else bool(right_pane_collapsed_value)
+        bottom_pane_collapsed_effective = bottom_pane_collapsed if bottom_pane_collapsed_value is None else bool(bottom_pane_collapsed_value)
+        active_ribbon_tab_effective = active_ribbon_tab if active_ribbon_tab_value is None else str(active_ribbon_tab_value or "")
+        selected_workspace_id_effective = selected_workspace_id if selected_workspace_id_value is None else str(selected_workspace_id_value or "")
+        workspace_snapshot_id_effective = workspace_snapshot_id if workspace_snapshot_id_value is None else str(workspace_snapshot_id_value or "")
+        workspace_dirty_effective = workspace_dirty if workspace_dirty_value is None else bool(workspace_dirty_value)
+        restore_candidate_workspace_id_effective = restore_candidate_workspace_id if restore_candidate_workspace_id_value is None else str(restore_candidate_workspace_id_value or "")
+        restore_candidate_snapshot_id_effective = restore_candidate_snapshot_id if restore_candidate_snapshot_id_value is None else str(restore_candidate_snapshot_id_value or "")
+        selected_task_workspace_id_effective = selected_task_workspace_id if selected_task_workspace_id_value is None else str(selected_task_workspace_id_value or "")
+        selected_template_id_effective = selected_template_id if selected_template_id_value is None else str(selected_template_id_value or "")
+        template_wizard_id_effective = template_wizard_id if template_wizard_id_value is None else str(template_wizard_id_value or "")
+        recent_file_action_result_effective = file_service.get_last_action_result() if recent_file_action_result_value is None else dict(recent_file_action_result_value or {})
+        selected_file_action_effective = str(selected_file_action_value or "")
+        explorer_active_section_effective = str(explorer_active_section_value or "FILE_EXPLORER")
+        split_view_enabled_effective = False if split_view_enabled_value is None else bool(split_view_enabled_value)
+        split_view_mode_effective = "SINGLE" if split_view_mode_value is None else str(split_view_mode_value or "SINGLE").upper()
+        split_orientation_effective = "VERTICAL" if split_orientation_value is None else str(split_orientation_value or "VERTICAL").upper()
+        active_pane_id_effective = "LEFT" if active_pane_id_value is None else str(active_pane_id_value or "LEFT").upper()
+        left_pane_document_id_effective = str(left_pane_document_id_value or selected_workbench_document_id_value or selected_review_document_id_value or "")
+        right_pane_document_id_effective = str(right_pane_document_id_value or "")
+        compare_session_effective = {key: value for key, value in dict(compare_session_value or {}).items() if value not in ("", None, [], {})}
+        inspector_follow_mode_effective = "FOLLOW_ACTIVE_PANE" if inspector_follow_mode_value is None else str(inspector_follow_mode_value or "FOLLOW_ACTIVE_PANE")
+        selected_review_item_id_effective = selected_review_item_id if selected_review_item_id_value is None else str(selected_review_item_id_value or "")
+        review_mode_enabled_effective = (selected_nav_submodule == "REVIEW") if review_mode_enabled_value is None else bool(review_mode_enabled_value)
+        review_annotation_tool_effective = "NOTE_MARKER" if review_annotation_tool_value is None else str(review_annotation_tool_value or "NOTE_MARKER").upper()
+        review_comment_draft_effective = "" if review_comment_draft_value is None else str(review_comment_draft_value or "")
+        default_workspace_mode = {
+            "STUDIO": "STUDIO",
+            "REVIEW": "REVIEW",
+            "CONTROL_ROOM": "BRIDGE_OPS",
+            "OUTPUT": "PACKAGE",
+            "ARCHIVE": "PACKAGE",
+        }.get(selected_nav_submodule, "VALIDATION")
+        selected_workspace_mode_id_effective = default_workspace_mode if selected_workspace_mode_id_value is None else str(selected_workspace_mode_id_value or default_workspace_mode or "STUDIO").upper()
+        selected_layout_profile_id_effective = "DEFAULT" if selected_layout_profile_id_value is None else str(selected_layout_profile_id_value or "DEFAULT")
+        selected_panel_configuration_id_effective = "" if selected_panel_configuration_id_value is None else str(selected_panel_configuration_id_value or "")
+        layout_editor_enabled_effective = False if layout_editor_enabled_value is None else bool(layout_editor_enabled_value)
+        layout_editor_dirty_effective = False if layout_editor_dirty_value is None else bool(layout_editor_dirty_value)
+        panel_visibility_state_effective = {} if panel_visibility_state_value is None else dict(panel_visibility_state_value or {})
+        workspace_mode_switch_pending_effective = False if workspace_mode_switch_pending_value is None else bool(workspace_mode_switch_pending_value)
+
+        def build_shell_href(**overrides):
+            params = {
+                "nav_module": selected_nav_module,
+                "nav_submodule": selected_nav_submodule,
+                "crew_id": selected_crew_id_value,
+                "port_name": selected_port_name_value,
+                "review_document_id": selected_review_document_id_value,
+                "review_filter": review_filter_mode_value,
+                "selected_review_item_id": selected_review_item_id_effective,
+                "review_annotation_tool": review_annotation_tool_effective,
+                "review_comment_draft": review_comment_draft_effective,
+                "workbench_document_id": selected_workbench_document_id_value,
+                "workbench_anchor_id": selected_workbench_anchor_id_value,
+                "workbench_cell_id": selected_workbench_cell_id_value,
+                "workbench_block_id": selected_workbench_block_id_value,
+                "workbench_tool": workbench_tool_mode_value,
+                "workbench_center": workbench_center_mode_value,
+                "workbench_tab": workbench_bottom_tab_value,
+                "workbench_inspector": workbench_inspector_mode_value,
+                "workbench_document_type": workbench_filter_document_type_value,
+                "workbench_status": workbench_filter_status_value,
+                "workbench_search": workbench_search_text_value,
+                "nav_menu": active_menu_effective,
+                "nav_dropdown": active_dropdown_effective,
+                "nav_dialog": active_dialog_effective,
+                "command_palette": "open" if command_palette_open_effective else "",
+                "command_query": command_palette_query_effective,
+                "selected_command": selected_command_id_effective,
+                "pane_left": "collapsed" if left_pane_collapsed_effective else "",
+                "pane_right": "collapsed" if right_pane_collapsed_effective else "",
+                "pane_bottom": "collapsed" if bottom_pane_collapsed_effective else "",
+                "split_enabled": "true" if split_view_enabled_effective else "",
+                "split_mode": split_view_mode_effective if split_view_enabled_effective else "",
+                "split_orientation": split_orientation_effective if split_view_enabled_effective else "",
+                "active_pane_id": active_pane_id_effective,
+                "left_document_id": left_pane_document_id_effective,
+                "right_document_id": right_pane_document_id_effective,
+                "inspector_follow_mode": inspector_follow_mode_effective,
+                "workspace_mode_id": selected_workspace_mode_id_effective,
+                "layout_profile_id": selected_layout_profile_id_effective,
+                "panel_configuration_id": selected_panel_configuration_id_effective,
+                "layout_editor": "open" if layout_editor_enabled_effective else "",
+            }
+            params.update(overrides)
+            clean_params = {key: value for key, value in params.items() if value not in ("", None, False)}
+            query = urlencode(clean_params)
+            return f"/portalis?{query}" if query else "/portalis"
+
         crew_items = list_crew(portalis_root)
         certificate_items = list_certificates(portalis_root)
         port_items = list_ports(portalis_root)
@@ -1008,6 +1432,14 @@ def portalis():
         workbench_packet = build_document_workbench(
             portalis_root,
             selected_document_id=selected_workbench_document_id_value,
+            selected_anchor_id=selected_workbench_anchor_id_value,
+            selected_cell_id=selected_workbench_cell_id_value,
+            selected_block_id=selected_workbench_block_id_value,
+            selected_page=workbench_selected_page_value,
+            active_tool_mode=workbench_tool_mode_value,
+            active_center_mode=workbench_center_mode_value,
+            active_bottom_tab=workbench_bottom_tab_value,
+            inspector_mode=workbench_inspector_mode_value,
             filter_document_type=workbench_filter_document_type_value,
             filter_status=workbench_filter_status_value,
             search_text=workbench_search_text_value,
@@ -1068,8 +1500,322 @@ def portalis():
         incident_feed_value = control_room.get("incident_feed", [])
         export_queue_value = control_room.get("export_queue", [])
         intake_queue_value = control_room.get("intake_queue", [])
+        dropzone_queue_value = control_room.get("dropzone_queue", [])
         dashboard_summary_value = control_room["dashboard_summary"]
         dashboard_tce_delta_value = control_room["dashboard_tce_delta"]
+        shell_workspace_summary = {
+            "selected_document_id": selected_workbench_document_id_value or selected_review_document_id_value,
+            "selected_anchor_id": selected_workbench_anchor_id_value,
+            "selected_cell_id": selected_workbench_cell_id_value,
+            "selected_block_id": selected_workbench_block_id_value,
+            "review_queue_count": len(review_items),
+            "workbench_document_count": workbench_packet.get("document_count", 0),
+            "active_alert_count": dashboard_summary_value.get("total_active_alerts", 0),
+            "open_incident_count": dashboard_summary_value.get("total_open_incidents", 0),
+        }
+        shell_ui_mode = default_workspace_mode
+        workspace_entries = workspace_service.list_workspaces()
+        last_session = workspace_service.load_last_session()
+        recovery_state = workspace_service.load_recovery_state()
+        task_entries = task_service.list_task_workspaces()
+        active_task_workspace = task_service.load_task_workspace(selected_task_workspace_id_effective) if selected_task_workspace_id_effective else {}
+        if not active_task_workspace:
+            active_task_workspace = task_service.get_last_active_task_workspace()
+            if active_task_workspace and not selected_task_workspace_id_effective:
+                selected_task_workspace_id_effective = str(active_task_workspace.get("task_workspace_id") or "")
+        template_entries = template_service.list_templates()
+        active_template = template_service.load_template(selected_template_id_effective) if selected_template_id_effective else {}
+        if not active_template and template_entries:
+            favorite_template = next((item for item in template_entries if item.get("favorite")), {})
+            active_template = favorite_template or {}
+            if active_template and not selected_template_id_effective:
+                selected_template_id_effective = str(active_template.get("template_id") or "")
+        active_template_wizard = template_service.load_template_wizard(template_wizard_id_effective) if template_wizard_id_effective else {}
+        review_scope_type = "COMPARE_SESSION" if compare_session_effective else ("TASK_WORKSPACE" if selected_task_workspace_id_effective else "DOCUMENT")
+        review_scope_id = (
+            str(compare_session_effective.get("compare_session_id") or compare_session_effective.get("left_source_id") or compare_session_effective.get("right_source_id") or "")
+            if compare_session_effective
+            else str(selected_task_workspace_id_effective or selected_workbench_document_id_value or selected_review_document_id_value or "GLOBAL")
+        )
+        active_review_session = review_layer_service.get_or_create_review_session(
+            scope_type=review_scope_type,
+            scope_id=review_scope_id,
+            task_workspace_id=selected_task_workspace_id_effective,
+        )
+        review_session_id_effective = str(active_review_session.get("review_session_id") or "")
+        review_document_id_effective = str(selected_workbench_document_id_value or selected_review_document_id_value or left_pane_document_id_effective or "")
+        review_layer_items = review_layer_service.list_review_items(
+            review_session_id=review_session_id_effective,
+            document_id=review_document_id_effective,
+            status_filter=review_filter_mode_value,
+        )
+        if not selected_review_item_id_effective and review_layer_items:
+            selected_review_item_id_effective = str(review_layer_items[0].get("review_item_id") or "")
+        selected_review_layer_item = review_layer_service.get_review_item(selected_review_item_id_effective) if selected_review_item_id_effective else {}
+        review_comments = review_layer_service.list_comments(review_item_id=selected_review_item_id_effective) if selected_review_item_id_effective else []
+        review_annotations = review_layer_service.list_annotations(
+            document_id=review_document_id_effective,
+            pane_id=active_pane_id_effective,
+            review_session_id=review_session_id_effective,
+        )
+        review_audit_entries = review_layer_service.list_audit_entries(
+            review_session_id=review_session_id_effective,
+            document_id=review_document_id_effective,
+            related_review_item_id=selected_review_item_id_effective,
+        )
+        shell_status_summary = {
+            "utc_now": utc_now_iso(),
+            "crew_total": len(crew_items),
+            "document_total": len(document_entries),
+            "pending_review_total": len(review_items),
+            "selected_port": selected_port_name_value,
+        }
+        workspace_modes = layout_service.list_workspace_modes()
+        saved_layout_profiles = layout_service.list_layout_profiles()
+        panel_configurations = layout_service.list_panel_configurations()
+        active_workspace_mode_record = layout_service.switch_workspace_mode(selected_workspace_mode_id_effective)
+        if not selected_layout_profile_id_effective or selected_layout_profile_id_effective == "DEFAULT":
+            selected_layout_profile_id_effective = str(
+                active_workspace_mode_record.get("default_layout_profile_id")
+                or selected_layout_profile_id_effective
+                or "DEFAULT"
+            )
+        active_layout_profile = layout_service.load_layout_profile(selected_layout_profile_id_effective)
+        if not active_layout_profile and saved_layout_profiles:
+            active_layout_profile = dict(saved_layout_profiles[0] or {})
+            selected_layout_profile_id_effective = str(active_layout_profile.get("layout_profile_id") or selected_layout_profile_id_effective)
+        if not selected_panel_configuration_id_effective:
+            selected_panel_configuration_id_effective = str(
+                active_layout_profile.get("panel_configuration_id")
+                or active_workspace_mode_record.get("default_panel_configuration_id")
+                or ""
+            )
+        active_panel_configuration = layout_service.load_panel_configuration(selected_panel_configuration_id_effective)
+        if not active_panel_configuration and panel_configurations:
+            active_panel_configuration = dict(panel_configurations[0] or {})
+            selected_panel_configuration_id_effective = str(active_panel_configuration.get("panel_configuration_id") or selected_panel_configuration_id_effective)
+        if not panel_visibility_state_effective:
+            panel_visibility_state_effective = {
+                "left_sidebar_visible": bool(active_panel_configuration.get("left_sidebar_visible", not left_pane_collapsed_effective)),
+                "right_inspector_visible": bool(active_panel_configuration.get("right_inspector_visible", not right_pane_collapsed_effective)),
+                "bottom_panel_visible": bool(active_panel_configuration.get("bottom_panel_visible", not bottom_pane_collapsed_effective)),
+                "command_palette_enabled": bool(active_panel_configuration.get("command_palette_enabled", True)),
+                "review_summary_visible": bool(active_panel_configuration.get("review_summary_visible", True)),
+                "task_header_visible": bool(active_panel_configuration.get("task_header_visible", True)),
+                "compare_summary_visible": bool(active_panel_configuration.get("compare_summary_visible", bool(compare_session_effective))),
+                "active_sections": list(active_panel_configuration.get("active_sections", [])),
+            }
+        layout_editor_state = layout_service.get_layout_editor_state()
+        if layout_editor_enabled_value is None:
+            layout_editor_enabled_effective = bool(layout_editor_state.get("enabled"))
+        if layout_editor_dirty_value is None:
+            layout_editor_dirty_effective = bool(layout_editor_state.get("dirty"))
+        if layout_editor_enabled_effective and not layout_editor_state:
+            layout_editor_state = {
+                "enabled": True,
+                "editing_profile_id": selected_layout_profile_id_effective,
+                "draft_panel_configuration": dict(panel_visibility_state_effective),
+                "draft_dimensions": {
+                    "left_width": str(active_layout_profile.get("left_width") or "92px"),
+                    "right_width": str(active_layout_profile.get("right_width") or "320px"),
+                    "bottom_height": str(active_layout_profile.get("bottom_height") or "180px"),
+                },
+                "preview_mode": "LIVE",
+                "dirty": bool(layout_editor_dirty_effective),
+            }
+        effective_workspace_id = str(selected_workspace_id_effective or (workspace_entries[0]["workspace_id"] if workspace_entries else ""))
+        selected_file_id_effective = selected_workbench_document_id_value or selected_review_document_id_value
+        file_entries = file_service.list_workspace_files(workspace_id=effective_workspace_id or selected_nav_submodule)
+        archive_entries = file_service.list_archived_files(workspace_id=effective_workspace_id or selected_nav_submodule)
+        linked_file_entries = file_service.list_linked_files(workspace_id=effective_workspace_id or selected_nav_submodule)
+        selected_file_entry = file_service.get_file(selected_file_id_effective, workspace_id=effective_workspace_id or selected_nav_submodule) if selected_file_id_effective else {}
+        open_document_tabs = []
+        if workbench_packet.get("selected_document"):
+            selected_doc = dict(workbench_packet.get("selected_document") or {})
+            selected_doc_file = file_service.get_file(str(selected_doc.get("document_id") or ""), workspace_id=effective_workspace_id or selected_nav_submodule)
+            open_document_tabs.append(
+                {
+                    "tab_id": selected_doc.get("document_id"),
+                    "document_id": selected_doc.get("document_id"),
+                    "label": selected_doc_file.get("display_name") or selected_doc.get("display_name") or selected_doc.get("document_id"),
+                    "source_lane": "STUDIO",
+                    "opened_at": selected_doc.get("updated_at") or utc_now_iso(),
+                }
+            )
+        if selected_review_document_value:
+            selected_review_file = file_service.get_file(str(selected_review_document_value.get("document_id") or ""), workspace_id=effective_workspace_id or selected_nav_submodule)
+            open_document_tabs.append(
+                {
+                    "tab_id": str(selected_review_document_value.get("document_id") or ""),
+                    "document_id": str(selected_review_document_value.get("document_id") or ""),
+                    "label": str(selected_review_file.get("display_name") or selected_review_document_value.get("display_name") or selected_review_document_value.get("document_id") or ""),
+                    "source_lane": "REVIEW",
+                    "opened_at": str(selected_review_document_value.get("updated_at") or utc_now_iso()),
+                }
+            )
+        active_document_tab_id = selected_workbench_document_id_value or selected_review_document_id_value
+        if not split_view_enabled_effective and split_view_mode_effective == "SINGLE":
+            left_pane_document_id_effective = left_pane_document_id_effective or active_document_tab_id
+        if not compare_session_effective and split_view_enabled_effective and right_pane_document_id_effective:
+            compare_session_effective = {
+                "compare_session_id": "COMPARE_SESSION_ACTIVE",
+                "compare_type": "VARIANT_COMPARE" if active_ribbon_tab_effective == "VARIANTS" else "DOCUMENT_COMPARE",
+                "left_source_id": left_pane_document_id_effective,
+                "right_source_id": right_pane_document_id_effective,
+                "summary_state": {
+                    "left_label": left_pane_document_id_effective,
+                    "right_label": right_pane_document_id_effective,
+                    "session_summary": "Side-by-side compare ready.",
+                },
+            }
+        workspace_snapshots = workspace_service.list_snapshots(effective_workspace_id) if effective_workspace_id else []
+        selected_object_type = ""
+        if selected_review_item_id_effective:
+            selected_object_type = "REVIEW_ISSUE"
+        elif selected_workbench_anchor_id_value:
+            selected_object_type = "FIELD"
+        elif selected_workbench_cell_id_value:
+            selected_object_type = "CELL"
+        elif selected_workbench_block_id_value:
+            selected_object_type = "TABLE"
+        elif selected_nav_submodule == "REVIEW" and selected_review_document_id_value:
+            selected_object_type = "REVIEW_ISSUE"
+        elif selected_nav_submodule == "STUDIO" and selected_workbench_document_id_value:
+            selected_object_type = "DOCUMENT"
+        navsys_shell = build_navsys_shell_state(
+            selected_module=selected_nav_module,
+            selected_submodule=selected_nav_submodule,
+            ui_mode=shell_ui_mode,
+            selected_item_id=selected_workbench_document_id_value or selected_review_document_id_value,
+            selected_object_id=selected_workbench_anchor_id_value or selected_workbench_cell_id_value or selected_workbench_block_id_value,
+            selected_object_type=selected_object_type,
+            active_workspace_mode=workbench_center_mode_value if selected_nav_submodule == "STUDIO" else "WORKSPACE",
+            left_pane_state="MODULE_RAIL",
+            right_pane_state="INSPECTOR",
+            bottom_pane_tab=workbench_bottom_tab_value if selected_nav_submodule == "STUDIO" else "CONTEXT",
+            layout_mode="COUPLER_WIDE",
+            active_menu=active_menu_effective,
+            active_dropdown=active_dropdown_effective,
+            active_dialog=active_dialog_effective,
+            command_palette_open=command_palette_open_effective,
+            command_palette_query=command_palette_query_effective,
+            selected_command_id=selected_command_id_effective,
+            left_pane_collapsed=left_pane_collapsed_effective,
+            right_pane_collapsed=right_pane_collapsed_effective,
+            bottom_pane_collapsed=bottom_pane_collapsed_effective,
+            active_ribbon_tab=active_ribbon_tab_effective,
+            open_document_tabs=open_document_tabs,
+            active_document_tab_id=active_document_tab_id,
+            split_view_enabled=split_view_enabled_effective,
+            split_view_mode=split_view_mode_effective,
+            split_orientation=split_orientation_effective,
+            active_pane_id=active_pane_id_effective,
+            pane_documents={
+                "LEFT": {"document_id": left_pane_document_id_effective},
+                "RIGHT": {"document_id": right_pane_document_id_effective},
+            },
+            compare_session=compare_session_effective,
+            inspector_follow_mode=inspector_follow_mode_effective,
+            selected_file_id=selected_file_id_effective,
+            selected_file_status=str(selected_file_entry.get("status") or ""),
+            selected_file_action=selected_file_action_effective,
+            explorer_active_section=explorer_active_section_effective,
+            archive_visible=selected_nav_submodule == "ARCHIVE",
+            recent_file_action_result=recent_file_action_result_effective,
+            pending_file_lifecycle_action={"action_id": selected_file_action_effective} if selected_file_action_effective else {},
+            file_entries=file_entries,
+            archive_entries=archive_entries,
+            linked_file_entries=linked_file_entries,
+            selected_workspace_id=effective_workspace_id or selected_nav_submodule,
+            workspace_snapshot_id=workspace_snapshot_id_effective,
+            workspace_dirty=bool(workspace_dirty_effective),
+            restore_candidate_workspace_id=restore_candidate_workspace_id_effective or str(last_session.get("workspace_id") or recovery_state.get("workspace_id") or ""),
+            restore_candidate_snapshot_id=restore_candidate_snapshot_id_effective or str(recovery_state.get("snapshot_id") or ""),
+            workspace_entries=workspace_entries,
+            selected_task_workspace_id=selected_task_workspace_id_effective,
+            selected_template_id=selected_template_id_effective,
+            selected_template_category=str((active_template or {}).get("category") or ""),
+            selected_review_item_id=selected_review_item_id_effective,
+            review_mode_enabled=review_mode_enabled_effective,
+            review_filter=review_filter_mode_value,
+            review_session_id=review_session_id_effective,
+            review_pending_count=int(active_review_session.get("pending_count") or 0),
+            review_annotation_tool=review_annotation_tool_effective,
+            review_comment_draft=review_comment_draft_effective,
+            review_signoff_state={
+                "signed_off": bool(active_review_session.get("signed_off")),
+                "signed_off_at": str(active_review_session.get("signed_off_at") or ""),
+                "status": str(active_review_session.get("status") or ""),
+            },
+            selected_workspace_mode_id=selected_workspace_mode_id_effective,
+            selected_layout_profile_id=selected_layout_profile_id_effective,
+            selected_panel_configuration_id=selected_panel_configuration_id_effective,
+            layout_editor_enabled=layout_editor_enabled_effective,
+            layout_editor_dirty=layout_editor_dirty_effective or bool((layout_editor_state or {}).get("dirty")),
+            panel_visibility_state=panel_visibility_state_effective,
+            saved_layout_profiles=saved_layout_profiles,
+            workspace_modes=workspace_modes,
+            panel_configurations=panel_configurations,
+            layout_editor_state=layout_editor_state,
+            workspace_mode_switch_pending=workspace_mode_switch_pending_effective,
+            active_layout_profile=active_layout_profile,
+            active_panel_configuration=active_panel_configuration,
+            template_entries=template_entries,
+            active_template=active_template,
+            template_wizard=active_template_wizard,
+            review_items=review_layer_items,
+            annotations=review_annotations,
+            review_comments=review_comments,
+            review_session=active_review_session,
+            review_audit_entries=review_audit_entries,
+            task_entries=task_entries,
+            active_task_workspace=active_task_workspace,
+            task_history_visible=True,
+            workspace_summary=shell_workspace_summary,
+            status_summary=shell_status_summary,
+        )
+        navsys_shell["command_palette_toggle_href"] = build_shell_href(
+            command_palette="" if command_palette_open_effective else "open",
+        )
+        navsys_shell["command_palette_close_href"] = build_shell_href(
+            command_palette="",
+            command_query="",
+            selected_command="",
+        )
+        navsys_shell["restore_layout_href"] = build_shell_href(
+            pane_left="",
+            pane_right="",
+            pane_bottom="",
+        )
+        navsys_shell["left_pane_toggle_href"] = build_shell_href(
+            pane_left="" if left_pane_collapsed_effective else "collapsed",
+        )
+        navsys_shell["right_pane_toggle_href"] = build_shell_href(
+            pane_right="" if right_pane_collapsed_effective else "collapsed",
+        )
+        navsys_shell["bottom_pane_toggle_href"] = build_shell_href(
+            pane_bottom="" if bottom_pane_collapsed_effective else "collapsed",
+        )
+        navsys_shell["split_view_toggle_href"] = build_shell_href(
+            split_enabled="" if split_view_enabled_effective else "true",
+            split_mode="TWO_PANE_VERTICAL" if not split_view_enabled_effective else "SINGLE",
+            right_document_id=right_pane_document_id_effective if not split_view_enabled_effective else "",
+        )
+        navsys_shell["split_swap_href"] = build_shell_href(
+            split_enabled="true",
+            split_mode=split_view_mode_effective if split_view_enabled_effective else "TWO_PANE_VERTICAL",
+            left_document_id=right_pane_document_id_effective,
+            right_document_id=left_pane_document_id_effective,
+            active_pane_id="RIGHT" if active_pane_id_effective == "LEFT" else "LEFT",
+        )
+        for quick_action in navsys_shell.get("quick_actions", []):
+            quick_action["href"] = build_shell_href(**dict(quick_action.get("target_params") or {}))
+        for command in (navsys_shell.get("command_palette", {}) or {}).get("commands", []):
+            command["href"] = build_shell_href(
+                selected_command=command.get("command_id", ""),
+                **dict(command.get("target_params") or {}),
+            )
+        shell_tce = build_navsys_shell_tce_delta(navsys_shell)
 
         return {
             "usb_root": str(USB_ROOT),
@@ -1098,10 +1844,32 @@ def portalis():
             "document_entries": list(reversed(document_entries[-10:])),
             "workbench_documents": workbench_packet.get("documents", []),
             "selected_workbench_document_id": selected_workbench_document_id_value,
+            "selected_workbench_anchor_id": selected_workbench_anchor_id_value,
+            "selected_workbench_cell_id": selected_workbench_cell_id_value,
+            "selected_workbench_block_id": selected_workbench_block_id_value,
             "selected_workbench_document": workbench_packet.get("selected_document"),
+            "selected_workbench_anchor": workbench_packet.get("selected_anchor"),
+            "selected_workbench_cell": workbench_packet.get("selected_cell"),
+            "selected_workbench_block": workbench_packet.get("selected_block"),
+            "workbench_anchors": workbench_packet.get("anchors", []),
+            "workbench_selected_page": workbench_packet.get("selected_page", workbench_selected_page_value),
+            "workbench_tool_mode": workbench_packet.get("active_tool_mode", workbench_tool_mode_value),
+            "workbench_center_mode": workbench_packet.get("active_center_mode", workbench_center_mode_value),
+            "workbench_bottom_tab": workbench_packet.get("active_bottom_tab", workbench_bottom_tab_value),
+            "workbench_inspector_mode": workbench_packet.get("inspector_mode", workbench_inspector_mode_value),
             "workbench_filter_document_type": workbench_filter_document_type_value,
             "workbench_filter_status": workbench_filter_status_value,
             "workbench_search_text": workbench_search_text_value,
+            "workbench_document_type_options": workbench_packet.get("document_type_options", []),
+            "workbench_status_options": workbench_packet.get("status_options", []),
+            "workbench_tool_mode_options": workbench_packet.get("tool_mode_options", []),
+            "workbench_center_mode_options": workbench_packet.get("center_mode_options", []),
+            "workbench_bottom_tab_options": workbench_packet.get("bottom_tab_options", []),
+            "workbench_inspector_mode_options": workbench_packet.get("inspector_mode_options", []),
+            "workbench_menu_categories": workbench_packet.get("menu_categories", []),
+            "workbench_action_strip": workbench_packet.get("action_strip", []),
+            "workbench_pane_state": workbench_packet.get("pane_state", {}),
+            "workbench_state": workbench_packet.get("state", {}),
             "workbench_summary": {
                 "document_count": workbench_packet.get("document_count", 0),
                 "updated_at": workbench_packet.get("updated_at", ""),
@@ -1123,8 +1891,79 @@ def portalis():
             "incident_feed": incident_feed_value,
             "export_queue": export_queue_value,
             "intake_queue": intake_queue_value,
+            "dropzone_queue": dropzone_queue_value,
             "dashboard_summary": dashboard_summary_value,
             "dashboard_tce_delta": dashboard_tce_delta_value,
+            "navsys_shell": navsys_shell,
+            "navsys_shell_tce": shell_tce,
+            "selected_nav_module": selected_nav_module,
+            "selected_nav_submodule": selected_nav_submodule,
+            "active_nav_menu": active_menu_effective,
+            "active_nav_dropdown": active_dropdown_effective,
+            "active_nav_dialog": active_dialog_effective,
+            "command_palette_open": command_palette_open_effective,
+            "command_palette_query": command_palette_query_effective,
+            "selected_command_id": selected_command_id_effective,
+            "left_pane_collapsed": left_pane_collapsed_effective,
+            "right_pane_collapsed": right_pane_collapsed_effective,
+            "bottom_pane_collapsed": bottom_pane_collapsed_effective,
+            "active_ribbon_tab": active_ribbon_tab_effective,
+            "selected_workspace_id": effective_workspace_id,
+            "selected_file_id": selected_file_id_effective,
+            "selected_file_entry": selected_file_entry,
+            "file_entries": file_entries,
+            "archive_entries": archive_entries,
+            "linked_file_entries": linked_file_entries,
+            "recent_file_action_result": recent_file_action_result_effective,
+            "split_view_enabled": split_view_enabled_effective,
+            "split_view_mode": split_view_mode_effective,
+            "split_orientation": split_orientation_effective,
+            "active_pane_id": active_pane_id_effective,
+            "left_pane_document_id": left_pane_document_id_effective,
+            "right_pane_document_id": right_pane_document_id_effective,
+            "compare_session": compare_session_effective,
+            "inspector_follow_mode": inspector_follow_mode_effective,
+            "workspace_snapshot_id": workspace_snapshot_id_effective,
+            "workspace_dirty": bool(workspace_dirty_effective),
+            "selected_workspace_mode_id": selected_workspace_mode_id_effective,
+            "selected_layout_profile_id": selected_layout_profile_id_effective,
+            "selected_panel_configuration_id": selected_panel_configuration_id_effective,
+            "active_workspace_mode_record": active_workspace_mode_record,
+            "saved_layout_profiles": saved_layout_profiles,
+            "panel_configurations": panel_configurations,
+            "active_layout_profile": active_layout_profile,
+            "active_panel_configuration": active_panel_configuration,
+            "panel_visibility_state": panel_visibility_state_effective,
+            "layout_editor_enabled": layout_editor_enabled_effective,
+            "layout_editor_dirty": layout_editor_dirty_effective or bool((layout_editor_state or {}).get("dirty")),
+            "layout_editor_state": layout_editor_state,
+            "workspace_modes": workspace_modes,
+            "workspace_mode_switch_pending": workspace_mode_switch_pending_effective,
+            "workspace_entries": workspace_entries,
+            "workspace_snapshots": workspace_snapshots,
+            "selected_task_workspace_id": selected_task_workspace_id_effective,
+            "task_entries": task_entries,
+            "active_task_workspace": active_task_workspace,
+            "task_type_options": task_type_options(),
+            "selected_template_id": selected_template_id_effective,
+            "template_entries": template_entries,
+            "active_template": active_template,
+            "active_template_wizard": active_template_wizard,
+            "selected_review_item_id": selected_review_item_id_effective,
+            "selected_review_layer_item": selected_review_layer_item,
+            "review_layer_items": review_layer_items,
+            "review_annotations": review_annotations,
+            "review_comments": review_comments,
+            "active_review_session": active_review_session,
+            "review_audit_entries": review_audit_entries,
+            "review_mode_enabled": review_mode_enabled_effective,
+            "review_annotation_tool": review_annotation_tool_effective,
+            "review_comment_draft": review_comment_draft_effective,
+            "template_type_options": template_type_options(),
+            "template_categories": template_service.list_template_categories(),
+            "last_session_workspace_id": last_session.get("workspace_id", ""),
+            "recovery_workspace_id": recovery_state.get("workspace_id", ""),
+            "recovery_snapshot_id": recovery_state.get("snapshot_id", ""),
             "last_import_document_id": state_obj.document_registry.last_import_document_id,
             "last_import_manifest_path": state_obj.document_registry.last_import_manifest_path,
         }
@@ -1134,10 +1973,63 @@ def portalis():
     selected_port_name = request.args.get("port_name", "").strip() or (state.port_requirements.selected_port_name or state.voyage.arrival_port or "")
     selected_review_document_id = request.args.get("review_document_id", "").strip() or (state.review_queue.last_document_id or "")
     selected_workbench_document_id = request.args.get("workbench_document_id", "").strip()
+    selected_workbench_anchor_id = request.args.get("workbench_anchor_id", "").strip()
+    selected_workbench_cell_id = request.args.get("workbench_cell_id", "").strip()
+    selected_workbench_block_id = request.args.get("workbench_block_id", "").strip()
+    workbench_tool_mode = request.args.get("workbench_tool", "").strip().upper() or "SELECT"
+    workbench_center_mode = request.args.get("workbench_center", "").strip().upper() or "PREVIEW"
+    workbench_bottom_tab = request.args.get("workbench_tab", "").strip().upper() or "SCRATCHPAD"
+    workbench_inspector_mode = request.args.get("workbench_inspector", "").strip().upper() or "DOCUMENT"
+    try:
+        workbench_selected_page = max(1, int(request.args.get("workbench_page", "1").strip() or "1"))
+    except ValueError:
+        workbench_selected_page = 1
     review_filter_mode = request.args.get("review_filter", "").strip() or "all"
     workbench_filter_document_type = request.args.get("workbench_document_type", "").strip()
     workbench_filter_status = request.args.get("workbench_status", "").strip().upper()
     workbench_search_text = request.args.get("workbench_search", "").strip()
+    selected_nav_module = request.args.get("nav_module", "").strip().upper() or "PORTALIS"
+    selected_nav_submodule = request.args.get("nav_submodule", "").strip().upper() or "STUDIO"
+    active_nav_menu = request.args.get("nav_menu", "").strip().upper()
+    active_nav_dropdown = request.args.get("nav_dropdown", "").strip().upper()
+    active_nav_dialog = request.args.get("nav_dialog", "").strip().upper()
+    command_palette_open = _as_bool_flag(request.args.get("command_palette", ""))
+    command_palette_query = request.args.get("command_query", "").strip()
+    selected_command_id = request.args.get("selected_command", "").strip().upper()
+    active_ribbon_tab = request.args.get("ribbon_tab", "").strip().upper()
+    left_pane_collapsed = str(request.args.get("pane_left", "")).strip().lower() == "collapsed"
+    right_pane_collapsed = str(request.args.get("pane_right", "")).strip().lower() == "collapsed"
+    bottom_pane_collapsed = str(request.args.get("pane_bottom", "")).strip().lower() == "collapsed"
+    selected_workspace_id = request.args.get("workspace_id", "").strip()
+    workspace_snapshot_id = request.args.get("workspace_snapshot_id", "").strip()
+    workspace_dirty = _as_bool_flag(request.args.get("workspace_dirty", ""))
+    restore_candidate_workspace_id = request.args.get("restore_workspace_id", "").strip()
+    restore_candidate_snapshot_id = request.args.get("restore_snapshot_id", "").strip()
+    selected_task_workspace_id = request.args.get("task_workspace_id", "").strip()
+    selected_template_id = request.args.get("template_id", "").strip()
+    template_wizard_id = request.args.get("template_wizard_id", "").strip()
+    selected_review_item_id = request.args.get("selected_review_item_id", "").strip()
+    review_annotation_tool = request.args.get("review_annotation_tool", "").strip().upper() or "NOTE_MARKER"
+    review_comment_draft = request.args.get("review_comment_draft", "").strip()
+    selected_workspace_mode_id = request.args.get("workspace_mode_id", "").strip().upper() or ""
+    selected_layout_profile_id = request.args.get("layout_profile_id", "").strip()
+    selected_panel_configuration_id = request.args.get("panel_configuration_id", "").strip()
+    layout_editor_enabled = _as_bool_flag(request.args.get("layout_editor", ""))
+    layout_editor_dirty = _as_bool_flag(request.args.get("layout_editor_dirty", ""))
+    workspace_mode_switch_pending = _as_bool_flag(request.args.get("workspace_mode_switch_pending", ""))
+    split_view_enabled = _as_bool_flag(request.args.get("split_enabled", ""))
+    split_view_mode = request.args.get("split_mode", "").strip().upper() or "SINGLE"
+    split_orientation = request.args.get("split_orientation", "").strip().upper() or "VERTICAL"
+    active_pane_id = request.args.get("active_pane_id", "").strip().upper() or "LEFT"
+    left_pane_document_id = request.args.get("left_document_id", "").strip()
+    right_pane_document_id = request.args.get("right_document_id", "").strip()
+    compare_session = {
+        "compare_session_id": request.args.get("compare_session_id", "").strip(),
+        "compare_type": request.args.get("compare_type", "").strip().upper(),
+        "left_source_id": request.args.get("compare_left_source_id", "").strip(),
+        "right_source_id": request.args.get("compare_right_source_id", "").strip(),
+    }
+    inspector_follow_mode = request.args.get("inspector_follow_mode", "").strip().upper() or "FOLLOW_ACTIVE_PANE"
     ctx = build_ctx(
         state,
         selected_crew_id_value=selected_crew_id,
@@ -1145,18 +2037,1128 @@ def portalis():
         selected_review_document_id_value=selected_review_document_id,
         review_filter_mode_value=review_filter_mode,
         selected_workbench_document_id_value=selected_workbench_document_id,
+        selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+        selected_workbench_cell_id_value=selected_workbench_cell_id,
+        selected_workbench_block_id_value=selected_workbench_block_id,
+        workbench_selected_page_value=workbench_selected_page,
+        workbench_tool_mode_value=workbench_tool_mode,
+        workbench_center_mode_value=workbench_center_mode,
+        workbench_bottom_tab_value=workbench_bottom_tab,
+        workbench_inspector_mode_value=workbench_inspector_mode,
         workbench_filter_document_type_value=workbench_filter_document_type,
         workbench_filter_status_value=workbench_filter_status,
         workbench_search_text_value=workbench_search_text,
+        active_menu_value=active_nav_menu,
+        active_dropdown_value=active_nav_dropdown,
+        active_dialog_value=active_nav_dialog,
+        command_palette_open_value=command_palette_open,
+        command_palette_query_value=command_palette_query,
+        selected_command_id_value=selected_command_id,
+        left_pane_collapsed_value=left_pane_collapsed,
+        right_pane_collapsed_value=right_pane_collapsed,
+        bottom_pane_collapsed_value=bottom_pane_collapsed,
+        active_ribbon_tab_value=active_ribbon_tab,
+        selected_workspace_id_value=selected_workspace_id,
+        workspace_snapshot_id_value=workspace_snapshot_id,
+        workspace_dirty_value=workspace_dirty,
+        restore_candidate_workspace_id_value=restore_candidate_workspace_id,
+        restore_candidate_snapshot_id_value=restore_candidate_snapshot_id,
+        selected_task_workspace_id_value=selected_task_workspace_id,
+        selected_template_id_value=selected_template_id,
+        template_wizard_id_value=template_wizard_id,
+        selected_review_item_id_value=selected_review_item_id,
+        review_mode_enabled_value=selected_nav_submodule == "REVIEW",
+        review_annotation_tool_value=review_annotation_tool,
+        review_comment_draft_value=review_comment_draft,
+        selected_workspace_mode_id_value=selected_workspace_mode_id,
+        selected_layout_profile_id_value=selected_layout_profile_id,
+        selected_panel_configuration_id_value=selected_panel_configuration_id,
+        layout_editor_enabled_value=layout_editor_enabled,
+        layout_editor_dirty_value=layout_editor_dirty,
+        workspace_mode_switch_pending_value=workspace_mode_switch_pending,
+        split_view_enabled_value=split_view_enabled,
+        split_view_mode_value=split_view_mode,
+        split_orientation_value=split_orientation,
+        active_pane_id_value=active_pane_id,
+        left_pane_document_id_value=left_pane_document_id,
+        right_pane_document_id_value=right_pane_document_id,
+        compare_session_value=compare_session,
+        inspector_follow_mode_value=inspector_follow_mode,
     )
 
     if request.method == "POST":
         try:
             action = request.form.get("action", "").strip()
+            selected_nav_module = request.form.get("nav_module", "").strip().upper() or selected_nav_module
+            selected_nav_submodule = request.form.get("nav_submodule", "").strip().upper() or infer_nav_submodule(action, selected_nav_submodule)
+            active_nav_menu = request.form.get("nav_menu", "").strip().upper() or active_nav_menu
+            active_nav_dropdown = request.form.get("nav_dropdown", "").strip().upper() or active_nav_dropdown
+            active_nav_dialog = request.form.get("nav_dialog", "").strip().upper() or active_nav_dialog
+            command_palette_open = _as_bool_flag(request.form.get("command_palette", "")) or command_palette_open
+            command_palette_query = request.form.get("command_query", "").strip() or command_palette_query
+            selected_command_id = request.form.get("selected_command", "").strip().upper() or selected_command_id
+            active_ribbon_tab = request.form.get("ribbon_tab", "").strip().upper() or active_ribbon_tab
+            left_pane_collapsed = _as_bool_flag(request.form.get("pane_left", "")) or left_pane_collapsed
+            right_pane_collapsed = _as_bool_flag(request.form.get("pane_right", "")) or right_pane_collapsed
+            bottom_pane_collapsed = _as_bool_flag(request.form.get("pane_bottom", "")) or bottom_pane_collapsed
+            selected_workspace_id = request.form.get("workspace_id", "").strip() or selected_workspace_id
+            workspace_snapshot_id = request.form.get("workspace_snapshot_id", "").strip() or workspace_snapshot_id
+            workspace_dirty = _as_bool_flag(request.form.get("workspace_dirty", "")) or workspace_dirty
+            selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+            selected_template_id = request.form.get("template_id", "").strip() or selected_template_id
+            template_wizard_id = request.form.get("template_wizard_id", "").strip() or template_wizard_id
+            selected_review_item_id = request.form.get("selected_review_item_id", "").strip() or selected_review_item_id
+            review_annotation_tool = request.form.get("review_annotation_tool", "").strip().upper() or review_annotation_tool
+            review_comment_draft = request.form.get("review_comment_draft", "").strip() or review_comment_draft
+            selected_workspace_mode_id = request.form.get("workspace_mode_id", "").strip().upper() or selected_workspace_mode_id
+            selected_layout_profile_id = request.form.get("layout_profile_id", "").strip() or selected_layout_profile_id
+            selected_panel_configuration_id = request.form.get("panel_configuration_id", "").strip() or selected_panel_configuration_id
+            layout_editor_enabled = _as_bool_flag(request.form.get("layout_editor", "")) or layout_editor_enabled
+            layout_editor_dirty = _as_bool_flag(request.form.get("layout_editor_dirty", "")) or layout_editor_dirty
+            workspace_mode_switch_pending = _as_bool_flag(request.form.get("workspace_mode_switch_pending", "")) or workspace_mode_switch_pending
+            split_view_enabled = _as_bool_flag(request.form.get("split_enabled", "")) or split_view_enabled
+            split_view_mode = request.form.get("split_mode", "").strip().upper() or split_view_mode
+            split_orientation = request.form.get("split_orientation", "").strip().upper() or split_orientation
+            active_pane_id = request.form.get("active_pane_id", "").strip().upper() or active_pane_id
+            left_pane_document_id = request.form.get("left_document_id", "").strip() or left_pane_document_id
+            right_pane_document_id = request.form.get("right_document_id", "").strip() or right_pane_document_id
+            inspector_follow_mode = request.form.get("inspector_follow_mode", "").strip().upper() or inspector_follow_mode
+            compare_session = {
+                "compare_session_id": request.form.get("compare_session_id", "").strip() or compare_session.get("compare_session_id", ""),
+                "compare_type": request.form.get("compare_type", "").strip().upper() or compare_session.get("compare_type", ""),
+                "left_source_id": request.form.get("compare_left_source_id", "").strip() or compare_session.get("left_source_id", ""),
+                "right_source_id": request.form.get("compare_right_source_id", "").strip() or compare_session.get("right_source_id", ""),
+            }
+            workbench_center_mode = request.form.get("workbench_center_mode", "").strip().upper() or workbench_center_mode
+            workbench_bottom_tab = request.form.get("workbench_bottom_tab", "").strip().upper() or workbench_bottom_tab
+            workbench_inspector_mode = request.form.get("workbench_inspector_mode", "").strip().upper() or workbench_inspector_mode
+            selected_workbench_cell_id = request.form.get("workbench_cell_id", "").strip() or selected_workbench_cell_id
+            selected_workbench_block_id = request.form.get("workbench_block_id", "").strip() or selected_workbench_block_id
 
-            if action == "open_workbench_document":
+            def current_open_tabs():
+                tabs = []
+                if selected_workbench_document_id:
+                    tabs.append(
+                        {
+                            "tab_id": selected_workbench_document_id,
+                            "document_id": selected_workbench_document_id,
+                            "label": selected_workbench_document_id,
+                            "source_lane": "STUDIO",
+                            "opened_at": utc_now_iso(),
+                        }
+                    )
+                if selected_review_document_id:
+                    tabs.append(
+                        {
+                            "tab_id": selected_review_document_id,
+                            "document_id": selected_review_document_id,
+                            "label": selected_review_document_id,
+                            "source_lane": "REVIEW",
+                            "opened_at": utc_now_iso(),
+                        }
+                    )
+                return tabs
+
+            def current_workspace_payload():
+                return build_workspace_payload(
+                    workspace_name=selected_workspace_id or "Workspace",
+                    ui_mode={
+                        "STUDIO": "STUDIO",
+                        "REVIEW": "REVIEW",
+                        "CONTROL_ROOM": "BRIDGE_OPS",
+                        "OUTPUT": "PACKAGE",
+                        "ARCHIVE": "PACKAGE",
+                    }.get(selected_nav_submodule, "VALIDATION"),
+                    open_document_tabs=current_open_tabs(),
+                    active_document_tab_id=selected_workbench_document_id or selected_review_document_id,
+                    active_ribbon_tab_value=active_ribbon_tab,
+                    left_pane_collapsed_value=left_pane_collapsed,
+                    right_pane_collapsed_value=right_pane_collapsed,
+                    bottom_pane_collapsed_value=bottom_pane_collapsed,
+                    selected_file_id=selected_workbench_document_id or selected_review_document_id,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    split_view_enabled_value=split_view_enabled,
+                    split_view_mode_value=split_view_mode,
+                    split_orientation_value=split_orientation,
+                    active_pane_id_value=active_pane_id,
+                    left_pane_document_id_value=left_pane_document_id or selected_workbench_document_id or selected_review_document_id,
+                    right_pane_document_id_value=right_pane_document_id,
+                    compare_session_value=compare_session,
+                    inspector_follow_mode_value=inspector_follow_mode,
+                    selected_review_item_id_value=selected_review_item_id,
+                    review_session_id_value=request.form.get("review_session_id", "").strip() or request.args.get("review_session_id", "").strip(),
+                    review_filter_value=review_filter_mode,
+                    selected_workspace_mode_id_value=selected_workspace_mode_id,
+                    selected_layout_profile_id_value=selected_layout_profile_id,
+                    selected_panel_configuration_id_value=selected_panel_configuration_id,
+                    panel_visibility_state_value={
+                        "left_sidebar_visible": not left_pane_collapsed,
+                        "right_inspector_visible": not right_pane_collapsed,
+                        "bottom_panel_visible": not bottom_pane_collapsed,
+                        "command_palette_enabled": True,
+                        "review_summary_visible": selected_nav_submodule == "REVIEW" or bool(compare_session.get("compare_type")),
+                        "task_header_visible": bool(selected_task_workspace_id),
+                        "compare_summary_visible": bool(compare_session.get("compare_type")),
+                        "active_sections": [],
+                    },
+                )
+
+            def current_layout_profile_payload():
+                return {
+                    "workspace_mode_id": selected_workspace_mode_id or "STUDIO",
+                    "left_width": request.form.get("left_width", "").strip() or request.args.get("left_width", "").strip() or "92px",
+                    "right_width": request.form.get("right_width", "").strip() or request.args.get("right_width", "").strip() or "320px",
+                    "bottom_height": request.form.get("bottom_height", "").strip() or request.args.get("bottom_height", "").strip() or "180px",
+                    "left_collapsed": bool(left_pane_collapsed),
+                    "right_collapsed": bool(right_pane_collapsed),
+                    "bottom_collapsed": bool(bottom_pane_collapsed),
+                    "split_view_state": {
+                        "enabled": bool(split_view_enabled),
+                        "mode": str(split_view_mode or "SINGLE"),
+                        "pane_ids": ["LEFT", "RIGHT"],
+                        "active_pane_id": str(active_pane_id or "LEFT"),
+                        "orientation": str(split_orientation or "VERTICAL"),
+                        "divider_positions": {"primary": "50%"},
+                        "compare_mode": str(compare_session.get("compare_type") or ""),
+                        "group_ids": ["PRIMARY"],
+                    },
+                    "active_split_mode": str(split_view_mode or "SINGLE"),
+                    "panel_configuration_id": str(selected_panel_configuration_id or ""),
+                }
+
+            def current_panel_configuration_payload():
+                return {
+                    "left_sidebar_visible": not left_pane_collapsed,
+                    "right_inspector_visible": not right_pane_collapsed,
+                    "bottom_panel_visible": not bottom_pane_collapsed,
+                    "command_palette_enabled": True,
+                    "review_summary_visible": bool(selected_nav_submodule == "REVIEW" or compare_session.get("compare_type")),
+                    "task_header_visible": bool(selected_task_workspace_id),
+                    "compare_summary_visible": bool(compare_session.get("compare_type")),
+                    "active_sections": [],
+                }
+
+            def current_review_scope():
+                if compare_session.get("compare_session_id") or compare_session.get("left_source_id") or compare_session.get("right_source_id"):
+                    scope_id = str(compare_session.get("compare_session_id") or compare_session.get("left_source_id") or compare_session.get("right_source_id") or "COMPARE")
+                    return "COMPARE_SESSION", scope_id
+                if selected_task_workspace_id:
+                    return "TASK_WORKSPACE", selected_task_workspace_id
+                return "DOCUMENT", (selected_workbench_document_id or selected_review_document_id or left_pane_document_id or "GLOBAL")
+
+            def current_review_session():
+                scope_type, scope_id = current_review_scope()
+                return review_layer_service.get_or_create_review_session(
+                    scope_type=scope_type,
+                    scope_id=scope_id,
+                    task_workspace_id=selected_task_workspace_id,
+                )
+
+            def rebuild_ctx(**overrides):
+                params = {
+                    "selected_crew_id_value": selected_crew_id,
+                    "selected_port_name_value": selected_port_name,
+                    "selected_review_document_id_value": selected_review_document_id,
+                    "review_filter_mode_value": review_filter_mode,
+                    "selected_workbench_document_id_value": selected_workbench_document_id,
+                    "selected_workbench_anchor_id_value": selected_workbench_anchor_id,
+                    "selected_workbench_cell_id_value": selected_workbench_cell_id,
+                    "selected_workbench_block_id_value": selected_workbench_block_id,
+                    "workbench_selected_page_value": workbench_selected_page,
+                    "workbench_tool_mode_value": workbench_tool_mode,
+                    "workbench_center_mode_value": workbench_center_mode,
+                    "workbench_bottom_tab_value": workbench_bottom_tab,
+                    "workbench_inspector_mode_value": workbench_inspector_mode,
+                    "workbench_filter_document_type_value": workbench_filter_document_type,
+                    "workbench_filter_status_value": workbench_filter_status,
+                    "workbench_search_text_value": workbench_search_text,
+                    "active_menu_value": active_nav_menu,
+                    "active_dropdown_value": active_nav_dropdown,
+                    "active_dialog_value": active_nav_dialog,
+                    "command_palette_open_value": command_palette_open,
+                    "command_palette_query_value": command_palette_query,
+                    "selected_command_id_value": selected_command_id,
+                    "left_pane_collapsed_value": left_pane_collapsed,
+                    "right_pane_collapsed_value": right_pane_collapsed,
+                    "bottom_pane_collapsed_value": bottom_pane_collapsed,
+                    "active_ribbon_tab_value": active_ribbon_tab,
+                    "selected_workspace_id_value": selected_workspace_id,
+                    "workspace_snapshot_id_value": workspace_snapshot_id,
+                    "workspace_dirty_value": workspace_dirty,
+                    "restore_candidate_workspace_id_value": restore_candidate_workspace_id,
+                    "restore_candidate_snapshot_id_value": restore_candidate_snapshot_id,
+                    "selected_task_workspace_id_value": selected_task_workspace_id,
+                    "selected_template_id_value": selected_template_id,
+                    "template_wizard_id_value": template_wizard_id,
+                    "selected_review_item_id_value": selected_review_item_id,
+                    "review_mode_enabled_value": selected_nav_submodule == "REVIEW",
+                    "review_annotation_tool_value": review_annotation_tool,
+                    "review_comment_draft_value": review_comment_draft,
+                    "selected_workspace_mode_id_value": selected_workspace_mode_id,
+                    "selected_layout_profile_id_value": selected_layout_profile_id,
+                    "selected_panel_configuration_id_value": selected_panel_configuration_id,
+                    "layout_editor_enabled_value": layout_editor_enabled,
+                    "layout_editor_dirty_value": layout_editor_dirty,
+                    "panel_visibility_state_value": current_panel_configuration_payload(),
+                    "workspace_mode_switch_pending_value": workspace_mode_switch_pending,
+                    "split_view_enabled_value": split_view_enabled,
+                    "split_view_mode_value": split_view_mode,
+                    "split_orientation_value": split_orientation,
+                    "active_pane_id_value": active_pane_id,
+                    "left_pane_document_id_value": left_pane_document_id,
+                    "right_pane_document_id_value": right_pane_document_id,
+                    "compare_session_value": compare_session,
+                    "inspector_follow_mode_value": inspector_follow_mode,
+                }
+                params.update(overrides)
+                return build_ctx(state, **params)
+
+            if action == "switch_workspace_mode":
+                selected_workspace_mode_id = request.form.get("workspace_mode_id", "").strip().upper() or selected_workspace_mode_id or "STUDIO"
+                mode_record = layout_service.switch_workspace_mode(selected_workspace_mode_id)
+                selected_layout_profile_id = str(mode_record.get("default_layout_profile_id") or selected_layout_profile_id or "")
+                loaded_profile = layout_service.load_layout_profile(selected_layout_profile_id)
+                if loaded_profile:
+                    left_pane_collapsed = bool(loaded_profile.get("left_collapsed", left_pane_collapsed))
+                    right_pane_collapsed = bool(loaded_profile.get("right_collapsed", right_pane_collapsed))
+                    bottom_pane_collapsed = bool(loaded_profile.get("bottom_collapsed", bottom_pane_collapsed))
+                    split_view_mode = str(loaded_profile.get("active_split_mode") or split_view_mode or "SINGLE")
+                    split_view_enabled = split_view_mode != "SINGLE"
+                    selected_panel_configuration_id = str(loaded_profile.get("panel_configuration_id") or selected_panel_configuration_id or "")
+                active_ribbon_tab = str(mode_record.get("default_ribbon_tab") or active_ribbon_tab or "HOME")
+                workspace_mode_switch_pending = False
+                ctx = rebuild_ctx(workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "save_layout_profile":
+                layout_name = request.form.get("layout_profile_name", "").strip() or selected_layout_profile_id or "Layout Profile"
+                saved_profile = layout_service.save_layout_profile(
+                    layout_profile_id=selected_layout_profile_id or "",
+                    name=layout_name,
+                    payload=current_layout_profile_payload(),
+                )
+                selected_layout_profile_id = str(saved_profile.get("layout_profile_id") or selected_layout_profile_id)
+                workspace_dirty = False
+                ctx = rebuild_ctx(workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "save_layout_profile_as":
+                layout_name = request.form.get("layout_profile_name", "").strip() or "Layout Copy"
+                saved_profile = layout_service.save_layout_profile_as(name=layout_name, payload=current_layout_profile_payload())
+                selected_layout_profile_id = str(saved_profile.get("layout_profile_id") or selected_layout_profile_id)
+                workspace_dirty = False
+                ctx = rebuild_ctx(workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "load_layout_profile":
+                selected_layout_profile_id = request.form.get("layout_profile_id", "").strip() or selected_layout_profile_id
+                loaded_profile = layout_service.load_layout_profile(selected_layout_profile_id)
+                if loaded_profile:
+                    selected_workspace_mode_id = str(loaded_profile.get("workspace_mode_id") or selected_workspace_mode_id or "STUDIO")
+                    selected_panel_configuration_id = str(loaded_profile.get("panel_configuration_id") or selected_panel_configuration_id or "")
+                    left_pane_collapsed = bool(loaded_profile.get("left_collapsed", left_pane_collapsed))
+                    right_pane_collapsed = bool(loaded_profile.get("right_collapsed", right_pane_collapsed))
+                    bottom_pane_collapsed = bool(loaded_profile.get("bottom_collapsed", bottom_pane_collapsed))
+                    split_view_mode = str(loaded_profile.get("active_split_mode") or split_view_mode or "SINGLE")
+                    split_view_enabled = split_view_mode != "SINGLE"
+                    split_orientation = str((loaded_profile.get("split_view_state") or {}).get("orientation") or split_orientation or "VERTICAL")
+                    active_pane_id = str((loaded_profile.get("split_view_state") or {}).get("active_pane_id") or active_pane_id or "LEFT")
+                workspace_dirty = False
+                ctx = rebuild_ctx(workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "rename_layout_profile":
+                selected_layout_profile_id = request.form.get("layout_profile_id", "").strip() or selected_layout_profile_id
+                layout_service.rename_layout_profile(
+                    layout_profile_id=selected_layout_profile_id,
+                    new_name=request.form.get("layout_profile_name", "").strip() or selected_layout_profile_id,
+                )
+                ctx = rebuild_ctx(workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "duplicate_layout_profile":
+                selected_layout_profile_id = request.form.get("layout_profile_id", "").strip() or selected_layout_profile_id
+                duplicated_profile = layout_service.duplicate_layout_profile(
+                    layout_profile_id=selected_layout_profile_id,
+                    new_name=request.form.get("layout_profile_name", "").strip() or "",
+                )
+                selected_layout_profile_id = str(duplicated_profile.get("layout_profile_id") or selected_layout_profile_id)
+                ctx = rebuild_ctx(workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "delete_layout_profile":
+                selected_layout_profile_id = request.form.get("layout_profile_id", "").strip() or selected_layout_profile_id
+                layout_service.delete_layout_profile(selected_layout_profile_id)
+                selected_layout_profile_id = ""
+                ctx = rebuild_ctx(workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "save_panel_configuration":
+                panel_name = request.form.get("panel_configuration_name", "").strip() or selected_panel_configuration_id or "Panel Configuration"
+                saved_config = layout_service.save_panel_configuration(
+                    panel_configuration_id=selected_panel_configuration_id or "",
+                    name=panel_name,
+                    payload=current_panel_configuration_payload(),
+                )
+                selected_panel_configuration_id = str(saved_config.get("panel_configuration_id") or selected_panel_configuration_id)
+                workspace_dirty = False
+                ctx = rebuild_ctx(workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "load_panel_configuration":
+                selected_panel_configuration_id = request.form.get("panel_configuration_id", "").strip() or selected_panel_configuration_id
+                loaded_config = layout_service.load_panel_configuration(selected_panel_configuration_id)
+                if loaded_config:
+                    left_pane_collapsed = not bool(loaded_config.get("left_sidebar_visible", True))
+                    right_pane_collapsed = not bool(loaded_config.get("right_inspector_visible", True))
+                    bottom_pane_collapsed = not bool(loaded_config.get("bottom_panel_visible", True))
+                workspace_dirty = False
+                ctx = rebuild_ctx(workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "enter_layout_editor":
+                layout_editor_enabled = True
+                layout_editor_dirty = False
+                layout_service.enter_layout_editor(
+                    editing_profile_id=selected_layout_profile_id,
+                    current_state={
+                        "draft_panel_configuration": current_panel_configuration_payload(),
+                        "draft_dimensions": current_layout_profile_payload(),
+                        "preview_mode": "LIVE",
+                        "dirty": False,
+                    },
+                )
+                ctx = rebuild_ctx(layout_editor_enabled_value=True, layout_editor_dirty_value=False, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "apply_layout_editor":
+                layout_editor_enabled = True
+                layout_editor_dirty = True
+                left_pane_collapsed = not _as_bool_flag(request.form.get("panel_left_visible", "true"))
+                right_pane_collapsed = not _as_bool_flag(request.form.get("panel_right_visible", "true"))
+                bottom_pane_collapsed = not _as_bool_flag(request.form.get("panel_bottom_visible", "true"))
+                selected_workspace_mode_id = request.form.get("workspace_mode_id", "").strip().upper() or selected_workspace_mode_id
+                selected_layout_profile_id = request.form.get("layout_profile_id", "").strip() or selected_layout_profile_id
+                selected_panel_configuration_id = request.form.get("panel_configuration_id", "").strip() or selected_panel_configuration_id
+                layout_service.apply_layout_editor_draft(
+                    draft_state={
+                        "enabled": True,
+                        "editing_profile_id": selected_layout_profile_id,
+                        "draft_panel_configuration": {
+                            "left_sidebar_visible": not left_pane_collapsed,
+                            "right_inspector_visible": not right_pane_collapsed,
+                            "bottom_panel_visible": not bottom_pane_collapsed,
+                            "command_palette_enabled": _as_bool_flag(request.form.get("panel_command_palette_enabled", "true")) or True,
+                            "review_summary_visible": _as_bool_flag(request.form.get("panel_review_summary_visible", "")),
+                            "task_header_visible": _as_bool_flag(request.form.get("panel_task_header_visible", "")),
+                            "compare_summary_visible": _as_bool_flag(request.form.get("panel_compare_summary_visible", "")),
+                            "active_sections": [],
+                        },
+                        "draft_dimensions": current_layout_profile_payload(),
+                        "preview_mode": request.form.get("layout_preview_mode", "").strip().upper() or "LIVE",
+                        "dirty": True,
+                    }
+                )
+                ctx = rebuild_ctx(layout_editor_enabled_value=True, layout_editor_dirty_value=True, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "cancel_layout_editor":
+                layout_editor_enabled = False
+                layout_editor_dirty = False
+                layout_service.cancel_layout_editor()
+                ctx = rebuild_ctx(layout_editor_enabled_value=False, layout_editor_dirty_value=False, workspace_dirty_value=workspace_dirty)
+                ctx["saved"] = True
+
+            elif action == "set_default_layout_for_mode":
+                selected_workspace_mode_id = request.form.get("workspace_mode_id", "").strip().upper() or selected_workspace_mode_id or "STUDIO"
+                selected_layout_profile_id = request.form.get("layout_profile_id", "").strip() or selected_layout_profile_id
+                layout_service.set_default_layout_for_mode(
+                    mode_id=selected_workspace_mode_id,
+                    layout_profile_id=selected_layout_profile_id,
+                )
+                ctx = rebuild_ctx(workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "create_review_item":
+                review_session = current_review_session()
+                created = review_layer_service.create_review_item(
+                    review_session_id=str(review_session.get("review_session_id") or ""),
+                    document_id=selected_workbench_document_id or selected_review_document_id or left_pane_document_id or "",
+                    document_tab_id=selected_workbench_document_id or selected_review_document_id or "",
+                    pane_id=active_pane_id,
+                    target_object_id=selected_workbench_anchor_id or selected_workbench_cell_id or selected_workbench_block_id,
+                    kind=request.form.get("review_item_kind", "").strip().upper() or "ISSUE",
+                    severity=request.form.get("review_item_severity", "").strip().upper() or "MEDIUM",
+                    title=request.form.get("review_item_title", "").strip() or "Review item",
+                    body=request.form.get("review_item_body", "").strip(),
+                    tags=[tag.strip() for tag in request.form.get("review_item_tags", "").split(",") if tag.strip()],
+                    created_by=request.form.get("review_actor", "").strip() or "operator",
+                    task_workspace_id=selected_task_workspace_id,
+                )
+                selected_review_item_id = str(created.get("review_item_id") or "")
+                review_comment_draft = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab or "REVIEW", selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, selected_review_item_id_value=selected_review_item_id, review_mode_enabled_value=True, review_annotation_tool_value=review_annotation_tool, review_comment_draft_value="", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "add_review_comment":
+                review_session = current_review_session()
+                target_review_item_id = request.form.get("selected_review_item_id", "").strip() or selected_review_item_id
+                comment_body = request.form.get("review_comment_body", "").strip()
+                if target_review_item_id and comment_body:
+                    review_layer_service.add_comment(
+                        review_item_id=target_review_item_id,
+                        document_id=selected_workbench_document_id or selected_review_document_id or left_pane_document_id or "",
+                        target_object_id=selected_workbench_anchor_id or selected_workbench_cell_id or selected_workbench_block_id,
+                        body=comment_body,
+                        created_by=request.form.get("review_actor", "").strip() or "operator",
+                    )
+                selected_review_item_id = target_review_item_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab or "REVIEW", selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, selected_review_item_id_value=selected_review_item_id, review_mode_enabled_value=True, review_annotation_tool_value=review_annotation_tool, review_comment_draft_value="", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "create_review_annotation":
+                review_session = current_review_session()
+                review_layer_service.create_annotation(
+                    document_id=selected_workbench_document_id or selected_review_document_id or left_pane_document_id or "",
+                    pane_id=active_pane_id,
+                    target_object_id=selected_workbench_anchor_id or selected_workbench_cell_id or selected_workbench_block_id,
+                    annotation_type=request.form.get("review_annotation_tool", "").strip().upper() or review_annotation_tool or "NOTE_MARKER",
+                    content=request.form.get("review_annotation_content", "").strip(),
+                    style={"tone": request.form.get("review_annotation_style", "").strip() or "default"},
+                    review_session_id=str(review_session.get("review_session_id") or ""),
+                )
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab or "REVIEW", selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, selected_review_item_id_value=selected_review_item_id, review_mode_enabled_value=True, review_annotation_tool_value=review_annotation_tool, review_comment_draft_value=review_comment_draft, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "delete_review_annotation":
+                annotation_id = request.form.get("annotation_id", "").strip()
+                if annotation_id:
+                    review_layer_service.delete_annotation(annotation_id)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab or "REVIEW", selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, selected_review_item_id_value=selected_review_item_id, review_mode_enabled_value=True, review_annotation_tool_value=review_annotation_tool, review_comment_draft_value=review_comment_draft, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action in {"resolve_review_item", "reopen_review_item", "approve_review_item", "reject_review_item"}:
+                target_review_item_id = request.form.get("selected_review_item_id", "").strip() or selected_review_item_id
+                review_note = request.form.get("review_action_note", "").strip()
+                review_actor = request.form.get("review_actor", "").strip() or "operator"
+                if target_review_item_id:
+                    if action == "resolve_review_item":
+                        review_layer_service.resolve_review_item(target_review_item_id, actor=review_actor, note=review_note)
+                    elif action == "reopen_review_item":
+                        review_layer_service.reopen_review_item(target_review_item_id, actor=review_actor, note=review_note)
+                    elif action == "approve_review_item":
+                        review_layer_service.approve_review_item(target_review_item_id, actor=review_actor, note=review_note)
+                    else:
+                        review_layer_service.reject_review_item(target_review_item_id, actor=review_actor, note=review_note)
+                selected_review_item_id = target_review_item_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab or "REVIEW", selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, selected_review_item_id_value=selected_review_item_id, review_mode_enabled_value=True, review_annotation_tool_value=review_annotation_tool, review_comment_draft_value=review_comment_draft, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "signoff_review_session":
+                review_session = current_review_session()
+                review_layer_service.signoff_review_session(
+                    review_session_id=str(review_session.get("review_session_id") or ""),
+                    actor=request.form.get("review_actor", "").strip() or "operator",
+                    note=request.form.get("review_action_note", "").strip(),
+                )
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab or "REVIEW", selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, selected_review_item_id_value=selected_review_item_id, review_mode_enabled_value=True, review_annotation_tool_value=review_annotation_tool, review_comment_draft_value=review_comment_draft, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "select_review_layer_item":
+                selected_review_item_id = request.form.get("selected_review_item_id", "").strip() or selected_review_item_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value="VALIDATION", workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value="REVIEW", selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, selected_review_item_id_value=selected_review_item_id, review_mode_enabled_value=True, review_annotation_tool_value=review_annotation_tool, review_comment_draft_value=review_comment_draft, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "create_file":
+                result = file_service.create_file(
+                    workspace_id=selected_workspace_id or selected_nav_submodule,
+                    file_name=request.form.get("file_name", "").strip() or "New Workspace File",
+                )
+                selected_workbench_document_id = str((result.get("updated_refs", {}) or {}).get("document_id") or selected_workbench_document_id)
+                selected_review_document_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value="", review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, recent_file_action_result_value=result, selected_file_action_value="CREATE_FILE", explorer_active_section_value="FILE_EXPLORER", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action in {"open_from_disk", "import_external_file", "link_external_file"}:
+                requested_path = request.form.get("external_file_path", "").strip()
+                requested_name = request.form.get("external_file_name", "").strip()
+                import_mode = "LINK" if action == "link_external_file" else "IMPORT"
+                result = file_service.import_external_file(
+                    workspace_id=selected_workspace_id or selected_nav_submodule,
+                    file_path=requested_path,
+                    import_mode=import_mode,
+                    requested_name=requested_name,
+                    owner_entity="workspace",
+                    owner_id=str(selected_workspace_id or selected_nav_submodule or "workspace_session"),
+                    operational_reason="Opened from external disk intake." if action == "open_from_disk" else "Imported from external disk intake.",
+                )
+                selected_workbench_document_id = str((result.get("updated_refs", {}) or {}).get("document_id") or selected_workbench_document_id)
+                selected_review_document_id = ""
+                selected_workbench_anchor_id = ""
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value="", review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab or "FILE", selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, recent_file_action_result_value=result, selected_file_action_value=action.upper(), explorer_active_section_value="FILE_EXPLORER", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "add_file_to_workspace":
+                target_file_id = request.form.get("file_id", "").strip() or selected_workbench_document_id or selected_review_document_id
+                result = file_service.add_to_workspace(workspace_id=selected_workspace_id or selected_nav_submodule, file_id=target_file_id)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, recent_file_action_result_value=result, selected_file_action_value="ADD_TO_WORKSPACE", explorer_active_section_value="FILE_EXPLORER", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "open_explorer_file":
+                target_file_id = request.form.get("file_id", "").strip()
+                target_document_id = request.form.get("document_id", "").strip() or file_service.get_preferred_document_id(target_file_id, workspace_id=selected_workspace_id or selected_nav_submodule)
+                selected_workbench_document_id = target_document_id or selected_workbench_document_id
+                selected_review_document_id = ""
+                selected_workbench_anchor_id = ""
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value="", review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, selected_file_action_value="OPEN_FILE", explorer_active_section_value=request.form.get("explorer_section", "").strip() or "FILE_EXPLORER", workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "rename_file":
+                target_file_id = request.form.get("file_id", "").strip() or selected_workbench_document_id or selected_review_document_id
+                result = file_service.rename_file(file_id=target_file_id, workspace_id=selected_workspace_id or selected_nav_submodule, new_name=request.form.get("file_name", "").strip())
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, recent_file_action_result_value=result, selected_file_action_value="RENAME_FILE", explorer_active_section_value="FILE_EXPLORER", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "duplicate_file":
+                target_file_id = request.form.get("file_id", "").strip() or selected_workbench_document_id or selected_review_document_id
+                result = file_service.duplicate_file(file_id=target_file_id, workspace_id=selected_workspace_id or selected_nav_submodule, new_name=request.form.get("file_name", "").strip())
+                selected_workbench_document_id = str((result.get("updated_refs", {}) or {}).get("document_id") or selected_workbench_document_id)
+                selected_review_document_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value="", review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, recent_file_action_result_value=result, selected_file_action_value="DUPLICATE_FILE", explorer_active_section_value="FILE_EXPLORER", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "remove_file_from_workspace":
+                target_file_id = request.form.get("file_id", "").strip() or selected_workbench_document_id or selected_review_document_id
+                result = file_service.remove_from_workspace(workspace_id=selected_workspace_id or selected_nav_submodule, file_id=target_file_id)
+                target_document_id = str((result.get("updated_refs", {}) or {}).get("document_id") or file_service.get_preferred_document_id(target_file_id, workspace_id=selected_workspace_id or selected_nav_submodule))
+                if selected_workbench_document_id in {target_file_id, target_document_id}:
+                    selected_workbench_document_id = ""
+                    selected_workbench_anchor_id = ""
+                    selected_workbench_cell_id = ""
+                    selected_workbench_block_id = ""
+                if selected_review_document_id in {target_file_id, target_document_id}:
+                    selected_review_document_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, recent_file_action_result_value=result, selected_file_action_value="REMOVE_FROM_WORKSPACE", explorer_active_section_value="FILE_EXPLORER", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "archive_file":
+                target_file_id = request.form.get("file_id", "").strip() or selected_workbench_document_id or selected_review_document_id
+                result = file_service.archive_file(file_id=target_file_id, workspace_id=selected_workspace_id or selected_nav_submodule, archive_reason=request.form.get("archive_reason", "").strip())
+                target_document_id = str((result.get("updated_refs", {}) or {}).get("document_id") or file_service.get_preferred_document_id(target_file_id, workspace_id=selected_workspace_id or selected_nav_submodule))
+                if selected_workbench_document_id in {target_file_id, target_document_id}:
+                    selected_workbench_document_id = ""
+                    selected_workbench_anchor_id = ""
+                    selected_workbench_cell_id = ""
+                    selected_workbench_block_id = ""
+                if selected_review_document_id in {target_file_id, target_document_id}:
+                    selected_review_document_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, recent_file_action_result_value=result, selected_file_action_value="ARCHIVE_FILE", explorer_active_section_value="ARCHIVE", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "delete_file":
+                target_file_id = request.form.get("file_id", "").strip() or selected_workbench_document_id or selected_review_document_id
+                result = file_service.delete_file(file_id=target_file_id, workspace_id=selected_workspace_id or selected_nav_submodule)
+                target_document_id = str((result.get("updated_refs", {}) or {}).get("document_id") or file_service.get_preferred_document_id(target_file_id, workspace_id=selected_workspace_id or selected_nav_submodule))
+                if selected_workbench_document_id in {target_file_id, target_document_id}:
+                    selected_workbench_document_id = ""
+                    selected_workbench_anchor_id = ""
+                    selected_workbench_cell_id = ""
+                    selected_workbench_block_id = ""
+                if selected_review_document_id in {target_file_id, target_document_id}:
+                    selected_review_document_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, recent_file_action_result_value=result, selected_file_action_value="DELETE_FILE", explorer_active_section_value="FILE_EXPLORER", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "restore_file":
+                target_file_id = request.form.get("file_id", "").strip()
+                result = file_service.restore_file(file_id=target_file_id, workspace_id=selected_workspace_id or selected_nav_submodule)
+                if not selected_workbench_document_id:
+                    selected_workbench_document_id = str((result.get("updated_refs", {}) or {}).get("document_id") or selected_workbench_document_id)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, recent_file_action_result_value=result, selected_file_action_value="RESTORE_FILE", explorer_active_section_value="ARCHIVE", workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "start_template_wizard":
+                seed_template = template_service.load_template(selected_template_id) if selected_template_id else {}
+                active_task = task_service.load_task_workspace(selected_task_workspace_id) if selected_task_workspace_id else {}
+                wizard = template_service.start_template_wizard(
+                    template_type=request.form.get("template_type", "").strip().upper() or "TASK_WORKSPACE",
+                    seed_template=seed_template,
+                    seed_task_workspace=active_task,
+                    seed_workspace_payload=current_workspace_payload(),
+                )
+                template_wizard_id = wizard.get("wizard_id", "")
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "update_template_wizard":
+                template_wizard_id = request.form.get("template_wizard_id", "").strip() or template_wizard_id
+                wizard_step = int(request.form.get("wizard_step", "1") or "1")
+                wizard = template_service.update_template_wizard(
+                    wizard_id=template_wizard_id,
+                    updates={
+                        "current_step": wizard_step,
+                        "template_type": request.form.get("wizard_template_type", "").strip().upper() or "TASK_WORKSPACE",
+                        "draft_name": request.form.get("wizard_template_name", "").strip(),
+                        "draft_category": request.form.get("wizard_template_category", "").strip(),
+                        "draft_description": request.form.get("wizard_template_description", "").strip(),
+                        "draft_ui_mode": request.form.get("wizard_ui_mode", "").strip().upper() or "STUDIO",
+                        "draft_task_type": request.form.get("wizard_task_type", "").strip().upper() or "ARRIVAL",
+                        "draft_stage_template": [stage.strip().upper() for stage in request.form.get("wizard_stage_template", "").split(",") if stage.strip()],
+                        "draft_slot_definitions": parse_slot_definitions(request.form.get("wizard_slot_definitions", "")),
+                        "draft_checklist_template": parse_checklist_template(request.form.get("wizard_checklist_template", "")),
+                        "draft_save_options": {
+                            "include_layout": _as_bool_flag(request.form.get("wizard_include_layout", "true")) or True,
+                            "include_tool_state": _as_bool_flag(request.form.get("wizard_include_tool_state", "true")) or True,
+                            "include_validation_rules": _as_bool_flag(request.form.get("wizard_include_validation_rules", "")),
+                            "include_slots": _as_bool_flag(request.form.get("wizard_include_slots", "true")) or True,
+                            "include_checklist": _as_bool_flag(request.form.get("wizard_include_checklist", "true")) or True,
+                            "include_context_bindings": _as_bool_flag(request.form.get("wizard_include_context_bindings", "")),
+                            "include_live_values": _as_bool_flag(request.form.get("wizard_include_live_values", "")),
+                        },
+                        "draft_layout_profile": dict(current_workspace_payload().get("layout_profile", {})),
+                    },
+                )
+                template_wizard_id = wizard.get("wizard_id", template_wizard_id)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "save_template_from_wizard":
+                template_wizard_id = request.form.get("template_wizard_id", "").strip() or template_wizard_id
+                saved_template = template_service.save_template_from_wizard(template_wizard_id)
+                selected_template_id = saved_template.get("template_id", "")
+                template_wizard_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value="", workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "save_current_as_template":
+                saved_template = template_service.save_current_as_template(
+                    name=request.form.get("template_name", "").strip() or (selected_task_workspace_id or "Current Workspace Template"),
+                    category=request.form.get("template_category", "").strip() or "Operational Workflow",
+                    template_type=request.form.get("template_type", "").strip().upper() or "TASK_WORKSPACE",
+                    task_type=request.form.get("task_type", "").strip().upper() or ((task_service.load_task_workspace(selected_task_workspace_id) or {}).get("task_type") or "ARRIVAL"),
+                    workspace_payload=current_workspace_payload(),
+                    active_task_workspace=task_service.load_task_workspace(selected_task_workspace_id) if selected_task_workspace_id else {},
+                    include_live_values=_as_bool_flag(request.form.get("include_live_values", "")),
+                )
+                selected_template_id = saved_template.get("template_id", "")
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "load_template":
+                selected_template_id = request.form.get("template_id", "").strip() or selected_template_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, template_wizard_id_value=template_wizard_id, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "rename_template":
+                selected_template_id = request.form.get("template_id", "").strip() or selected_template_id
+                template_service.rename_template(template_id=selected_template_id, new_name=request.form.get("template_name", "").strip())
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "duplicate_template":
+                selected_template_id = request.form.get("template_id", "").strip() or selected_template_id
+                duplicated_template = template_service.duplicate_template(template_id=selected_template_id, new_name=request.form.get("template_name", "").strip())
+                selected_template_id = duplicated_template.get("template_id", selected_template_id)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "archive_template":
+                selected_template_id = request.form.get("template_id", "").strip() or selected_template_id
+                template_service.archive_template(selected_template_id)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "delete_template":
+                selected_template_id = request.form.get("template_id", "").strip() or selected_template_id
+                template_service.delete_template(selected_template_id)
+                selected_template_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value="", workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "toggle_template_favorite":
+                selected_template_id = request.form.get("template_id", "").strip() or selected_template_id
+                template_service.set_template_favorite(template_id=selected_template_id, favorite=_as_bool_flag(request.form.get("favorite", "")))
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "create_task_from_template":
+                selected_template_id = request.form.get("template_id", "").strip() or selected_template_id
+                template = template_service.load_template(selected_template_id)
+                slot_assignments = []
+                for slot in list(template.get("slot_definitions", []) or []):
+                    slot_id = str(slot.get("slot_id") or "")
+                    slot_assignments.append(
+                        {
+                            "slot_id": slot_id,
+                            "assigned_source_id": request.form.get(f"slot_{slot_id}_source_id", "").strip(),
+                            "assigned_source_type": request.form.get(f"slot_{slot_id}_source_type", "").strip().upper(),
+                            "note": request.form.get(f"slot_{slot_id}_note", "").strip(),
+                        }
+                    )
+                created_task = template_service.create_task_from_template(
+                    template_id=selected_template_id,
+                    task_name=request.form.get("task_name", "").strip() or f"{template.get('name', 'Template')} Run",
+                    workspace_id=selected_workspace_id or "workspace_session",
+                    resume_target={
+                        "nav_submodule": selected_nav_submodule,
+                        "document_id": selected_workbench_document_id or selected_review_document_id,
+                        "ribbon_tab": active_ribbon_tab or "TASKS",
+                    },
+                    slot_assignments=slot_assignments,
+                    task_service=task_service,
+                )
+                selected_task_workspace_id = created_task.get("task_workspace_id", "")
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value="TASKS", selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, selected_template_id_value=selected_template_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            if action == "create_task_workspace":
+                workspace_id_for_task = selected_workspace_id or "workspace_session"
+                created_task = task_service.create_task_workspace(
+                    workspace_id=workspace_id_for_task,
+                    name=request.form.get("task_name", "").strip() or request.form.get("task_type", "ARRIVAL").strip().replace("_", " ").title(),
+                    task_type=request.form.get("task_type", "ARRIVAL").strip().upper() or "ARRIVAL",
+                    resume_target={
+                        "nav_submodule": selected_nav_submodule,
+                        "document_id": selected_workbench_document_id or selected_review_document_id,
+                        "ribbon_tab": active_ribbon_tab,
+                    },
+                )
+                selected_task_workspace_id = created_task.get("task_workspace_id", "")
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                    active_ribbon_tab_value=active_ribbon_tab,
+                    selected_workspace_id_value=selected_workspace_id,
+                    selected_task_workspace_id_value=selected_task_workspace_id,
+                    workspace_dirty_value=True,
+                )
+                ctx["saved"] = True
+
+            elif action == "start_task_workspace":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                task = task_service.start_task_workspace(selected_task_workspace_id)
+                selected_workspace_id = str(task.get("workspace_id") or selected_workspace_id or "")
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "load_task_workspace":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                task = task_service.load_task_workspace(selected_task_workspace_id)
+                selected_workspace_id = str(task.get("workspace_id") or selected_workspace_id or "")
+                resume_target = dict(task.get("resume_target", {}) or {})
+                target_doc = str(resume_target.get("document_id") or "")
+                selected_nav_submodule = str(resume_target.get("nav_submodule") or selected_nav_submodule or "STUDIO").upper()
+                active_ribbon_tab = str(resume_target.get("ribbon_tab") or active_ribbon_tab or "TASKS").upper()
+                if selected_nav_submodule == "REVIEW":
+                    selected_review_document_id = target_doc or selected_review_document_id
+                    selected_workbench_document_id = ""
+                else:
+                    selected_workbench_document_id = target_doc or selected_workbench_document_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "resume_task_workspace":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                task = task_service.resume_task_workspace(selected_task_workspace_id)
+                selected_workspace_id = str(task.get("workspace_id") or selected_workspace_id or "")
+                resume_target = dict(task.get("resume_target", {}) or {})
+                selected_nav_submodule = str(resume_target.get("nav_submodule") or selected_nav_submodule or "STUDIO").upper()
+                active_ribbon_tab = str(resume_target.get("ribbon_tab") or active_ribbon_tab or "TASKS").upper()
+                target_doc = str(resume_target.get("document_id") or "")
+                if selected_nav_submodule == "REVIEW":
+                    selected_review_document_id = target_doc or selected_review_document_id
+                    selected_workbench_document_id = ""
+                else:
+                    selected_workbench_document_id = target_doc or selected_workbench_document_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "rename_task_workspace":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                task_service.rename_task_workspace(task_workspace_id=selected_task_workspace_id, new_name=request.form.get("task_name", "").strip())
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "duplicate_task_workspace":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                duplicated_task = task_service.duplicate_task_workspace(task_workspace_id=selected_task_workspace_id, new_name=request.form.get("task_name", "").strip())
+                selected_task_workspace_id = duplicated_task.get("task_workspace_id", selected_task_workspace_id)
+                selected_workspace_id = str(duplicated_task.get("workspace_id") or selected_workspace_id or "")
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "delete_task_workspace":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                task_service.delete_task_workspace(selected_task_workspace_id)
+                selected_task_workspace_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value="", workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "update_task_checklist_item":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                task_service.update_checklist_item(
+                    task_workspace_id=selected_task_workspace_id,
+                    item_id=request.form.get("task_item_id", "").strip(),
+                    status=request.form.get("task_item_status", "").strip().upper() or "TODO",
+                    note=request.form.get("task_item_note", "").strip(),
+                )
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "change_task_stage":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                task_service.change_task_stage(
+                    task_workspace_id=selected_task_workspace_id,
+                    stage=request.form.get("task_stage", "").strip().upper(),
+                )
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "mark_task_complete":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                task_service.mark_task_complete(selected_task_workspace_id)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "save_task_checkpoint":
+                selected_task_workspace_id = request.form.get("task_workspace_id", "").strip() or selected_task_workspace_id
+                task_service.save_task_checkpoint(
+                    task_workspace_id=selected_task_workspace_id,
+                    note=request.form.get("task_checkpoint_note", "").strip() or "Checkpoint saved from workstation shell.",
+                )
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, selected_task_workspace_id_value=selected_task_workspace_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "save_workspace":
+                workspace_name = request.form.get("workspace_name", "").strip() or selected_workspace_id or "Workspace"
+                payload = current_workspace_payload()
+                payload["workspace_name"] = workspace_name
+                saved_workspace = workspace_service.save_workspace(
+                    workspace_id=selected_workspace_id or f"workspace_{workspace_name.lower().replace(' ', '_')}",
+                    name=workspace_name,
+                    payload=payload,
+                )
+                workspace_service.autosave_workspace(workspace_id=saved_workspace["workspace_id"], payload=payload)
+                selected_workspace_id = saved_workspace["workspace_id"]
+                workspace_dirty = False
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                    active_menu_value=active_nav_menu,
+                    active_dropdown_value=active_nav_dropdown,
+                    active_dialog_value=active_nav_dialog,
+                    command_palette_open_value=command_palette_open,
+                    command_palette_query_value=command_palette_query,
+                    selected_command_id_value=selected_command_id,
+                    left_pane_collapsed_value=left_pane_collapsed,
+                    right_pane_collapsed_value=right_pane_collapsed,
+                    bottom_pane_collapsed_value=bottom_pane_collapsed,
+                    active_ribbon_tab_value=active_ribbon_tab,
+                    selected_workspace_id_value=selected_workspace_id,
+                    workspace_dirty_value=False,
+                )
+                ctx["saved"] = True
+
+            elif action == "save_workspace_as":
+                workspace_name = request.form.get("workspace_name", "").strip() or "Workspace Copy"
+                payload = current_workspace_payload()
+                payload["workspace_name"] = workspace_name
+                saved_workspace = workspace_service.save_workspace_as(name=workspace_name, payload=payload)
+                selected_workspace_id = saved_workspace["workspace_id"]
+                workspace_dirty = False
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_menu_value=active_nav_menu, active_dropdown_value=active_nav_dropdown, active_dialog_value=active_nav_dialog, command_palette_open_value=command_palette_open, command_palette_query_value=command_palette_query, selected_command_id_value=selected_command_id, left_pane_collapsed_value=left_pane_collapsed, right_pane_collapsed_value=right_pane_collapsed, bottom_pane_collapsed_value=bottom_pane_collapsed, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "load_workspace":
+                selected_workspace_id = request.form.get("workspace_id", "").strip() or selected_workspace_id
+                workspace = workspace_service.load_workspace(selected_workspace_id)
+                restored = apply_workspace_payload(dict(workspace.get("shell_state", {}) or {}))
+                selected_nav_submodule = restored["selected_nav_submodule"]
+                selected_workbench_document_id = restored["selected_workbench_document_id"]
+                selected_review_document_id = restored["selected_review_document_id"]
+                active_ribbon_tab = restored["active_ribbon_tab"] or active_ribbon_tab
+                left_pane_collapsed = restored["left_pane_collapsed"]
+                right_pane_collapsed = restored["right_pane_collapsed"]
+                bottom_pane_collapsed = restored["bottom_pane_collapsed"]
+                workbench_bottom_tab = restored["workbench_bottom_tab"] or workbench_bottom_tab
+                workbench_inspector_mode = restored["workbench_inspector_mode"] or workbench_inspector_mode
+                split_view_enabled = restored["split_view_enabled"]
+                split_view_mode = restored["split_view_mode"] or split_view_mode
+                split_orientation = restored["split_orientation"] or split_orientation
+                active_pane_id = restored["active_pane_id"] or active_pane_id
+                left_pane_document_id = str((restored["pane_documents"].get("LEFT", {}) or {}).get("document_id") or selected_workbench_document_id or selected_review_document_id)
+                right_pane_document_id = str((restored["pane_documents"].get("RIGHT", {}) or {}).get("document_id") or "")
+                compare_session = dict(restored["compare_session"] or {})
+                inspector_follow_mode = restored["inspector_follow_mode"] or inspector_follow_mode
+                selected_review_item_id = restored["selected_review_item_id"] or selected_review_item_id
+                review_filter_mode = restored["review_filter"] or review_filter_mode
+                selected_workspace_mode_id = restored["selected_workspace_mode_id"] or selected_workspace_mode_id
+                selected_layout_profile_id = restored["selected_layout_profile_id"] or selected_layout_profile_id
+                selected_panel_configuration_id = restored["selected_panel_configuration_id"] or selected_panel_configuration_id
+                workspace_dirty = False
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_menu_value=active_nav_menu, active_dropdown_value=active_nav_dropdown, active_dialog_value=active_nav_dialog, command_palette_open_value=command_palette_open, command_palette_query_value=command_palette_query, selected_command_id_value=selected_command_id, left_pane_collapsed_value=left_pane_collapsed, right_pane_collapsed_value=right_pane_collapsed, bottom_pane_collapsed_value=bottom_pane_collapsed, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "rename_workspace":
+                selected_workspace_id = request.form.get("workspace_id", "").strip() or selected_workspace_id
+                workspace_service.rename_workspace(workspace_id=selected_workspace_id, new_name=request.form.get("workspace_name", "").strip() or selected_workspace_id)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, workspace_dirty_value=True)
+                ctx["saved"] = True
+
+            elif action == "duplicate_workspace":
+                selected_workspace_id = request.form.get("workspace_id", "").strip() or selected_workspace_id
+                duplicated = workspace_service.duplicate_workspace(workspace_id=selected_workspace_id, new_name=request.form.get("workspace_name", "").strip())
+                selected_workspace_id = duplicated.get("workspace_id", selected_workspace_id)
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "delete_workspace":
+                selected_workspace_id = request.form.get("workspace_id", "").strip() or selected_workspace_id
+                workspace_service.delete_workspace(selected_workspace_id)
+                selected_workspace_id = ""
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value="", workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "save_workspace_snapshot":
+                selected_workspace_id = request.form.get("workspace_id", "").strip() or selected_workspace_id or "workspace_session"
+                payload = current_workspace_payload()
+                payload["workspace_name"] = request.form.get("workspace_name", "").strip() or selected_workspace_id
+                snapshot = workspace_service.save_snapshot(workspace_id=selected_workspace_id, payload=payload, note=request.form.get("snapshot_note", "").strip())
+                workspace_snapshot_id = snapshot.get("snapshot_id", "")
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value=selected_workbench_anchor_id, selected_workbench_cell_id_value=selected_workbench_cell_id, selected_workbench_block_id_value=selected_workbench_block_id, workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, selected_workspace_id_value=selected_workspace_id, workspace_snapshot_id_value=workspace_snapshot_id, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "restore_workspace_snapshot":
+                workspace_snapshot_id = request.form.get("workspace_snapshot_id", "").strip() or workspace_snapshot_id
+                snapshot = workspace_service.restore_snapshot(workspace_snapshot_id)
+                selected_workspace_id = snapshot.get("workspace_id", selected_workspace_id)
+                restored = apply_workspace_payload(dict(snapshot.get("shell_state", {}) or {}))
+                selected_nav_submodule = restored["selected_nav_submodule"]
+                selected_workbench_document_id = restored["selected_workbench_document_id"]
+                selected_review_document_id = restored["selected_review_document_id"]
+                active_ribbon_tab = restored["active_ribbon_tab"] or active_ribbon_tab
+                left_pane_collapsed = restored["left_pane_collapsed"]
+                right_pane_collapsed = restored["right_pane_collapsed"]
+                bottom_pane_collapsed = restored["bottom_pane_collapsed"]
+                workbench_bottom_tab = restored["workbench_bottom_tab"] or workbench_bottom_tab
+                workbench_inspector_mode = restored["workbench_inspector_mode"] or workbench_inspector_mode
+                split_view_enabled = restored["split_view_enabled"]
+                split_view_mode = restored["split_view_mode"] or split_view_mode
+                split_orientation = restored["split_orientation"] or split_orientation
+                active_pane_id = restored["active_pane_id"] or active_pane_id
+                left_pane_document_id = str((restored["pane_documents"].get("LEFT", {}) or {}).get("document_id") or selected_workbench_document_id or selected_review_document_id)
+                right_pane_document_id = str((restored["pane_documents"].get("RIGHT", {}) or {}).get("document_id") or "")
+                compare_session = dict(restored["compare_session"] or {})
+                inspector_follow_mode = restored["inspector_follow_mode"] or inspector_follow_mode
+                selected_review_item_id = restored["selected_review_item_id"] or selected_review_item_id
+                review_filter_mode = restored["review_filter"] or review_filter_mode
+                selected_workspace_mode_id = restored["selected_workspace_mode_id"] or selected_workspace_mode_id
+                selected_layout_profile_id = restored["selected_layout_profile_id"] or selected_layout_profile_id
+                selected_panel_configuration_id = restored["selected_panel_configuration_id"] or selected_panel_configuration_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, left_pane_collapsed_value=left_pane_collapsed, right_pane_collapsed_value=right_pane_collapsed, bottom_pane_collapsed_value=bottom_pane_collapsed, selected_workspace_id_value=selected_workspace_id, workspace_snapshot_id_value=workspace_snapshot_id, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "restore_last_session":
+                last_session = workspace_service.load_last_session()
+                selected_workspace_id = last_session.get("workspace_id", selected_workspace_id)
+                restored = apply_workspace_payload(dict(last_session.get("shell_state", {}) or {}))
+                selected_nav_submodule = restored["selected_nav_submodule"]
+                selected_workbench_document_id = restored["selected_workbench_document_id"]
+                selected_review_document_id = restored["selected_review_document_id"]
+                active_ribbon_tab = restored["active_ribbon_tab"] or active_ribbon_tab
+                left_pane_collapsed = restored["left_pane_collapsed"]
+                right_pane_collapsed = restored["right_pane_collapsed"]
+                bottom_pane_collapsed = restored["bottom_pane_collapsed"]
+                workbench_bottom_tab = restored["workbench_bottom_tab"] or workbench_bottom_tab
+                workbench_inspector_mode = restored["workbench_inspector_mode"] or workbench_inspector_mode
+                split_view_enabled = restored["split_view_enabled"]
+                split_view_mode = restored["split_view_mode"] or split_view_mode
+                split_orientation = restored["split_orientation"] or split_orientation
+                active_pane_id = restored["active_pane_id"] or active_pane_id
+                left_pane_document_id = str((restored["pane_documents"].get("LEFT", {}) or {}).get("document_id") or selected_workbench_document_id or selected_review_document_id)
+                right_pane_document_id = str((restored["pane_documents"].get("RIGHT", {}) or {}).get("document_id") or "")
+                compare_session = dict(restored["compare_session"] or {})
+                inspector_follow_mode = restored["inspector_follow_mode"] or inspector_follow_mode
+                selected_review_item_id = restored["selected_review_item_id"] or selected_review_item_id
+                review_filter_mode = restored["review_filter"] or review_filter_mode
+                selected_workspace_mode_id = restored["selected_workspace_mode_id"] or selected_workspace_mode_id
+                selected_layout_profile_id = restored["selected_layout_profile_id"] or selected_layout_profile_id
+                selected_panel_configuration_id = restored["selected_panel_configuration_id"] or selected_panel_configuration_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, left_pane_collapsed_value=left_pane_collapsed, right_pane_collapsed_value=right_pane_collapsed, bottom_pane_collapsed_value=bottom_pane_collapsed, selected_workspace_id_value=selected_workspace_id, workspace_dirty_value=False)
+                ctx["saved"] = True
+
+            elif action == "recover_workspace_autosave":
+                recovery = workspace_service.load_recovery_state()
+                selected_workspace_id = recovery.get("workspace_id", selected_workspace_id)
+                workspace_snapshot_id = recovery.get("snapshot_id", workspace_snapshot_id)
+                restored = apply_workspace_payload(dict(recovery.get("shell_state", {}) or {}))
+                selected_nav_submodule = restored["selected_nav_submodule"]
+                selected_workbench_document_id = restored["selected_workbench_document_id"]
+                selected_review_document_id = restored["selected_review_document_id"]
+                active_ribbon_tab = restored["active_ribbon_tab"] or active_ribbon_tab
+                left_pane_collapsed = restored["left_pane_collapsed"]
+                right_pane_collapsed = restored["right_pane_collapsed"]
+                bottom_pane_collapsed = restored["bottom_pane_collapsed"]
+                workbench_bottom_tab = restored["workbench_bottom_tab"] or workbench_bottom_tab
+                workbench_inspector_mode = restored["workbench_inspector_mode"] or workbench_inspector_mode
+                split_view_enabled = restored["split_view_enabled"]
+                split_view_mode = restored["split_view_mode"] or split_view_mode
+                split_orientation = restored["split_orientation"] or split_orientation
+                active_pane_id = restored["active_pane_id"] or active_pane_id
+                left_pane_document_id = str((restored["pane_documents"].get("LEFT", {}) or {}).get("document_id") or selected_workbench_document_id or selected_review_document_id)
+                right_pane_document_id = str((restored["pane_documents"].get("RIGHT", {}) or {}).get("document_id") or "")
+                compare_session = dict(restored["compare_session"] or {})
+                inspector_follow_mode = restored["inspector_follow_mode"] or inspector_follow_mode
+                selected_review_item_id = restored["selected_review_item_id"] or selected_review_item_id
+                review_filter_mode = restored["review_filter"] or review_filter_mode
+                selected_workspace_mode_id = restored["selected_workspace_mode_id"] or selected_workspace_mode_id
+                selected_layout_profile_id = restored["selected_layout_profile_id"] or selected_layout_profile_id
+                selected_panel_configuration_id = restored["selected_panel_configuration_id"] or selected_panel_configuration_id
+                ctx = build_ctx(state, selected_crew_id_value=selected_crew_id, selected_port_name_value=selected_port_name, selected_review_document_id_value=selected_review_document_id, review_filter_mode_value=review_filter_mode, selected_workbench_document_id_value=selected_workbench_document_id, selected_workbench_anchor_id_value="", selected_workbench_cell_id_value="", selected_workbench_block_id_value="", workbench_selected_page_value=workbench_selected_page, workbench_tool_mode_value=workbench_tool_mode, workbench_center_mode_value=workbench_center_mode, workbench_bottom_tab_value=workbench_bottom_tab, workbench_inspector_mode_value=workbench_inspector_mode, workbench_filter_document_type_value=workbench_filter_document_type, workbench_filter_status_value=workbench_filter_status, workbench_search_text_value=workbench_search_text, active_ribbon_tab_value=active_ribbon_tab, left_pane_collapsed_value=left_pane_collapsed, right_pane_collapsed_value=right_pane_collapsed, bottom_pane_collapsed_value=bottom_pane_collapsed, selected_workspace_id_value=selected_workspace_id, workspace_snapshot_id_value=workspace_snapshot_id, workspace_dirty_value=False, restore_candidate_workspace_id_value=selected_workspace_id, restore_candidate_snapshot_id_value=workspace_snapshot_id)
+                ctx["saved"] = True
+
+            elif action == "open_workbench_document":
                 workbench_document_id = request.form.get("workbench_document_id", "").strip()
                 queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                selected_workbench_anchor_id = ""
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
                 workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
                 workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
                 workbench_search_text = request.form.get("workbench_search_text", "").strip()
@@ -1170,6 +3172,8 @@ def portalis():
                     operator_name=queue_operator_name,
                 )
                 selected_workbench_document_id = workbench_document_id
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
                 ctx = build_ctx(
                     state,
                     selected_crew_id_value=selected_crew_id,
@@ -1177,6 +3181,14 @@ def portalis():
                     selected_review_document_id_value=selected_review_document_id,
                     review_filter_mode_value=review_filter_mode,
                     selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
                     workbench_filter_document_type_value=workbench_filter_document_type,
                     workbench_filter_status_value=workbench_filter_status,
                     workbench_search_text_value=workbench_search_text,
@@ -1189,6 +3201,8 @@ def portalis():
                 workbench_status_value = request.form.get("workbench_status_value", "").strip().upper()
                 workbench_tags_value = request.form.get("workbench_tags_value", "").strip()
                 queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                selected_workbench_anchor_id = request.form.get("workbench_anchor_id", "").strip()
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
                 workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
                 workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
                 workbench_search_text = request.form.get("workbench_search_text", "").strip()
@@ -1212,6 +3226,769 @@ def portalis():
                     selected_review_document_id_value=selected_review_document_id,
                     review_filter_mode_value=review_filter_mode,
                     selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "select_workbench_anchor":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_anchor_id = request.form.get("workbench_anchor_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                if not workbench_document_id or not selected_workbench_anchor_id:
+                    raise ValueError("workbench document and anchor are required")
+                select_document_anchor(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    anchor_id=selected_workbench_anchor_id,
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "clear_workbench_selection":
+                selected_workbench_anchor_id = ""
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value="",
+                    selected_workbench_cell_id_value="",
+                    selected_workbench_block_id_value="",
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "add_workbench_anchor":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                updated_document = add_document_anchor(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    anchor_type=request.form.get("anchor_type", "").strip() or workbench_tool_mode.replace("ADD_", ""),
+                    page_number=request.form.get("anchor_page_number", "1").strip() or "1",
+                    x1=request.form.get("anchor_x1", "10").strip() or "10",
+                    y1=request.form.get("anchor_y1", "10").strip() or "10",
+                    x2=request.form.get("anchor_x2", "30").strip() or "30",
+                    y2=request.form.get("anchor_y2", "20").strip() or "20",
+                    field_name=request.form.get("anchor_field_name", "").strip(),
+                    label=request.form.get("anchor_label", "").strip(),
+                    note=request.form.get("anchor_note", "").strip(),
+                    linked_annotation_id=request.form.get("anchor_linked_annotation_id", "").strip(),
+                    linked_scratchpad_id=request.form.get("anchor_linked_scratchpad_id", "").strip(),
+                    linked_entity_field=request.form.get("anchor_linked_entity_field", "").strip(),
+                    confidence=request.form.get("anchor_confidence", "").strip() or None,
+                    status=request.form.get("anchor_status", "").strip() or "ACTIVE",
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_anchor_id = str((updated_document.get("anchors") or [{}])[-1].get("anchor_id") or "")
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "update_workbench_anchor":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_anchor_id = request.form.get("workbench_anchor_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                update_document_anchor(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    anchor_id=selected_workbench_anchor_id,
+                    anchor_type=request.form.get("anchor_type", "").strip(),
+                    page_number=request.form.get("anchor_page_number", "1").strip() or "1",
+                    x1=request.form.get("anchor_x1", "").strip() or None,
+                    y1=request.form.get("anchor_y1", "").strip() or None,
+                    x2=request.form.get("anchor_x2", "").strip() or None,
+                    y2=request.form.get("anchor_y2", "").strip() or None,
+                    field_name=request.form.get("anchor_field_name", "").strip(),
+                    label=request.form.get("anchor_label", "").strip(),
+                    note=request.form.get("anchor_note", "").strip(),
+                    linked_annotation_id=request.form.get("anchor_linked_annotation_id", "").strip(),
+                    linked_scratchpad_id=request.form.get("anchor_linked_scratchpad_id", "").strip(),
+                    linked_entity_field=request.form.get("anchor_linked_entity_field", "").strip(),
+                    confidence=request.form.get("anchor_confidence", "").strip() or None,
+                    status=request.form.get("anchor_status", "").strip(),
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "delete_workbench_anchor":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_anchor_id = request.form.get("workbench_anchor_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                delete_document_anchor(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    anchor_id=selected_workbench_anchor_id,
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_anchor_id = ""
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value="",
+                    selected_workbench_cell_id_value="",
+                    selected_workbench_block_id_value="",
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "add_workbench_annotation":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                add_workbench_annotation(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    annotation_type=request.form.get("annotation_type", "").strip(),
+                    label=request.form.get("annotation_label", "").strip(),
+                    note=request.form.get("annotation_note", "").strip(),
+                    page_number=request.form.get("annotation_page_number", "1").strip() or "1",
+                    region_hint=request.form.get("annotation_region_hint", "").strip(),
+                    status=request.form.get("annotation_status", "").strip() or "ACTIVE",
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "update_workbench_annotation":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                annotation_id = request.form.get("annotation_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                update_workbench_annotation(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    annotation_id=annotation_id,
+                    annotation_type=request.form.get("annotation_type", "").strip(),
+                    label=request.form.get("annotation_label", "").strip(),
+                    note=request.form.get("annotation_note", "").strip(),
+                    page_number=request.form.get("annotation_page_number", "1").strip() or "1",
+                    region_hint=request.form.get("annotation_region_hint", "").strip(),
+                    status=request.form.get("annotation_status", "").strip() or "ACTIVE",
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "delete_workbench_annotation":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                annotation_id = request.form.get("annotation_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                delete_workbench_annotation(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    annotation_id=annotation_id,
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "add_workbench_scratchpad":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                add_workbench_scratchpad_field(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    field_name=request.form.get("scratchpad_field_name", "").strip(),
+                    candidate_value=request.form.get("scratchpad_candidate_value", "").strip(),
+                    linked_entity_field=request.form.get("scratchpad_linked_entity_field", "").strip(),
+                    confidence_note=request.form.get("scratchpad_confidence_note", "").strip(),
+                    source_hint=request.form.get("scratchpad_source_hint", "").strip(),
+                    operator_note=request.form.get("scratchpad_operator_note", "").strip(),
+                    status=request.form.get("scratchpad_status", "").strip() or "DRAFT",
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "update_workbench_scratchpad":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                scratchpad_id = request.form.get("scratchpad_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                update_workbench_scratchpad_field(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    scratchpad_id=scratchpad_id,
+                    field_name=request.form.get("scratchpad_field_name", "").strip(),
+                    candidate_value=request.form.get("scratchpad_candidate_value", "").strip(),
+                    linked_entity_field=request.form.get("scratchpad_linked_entity_field", "").strip(),
+                    confidence_note=request.form.get("scratchpad_confidence_note", "").strip(),
+                    source_hint=request.form.get("scratchpad_source_hint", "").strip(),
+                    operator_note=request.form.get("scratchpad_operator_note", "").strip(),
+                    status=request.form.get("scratchpad_status", "").strip() or "DRAFT",
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "delete_workbench_scratchpad":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                scratchpad_id = request.form.get("scratchpad_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                delete_workbench_scratchpad_field(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    scratchpad_id=scratchpad_id,
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "select_workbench_cell":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_cell_id = request.form.get("workbench_cell_id", "").strip()
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                if not workbench_document_id or not selected_workbench_cell_id:
+                    raise ValueError("workbench document and cell are required")
+                select_reconstruction_cell(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    cell_id=selected_workbench_cell_id,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_anchor_id = ""
+                selected_workbench_block_id = ""
+                workbench_inspector_mode = "SELECTION"
+                workbench_bottom_tab = "RECONSTRUCTION"
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "select_workbench_block":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_block_id = request.form.get("workbench_block_id", "").strip()
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                if not workbench_document_id or not selected_workbench_block_id:
+                    raise ValueError("workbench document and block are required")
+                select_reconstruction_block(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    block_id=selected_workbench_block_id,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_anchor_id = ""
+                selected_workbench_cell_id = ""
+                workbench_inspector_mode = "SELECTION"
+                workbench_bottom_tab = "RECONSTRUCTION"
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "update_workbench_cell":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_cell_id = request.form.get("workbench_cell_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                update_reconstruction_cell(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    cell_id=selected_workbench_cell_id,
+                    text_value=request.form.get("cell_text_value", ""),
+                    content_type=request.form.get("cell_content_type", ""),
+                    linked_field_name=request.form.get("cell_linked_field_name", ""),
+                    linked_anchor_id=request.form.get("cell_linked_anchor_id", ""),
+                    editable_flag=request.form.get("cell_editable_flag", "").strip() or None,
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_anchor_id = ""
+                selected_workbench_block_id = ""
+                workbench_inspector_mode = "SELECTION"
+                workbench_bottom_tab = "RECONSTRUCTION"
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "clear_workbench_cell":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_cell_id = request.form.get("workbench_cell_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                clear_reconstruction_cell(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    cell_id=selected_workbench_cell_id,
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_anchor_id = ""
+                selected_workbench_block_id = ""
+                workbench_inspector_mode = "SELECTION"
+                workbench_bottom_tab = "RECONSTRUCTION"
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "merge_workbench_cells":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_cell_id = request.form.get("workbench_cell_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                updated_document = merge_reconstruction_cells(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    lead_cell_id=selected_workbench_cell_id,
+                    row_span=request.form.get("block_row_span", "1"),
+                    col_span=request.form.get("block_col_span", "1"),
+                    label=request.form.get("block_label", ""),
+                    note=request.form.get("block_note", ""),
+                    linked_anchor_id=request.form.get("block_linked_anchor_id", ""),
+                    operator_name=queue_operator_name,
+                )
+                blocks = list(updated_document.get("reconstruction_grid", {}).get("blocks", []) or [])
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_anchor_id = ""
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = str(blocks[-1].get("block_id") or "") if blocks else ""
+                workbench_inspector_mode = "SELECTION"
+                workbench_bottom_tab = "RECONSTRUCTION"
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "split_workbench_block":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_block_id = request.form.get("workbench_block_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                split_reconstruction_block(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    block_id=selected_workbench_block_id,
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_anchor_id = ""
+                selected_workbench_cell_id = ""
+                selected_workbench_block_id = ""
+                workbench_inspector_mode = "SELECTION"
+                workbench_bottom_tab = "RECONSTRUCTION"
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "update_workbench_block":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                selected_workbench_block_id = request.form.get("workbench_block_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_tool_mode = request.form.get("workbench_tool_mode", "").strip().upper() or "SELECT"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+                update_reconstruction_block(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    block_id=selected_workbench_block_id,
+                    label=request.form.get("block_label", ""),
+                    note=request.form.get("block_note", ""),
+                    linked_anchor_id=request.form.get("block_linked_anchor_id", ""),
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                selected_workbench_anchor_id = ""
+                selected_workbench_cell_id = ""
+                workbench_inspector_mode = "SELECTION"
+                workbench_bottom_tab = "RECONSTRUCTION"
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    selected_workbench_anchor_id_value=selected_workbench_anchor_id,
+                    selected_workbench_cell_id_value=selected_workbench_cell_id,
+                    selected_workbench_block_id_value=selected_workbench_block_id,
+                    workbench_selected_page_value=workbench_selected_page,
+                    workbench_tool_mode_value=workbench_tool_mode,
+                    workbench_center_mode_value=workbench_center_mode,
+                    workbench_bottom_tab_value=workbench_bottom_tab,
+                    workbench_inspector_mode_value=workbench_inspector_mode,
                     workbench_filter_document_type_value=workbench_filter_document_type,
                     workbench_filter_status_value=workbench_filter_status,
                     workbench_search_text_value=workbench_search_text,
@@ -1780,6 +4557,42 @@ def portalis():
                     intake_action=intake_action,
                     operator_name=queue_operator_name,
                     intake_note=intake_note,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_dropzone_action":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                handshake_action = request.form.get("queue_dropzone_action", "").strip().upper()
+                handshake_note = request.form.get("queue_dropzone_note", "").strip()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not handshake_action:
+                    raise ValueError("queue_dropzone_action is required")
+
+                apply_dropzone_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    handshake_action=handshake_action,
+                    operator_name=queue_operator_name,
+                    handshake_note=handshake_note,
                 )
 
                 state.review_queue.last_document_id = review_document_id

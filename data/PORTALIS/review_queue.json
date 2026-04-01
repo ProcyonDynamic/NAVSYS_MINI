@@ -61,6 +61,12 @@
       "intake_contracts": {},
       "intake_acks": {},
       "intake_actions": [],
+      "dropzone_handshakes": {},
+      "dropzone_receipts": {},
+      "dropzone_receipt_history": {},
+      "dropzone_reconciliation": {},
+      "dropzone_recovery": {},
+      "dropzone_actions": [],
       "status": "PENDING",
       "tce": {
         "WHAT": {
@@ -86,14 +92,14 @@
           "imported_at": "2026-03-31T18:01:41Z",
           "issue_date": "48 Jul 23",
           "expiry_date": "22 Jan 00",
-          "escalated_at": "2026-04-01T00:13:17Z",
-          "triaged_at": "2026-04-01T00:13:17Z",
-          "assigned_at": "2026-04-01T00:13:17Z",
-          "routing_evaluated_at": "2026-04-01T00:13:17Z",
-          "watch_triggered_at": "2026-04-01T00:13:17Z",
-          "sla_evaluated_at": "2026-04-01T00:13:17Z",
+          "escalated_at": "2026-04-01T23:48:34Z",
+          "triaged_at": "2026-04-01T23:48:34Z",
+          "assigned_at": "2026-04-01T23:48:34Z",
+          "routing_evaluated_at": "2026-04-01T23:48:34Z",
+          "watch_triggered_at": "2026-04-01T23:48:34Z",
+          "sla_evaluated_at": "2026-04-01T23:48:34Z",
           "reminder_due_at": {},
-          "reminder_staged_at": "2026-04-01T00:13:17Z",
+          "reminder_staged_at": "2026-04-01T23:48:34Z",
           "reminder_sent_at": {},
           "snoozed_until": {},
           "notification_created_at": {},
@@ -110,7 +116,11 @@
           "export_staged_at": {},
           "export_completed_at": {},
           "intake_received_at": {},
-          "intake_acknowledged_at": {}
+          "intake_acknowledged_at": {},
+          "dropzone_staged_at": {},
+          "receipt_received_at": {},
+          "reconciled_at": {},
+          "recovery_marked_at": {}
         },
         "WHERE": {
           "source_file": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
@@ -203,7 +213,19 @@
             "INTAKE_INVALID": 0,
             "INTAKE_SKIPPED": 0
           },
-          "intake_validation_summary": {}
+          "intake_validation_summary": {},
+          "handshake_summary": {
+            "DROPZONE_STAGED": 0,
+            "DROPZONE_WRITTEN": 0,
+            "RECEIPT_PENDING": 0,
+            "RECEIPT_ACCEPTED": 0,
+            "RECEIPT_REJECTED": 0,
+            "RECEIPT_FAILED": 0,
+            "RECEIPT_MISSING": 0
+          },
+          "dropzone_summary": {},
+          "reconciliation_summary": {},
+          "recovery_summary": {}
         },
         "WHY": {
           "operational_reason": "Portalis import for Crew Passport",
@@ -224,7 +246,11 @@
           "export_reason": {},
           "bridge_reason": {},
           "intake_reason": {},
-          "intake_rejection_reason": {}
+          "intake_rejection_reason": {},
+          "handshake_reason": {},
+          "receipt_reason": {},
+          "recovery_reason": {},
+          "restage_reason": {}
         }
       },
       "resolution_reason": "",
@@ -283,6 +309,12 @@
       "intake_contracts": {},
       "intake_acks": {},
       "intake_actions": [],
+      "dropzone_handshakes": {},
+      "dropzone_receipts": {},
+      "dropzone_receipt_history": {},
+      "dropzone_reconciliation": {},
+      "dropzone_recovery": {},
+      "dropzone_actions": [],
       "status": "PENDING",
       "tce": {
         "WHAT": {
@@ -290,14 +322,14 @@
         },
         "WHO": {},
         "WHEN": {
-          "escalated_at": "2026-04-01T00:13:17Z",
-          "triaged_at": "2026-04-01T00:13:17Z",
-          "assigned_at": "2026-04-01T00:13:17Z",
-          "routing_evaluated_at": "2026-04-01T00:13:17Z",
-          "watch_triggered_at": "2026-04-01T00:13:17Z",
-          "sla_evaluated_at": "2026-04-01T00:13:17Z",
+          "escalated_at": "2026-04-01T23:48:34Z",
+          "triaged_at": "2026-04-01T23:48:34Z",
+          "assigned_at": "2026-04-01T23:48:34Z",
+          "routing_evaluated_at": "2026-04-01T23:48:34Z",
+          "watch_triggered_at": "2026-04-01T23:48:34Z",
+          "sla_evaluated_at": "2026-04-01T23:48:34Z",
           "reminder_due_at": {},
-          "reminder_staged_at": "2026-04-01T00:13:17Z",
+          "reminder_staged_at": "2026-04-01T23:48:34Z",
           "reminder_sent_at": {},
           "snoozed_until": {},
           "notification_created_at": {},
@@ -314,7 +346,11 @@
           "export_staged_at": {},
           "export_completed_at": {},
           "intake_received_at": {},
-          "intake_acknowledged_at": {}
+          "intake_acknowledged_at": {},
+          "dropzone_staged_at": {},
+          "receipt_received_at": {},
+          "reconciled_at": {},
+          "recovery_marked_at": {}
         },
         "WHERE": {},
         "HOW": {
@@ -378,7 +414,19 @@
             "INTAKE_INVALID": 0,
             "INTAKE_SKIPPED": 0
           },
-          "intake_validation_summary": {}
+          "intake_validation_summary": {},
+          "handshake_summary": {
+            "DROPZONE_STAGED": 0,
+            "DROPZONE_WRITTEN": 0,
+            "RECEIPT_PENDING": 0,
+            "RECEIPT_ACCEPTED": 0,
+            "RECEIPT_REJECTED": 0,
+            "RECEIPT_FAILED": 0,
+            "RECEIPT_MISSING": 0
+          },
+          "dropzone_summary": {},
+          "reconciliation_summary": {},
+          "recovery_summary": {}
         },
         "WHY": {
           "escalation_reason": {},
@@ -397,7 +445,11 @@
           "export_reason": {},
           "bridge_reason": {},
           "intake_reason": {},
-          "intake_rejection_reason": {}
+          "intake_rejection_reason": {},
+          "handshake_reason": {},
+          "receipt_reason": {},
+          "recovery_reason": {},
+          "restage_reason": {}
         }
       },
       "resolution_reason": "",

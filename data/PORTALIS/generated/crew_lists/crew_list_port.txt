@@ -1,0 +1,18 @@
+PORTALIS MINI - CREW LIST
+Generated (UTC): 2026-04-01T00:25:17Z
+------------------------------------------------------------------------
+Vessel: 
+IMO: 
+Voyage No: 
+Arrival Port: 
+------------------------------------------------------------------------
+No.  Name                           Rank                 Crew ID     
+------------------------------------------------------------------------
+1                                                        crew_test_001
+2    Dick Chaney                    2nd Officer          crew_1c51b2 
+3    Dick Chaney                    2nd Officer          crew_042bce 
+4    Edouard Kouimov                3rd Officer          crew_0b9142 
+5    xexee                          4th Engineer         crew_25c609 
+6    Rufon Noel III                 SuperSayan           crew_4d98d1 
+------------------------------------------------------------------------
+Total Crew: 6

@@ -1,0 +1,694 @@
+{
+  "files": {
+    "DOC_000001": {
+      "file_id": "DOC_000001",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T22:03:56.011004",
+      "updated_at": "2026-03-16T22:03:56.011004"
+    },
+    "DOC_000002": {
+      "file_id": "DOC_000002",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T22:56:37.089656",
+      "updated_at": "2026-03-16T22:56:37.089656"
+    },
+    "DOC_000003": {
+      "file_id": "DOC_000003",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T23:00:40.607002",
+      "updated_at": "2026-03-16T23:00:40.607002"
+    },
+    "DOC_000004": {
+      "file_id": "DOC_000004",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T23:08:09.138513",
+      "updated_at": "2026-03-16T23:08:09.138513"
+    },
+    "DOC_000005": {
+      "file_id": "DOC_000005",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T23:14:40.234523",
+      "updated_at": "2026-03-16T23:14:40.234523"
+    },
+    "DOC_000006": {
+      "file_id": "DOC_000006",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T23:18:47.606694",
+      "updated_at": "2026-03-16T23:18:47.606694"
+    },
+    "DOC_000007": {
+      "file_id": "DOC_000007",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T23:34:41.639465",
+      "updated_at": "2026-03-16T23:34:41.639465"
+    },
+    "DOC_000008": {
+      "file_id": "DOC_000008",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T23:40:02.670813",
+      "updated_at": "2026-03-16T23:40:02.670813"
+    },
+    "DOC_000009": {
+      "file_id": "DOC_000009",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T23:45:50.340410",
+      "updated_at": "2026-03-16T23:45:50.340410"
+    },
+    "DOC_000010": {
+      "file_id": "DOC_000010",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T23:47:36.079924",
+      "updated_at": "2026-03-16T23:47:36.079924"
+    },
+    "DOC_000011": {
+      "file_id": "DOC_000011",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-16T23:54:06.483254",
+      "updated_at": "2026-03-16T23:54:06.483254"
+    },
+    "DOC_000012": {
+      "file_id": "DOC_000012",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-17T00:01:25.310912",
+      "updated_at": "2026-03-17T00:01:25.310912"
+    },
+    "DOC_000013": {
+      "file_id": "DOC_000013",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-17T00:04:53.841352",
+      "updated_at": "2026-03-17T00:04:53.841352"
+    },
+    "DOC_000014": {
+      "file_id": "DOC_000014",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-17T00:09:13.311825",
+      "updated_at": "2026-03-17T00:09:13.311825"
+    },
+    "DOC_000015": {
+      "file_id": "DOC_000015",
+      "display_name": "passport",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-17T00:38:35.853406",
+      "updated_at": "2026-03-17T00:38:35.853406"
+    },
+    "DOC_000016": {
+      "file_id": "DOC_000016",
+      "display_name": "passport",
+      "source_path": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-19T23:05:08.277917",
+      "updated_at": "2026-03-19T23:05:08.277917"
+    },
+    "DOC_000017": {
+      "file_id": "DOC_000017",
+      "display_name": "passport",
+      "source_path": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-19T23:08:25.138340",
+      "updated_at": "2026-03-19T23:08:25.138340"
+    },
+    "DOC_000018": {
+      "file_id": "DOC_000018",
+      "display_name": "passport",
+      "source_path": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-19T23:13:00.931696",
+      "updated_at": "2026-03-19T23:13:00.931696"
+    },
+    "DOC_000019": {
+      "file_id": "DOC_000019",
+      "display_name": "passport",
+      "source_path": "data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-19T23:26:42.703295",
+      "updated_at": "2026-03-19T23:26:42.703295"
+    },
+    "DOC_000020": {
+      "file_id": "DOC_000020",
+      "display_name": "passport",
+      "source_path": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-31T17:46:37.379912",
+      "updated_at": "2026-03-31T17:46:37.379912"
+    },
+    "DOC_000021": {
+      "file_id": "DOC_000021",
+      "display_name": "passport",
+      "source_path": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-03-31T18:01:41.282029",
+      "updated_at": "2026-03-31T18:01:41.282029"
+    },
+    "DOC_000022": {
+      "file_id": "DOC_000022",
+      "display_name": "workspace_note",
+      "source_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\documents\\workspace_note\\new_workspace_file.txt",
+      "file_type": "workspace_note",
+      "status": "ACTIVE",
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "archived": false,
+      "linked": false,
+      "favorite": false,
+      "opened_in_tabs": false,
+      "created_at": "2026-04-01T23:20:13.266316+00:00",
+      "updated_at": "2026-04-01T23:20:13.266316+00:00"
+    }
+  },
+  "archive_records": [],
+  "last_action_result": {
+    "action_id": "FILE_ADDED::DOC_000022",
+    "success": true,
+    "result_file_id": "DOC_000022",
+    "message": "Created a new workspace file record.",
+    "warnings": [],
+    "updated_refs": {},
+    "completed_at": "2026-04-01T23:20:13Z"
+  },
+  "action_history": [
+    {
+      "action": {
+        "action_id": "FILE_ADDED::DOC_000022",
+        "action_type": "CREATE_FILE",
+        "target_file_id": "DOC_000022",
+        "target_workspace_id": "STUDIO",
+        "target_task_workspace_id": "",
+        "requested_name": "New Workspace File",
+        "requested_at": "2026-04-01T23:20:13Z",
+        "requested_by": "operator",
+        "options": {}
+      },
+      "result": {
+        "action_id": "FILE_ADDED::DOC_000022",
+        "success": true,
+        "result_file_id": "DOC_000022",
+        "message": "Created a new workspace file record.",
+        "warnings": [],
+        "updated_refs": {},
+        "completed_at": "2026-04-01T23:20:13Z"
+      }
+    }
+  ],
+  "physical_files": {
+    "FILE_000001": {
+      "file_id": "FILE_000001",
+      "display_name": "passport_sample.pdf",
+      "original_filename": "passport_sample.pdf",
+      "absolute_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\test_docs\\passport_sample.pdf",
+      "file_hash": "86957e0cdbbbcc6aaea1c5400fd11a4a669be218ab55267779e42a969d038b04",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "linked": false,
+      "archived": false,
+      "favorite": false,
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "imported_at": "2026-03-16T22:03:56.011004",
+      "updated_at": "2026-04-01T23:46:12Z",
+      "size": 453901,
+      "mtime": 1761663558.0
+    },
+    "FILE_000002": {
+      "file_id": "FILE_000002",
+      "display_name": "sample_passport.pdf",
+      "original_filename": "sample_passport.pdf",
+      "absolute_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
+      "file_hash": "21599b04b431a19de0de0a1ef4a19f78a51376abfed2e523c28f9f30a9203aba",
+      "file_type": "passport",
+      "status": "ACTIVE",
+      "linked": false,
+      "archived": false,
+      "favorite": false,
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "imported_at": "2026-03-19T23:05:08.277917",
+      "updated_at": "2026-04-01T23:46:13Z",
+      "size": 204047,
+      "mtime": 1772818980.0
+    },
+    "FILE_000003": {
+      "file_id": "FILE_000003",
+      "display_name": "new_workspace_file.txt",
+      "original_filename": "new_workspace_file.txt",
+      "absolute_path": "D:\\NAVSYS_USB\\data\\PORTALIS\\documents\\workspace_note\\new_workspace_file.txt",
+      "file_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file_type": "workspace_note",
+      "status": "ACTIVE",
+      "linked": false,
+      "archived": false,
+      "favorite": false,
+      "workspace_membership": [
+        "STUDIO"
+      ],
+      "imported_at": "2026-04-01T23:20:13.266316+00:00",
+      "updated_at": "2026-04-01T23:46:13Z",
+      "size": 0,
+      "mtime": 1775085614.0
+    }
+  },
+  "document_instances": {
+    "DOC_000001": {
+      "document_id": "DOC_000001",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T22:03:56.011004",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000002": {
+      "document_id": "DOC_000002",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T22:56:37.089656",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000003": {
+      "document_id": "DOC_000003",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T23:00:40.607002",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000004": {
+      "document_id": "DOC_000004",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T23:08:09.138513",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000005": {
+      "document_id": "DOC_000005",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T23:14:40.234523",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000006": {
+      "document_id": "DOC_000006",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T23:18:47.606694",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000007": {
+      "document_id": "DOC_000007",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T23:34:41.639465",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000008": {
+      "document_id": "DOC_000008",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T23:40:02.670813",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000009": {
+      "document_id": "DOC_000009",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T23:45:50.340410",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000010": {
+      "document_id": "DOC_000010",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T23:47:36.079924",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000011": {
+      "document_id": "DOC_000011",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-16T23:54:06.483254",
+      "updated_at": "2026-04-01T23:46:12Z"
+    },
+    "DOC_000012": {
+      "document_id": "DOC_000012",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-17T00:01:25.310912",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000013": {
+      "document_id": "DOC_000013",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-17T00:04:53.841352",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000014": {
+      "document_id": "DOC_000014",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-17T00:09:13.311825",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000015": {
+      "document_id": "DOC_000015",
+      "file_id": "FILE_000001",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-17T00:38:35.853406",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000016": {
+      "document_id": "DOC_000016",
+      "file_id": "FILE_000002",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-19T23:05:08.277917",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000017": {
+      "document_id": "DOC_000017",
+      "file_id": "FILE_000002",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-19T23:08:25.138340",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000018": {
+      "document_id": "DOC_000018",
+      "file_id": "FILE_000002",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-19T23:13:00.931696",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000019": {
+      "document_id": "DOC_000019",
+      "file_id": "FILE_000002",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-19T23:26:42.703295",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000020": {
+      "document_id": "DOC_000020",
+      "file_id": "FILE_000002",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-31T17:46:37.379912",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000021": {
+      "document_id": "DOC_000021",
+      "file_id": "FILE_000002",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-03-31T18:01:41.282029",
+      "updated_at": "2026-04-01T23:46:13Z"
+    },
+    "DOC_000022": {
+      "document_id": "DOC_000022",
+      "file_id": "FILE_000003",
+      "workspace_id": "STUDIO",
+      "task_workspace_id": "",
+      "mode": "WORKSPACE",
+      "status": "ACTIVE",
+      "active": false,
+      "created_at": "2026-04-01T23:20:13.266316+00:00",
+      "updated_at": "2026-04-01T23:46:13Z"
+    }
+  },
+  "import_sessions": []
+}

@@ -103,6 +103,12 @@ def load_review_queue(portalis_root: str | Path) -> List[ReviewQueueItem]:
                 intake_contracts=dict(item.get("intake_contracts", {})),
                 intake_acks=dict(item.get("intake_acks", {})),
                 intake_actions=list(item.get("intake_actions", [])),
+                dropzone_handshakes=dict(item.get("dropzone_handshakes", {})),
+                dropzone_receipts=dict(item.get("dropzone_receipts", {})),
+                dropzone_receipt_history=dict(item.get("dropzone_receipt_history", {})),
+                dropzone_reconciliation=dict(item.get("dropzone_reconciliation", {})),
+                dropzone_recovery=dict(item.get("dropzone_recovery", {})),
+                dropzone_actions=list(item.get("dropzone_actions", [])),
                 status=item.get("status", "PENDING"),
                 tce=TCELiteEnvelope(
                     WHAT=dict(tce_payload.get("WHAT", {})),

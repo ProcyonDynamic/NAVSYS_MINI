@@ -12,7 +12,129 @@
         "crew.place_of_birth": "NAKHODKA"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T22:03:56.011004"
+      "created_at": "2026-03-16T22:03:56.011004",
+      "workbench_status": "IN_WORKBENCH",
+      "workbench_history": [
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T19:28:27Z"
+        }
+      ],
+      "workbench_opened_at": "2026-04-01T19:28:27Z",
+      "workbench_updated_at": "2026-04-01T19:28:27Z",
+      "tce_lite": {
+        "WHAT": {},
+        "WHO": {},
+        "WHEN": {
+          "document_opened_at": "2026-04-01T19:28:27Z",
+          "workbench_updated_at": "2026-04-01T19:28:27Z",
+          "workbench_state_updated_at": "2026-04-01T19:28:27Z",
+          "document_selected_at": "",
+          "anchor_created_at": "",
+          "anchor_updated_at": "",
+          "region_linked_at": "",
+          "annotation_created_at": "",
+          "scratchpad_updated_at": "",
+          "cell_updated_at": "",
+          "block_merged_at": "",
+          "block_split_at": "",
+          "reconstruction_started_at": "2026-04-01T19:28:27Z"
+        },
+        "WHERE": {},
+        "HOW": {
+          "workbench_summary": {
+            "document_type": "passport",
+            "linked_entity": "unknown",
+            "linked_entity_id": "unknown",
+            "status": "STORED",
+            "tags": []
+          },
+          "workbench_layout_summary": {
+            "application_shell": "KICAD_STYLE",
+            "center_workspace_dominant": true,
+            "bottom_tabs": [
+              "ALERTS",
+              "AUDIT",
+              "RECONSTRUCTION",
+              "REVIEW",
+              "SCRATCHPAD",
+              "TCE"
+            ]
+          },
+          "editor_summary": {
+            "selected_document_id": "DOC_000001",
+            "active_tool_mode": "SELECT",
+            "anchor_count": 0,
+            "selected_anchor_id": ""
+          },
+          "anchor_summary": {},
+          "region_edit_summary": {
+            "selected_anchor_id": "",
+            "linked_annotation_id": "",
+            "linked_scratchpad_id": ""
+          },
+          "reconstruction_edit_summary": {
+            "selected_cell_id": "",
+            "selected_block_id": "",
+            "selected_anchor_id": "",
+            "selected_cell": false,
+            "selected_block": false
+          },
+          "block_summary": {
+            "block_id": "",
+            "label": "",
+            "member_cells": [],
+            "merged_state": ""
+          },
+          "annotation_summary": {
+            "annotation_count": 0,
+            "selected_annotation_id": "",
+            "active_annotations": 0
+          },
+          "scratchpad_summary": {
+            "scratchpad_count": 0,
+            "selected_scratchpad_id": "",
+            "reviewed_entries": 0
+          },
+          "reconstruction_summary": {
+            "grid_rows": 0,
+            "grid_cols": 0,
+            "region_count": 0,
+            "block_count": 0,
+            "editable_surface": false
+          }
+        },
+        "WHY": {
+          "workbench_reason": {
+            "manual_first_workspace": true,
+            "notes_present": false
+          },
+          "reconstruction_reason": {
+            "grid_backed_foundation": true,
+            "document_engineering_surface": true
+          },
+          "editor_reason": {
+            "manual_anchor_editing": true,
+            "selected_anchor": false
+          },
+          "anchor_reason": {
+            "manual_region_editing": true,
+            "linked_region_context": false
+          },
+          "block_reason": {
+            "manual_structural_editing": true,
+            "manual_block_structuring": true,
+            "selected_block": false
+          },
+          "annotation_reason": {
+            "manual_annotation_capture": true,
+            "selected_annotation": false,
+            "selected_scratchpad": false
+          }
+        }
+      },
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000002",
@@ -26,7 +148,8 @@
         "crew.place_of_birth": "NAKHODKA"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T22:56:37.089656"
+      "created_at": "2026-03-16T22:56:37.089656",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000003",
@@ -40,7 +163,8 @@
         "crew.place_of_birth": "NAKHODKA"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T23:00:40.607002"
+      "created_at": "2026-03-16T23:00:40.607002",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000004",
@@ -54,7 +178,8 @@
         "crew.place_of_birth": "NAKHODKA"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T23:08:09.138513"
+      "created_at": "2026-03-16T23:08:09.138513",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000005",
@@ -74,7 +199,8 @@
         "passport.issue_date": "48 dul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T23:14:40.234523"
+      "created_at": "2026-03-16T23:14:40.234523",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000006",
@@ -94,7 +220,8 @@
         "passport.issue_date": "48 dul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T23:18:47.606694"
+      "created_at": "2026-03-16T23:18:47.606694",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000007",
@@ -114,7 +241,8 @@
         "passport.issue_date": "48 dul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T23:34:41.639465"
+      "created_at": "2026-03-16T23:34:41.639465",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000008",
@@ -134,7 +262,8 @@
         "passport.issue_date": "48 dul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T23:40:02.670813"
+      "created_at": "2026-03-16T23:40:02.670813",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000009",
@@ -154,7 +283,8 @@
         "passport.issue_date": "48 dul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T23:45:50.340410"
+      "created_at": "2026-03-16T23:45:50.340410",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000010",
@@ -174,7 +304,8 @@
         "passport.issue_date": "48 dul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T23:47:36.079924"
+      "created_at": "2026-03-16T23:47:36.079924",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000011",
@@ -194,7 +325,8 @@
         "passport.issue_date": "48 dul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-16T23:54:06.483254"
+      "created_at": "2026-03-16T23:54:06.483254",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000012",
@@ -214,7 +346,8 @@
         "passport.issue_date": "48 dul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-17T00:01:25.310912"
+      "created_at": "2026-03-17T00:01:25.310912",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000013",
@@ -234,7 +367,8 @@
         "passport.issue_date": "18 Jul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-17T00:04:53.841352"
+      "created_at": "2026-03-17T00:04:53.841352",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000014",
@@ -254,7 +388,8 @@
         "passport.issue_date": "48 Jul 23"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-17T00:09:13.311825"
+      "created_at": "2026-03-17T00:09:13.311825",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000015",
@@ -269,7 +404,8 @@
         "crew.sex": "F"
       },
       "confidence": 0.9,
-      "created_at": "2026-03-17T00:38:35.853406"
+      "created_at": "2026-03-17T00:38:35.853406",
+      "file_id": "FILE_000001"
     },
     {
       "document_id": "DOC_000016",
@@ -300,7 +436,129 @@
         "Could not normalize date for passport.expiry_date: 22 Jan 00",
         "Could not normalize date for passport.issue_date: 48 Jul 23"
       ],
-      "created_at": "2026-03-19T23:05:08.277917"
+      "created_at": "2026-03-19T23:05:08.277917",
+      "workbench_status": "IN_WORKBENCH",
+      "workbench_history": [
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T16:40:38Z"
+        }
+      ],
+      "workbench_opened_at": "2026-04-01T16:40:38Z",
+      "workbench_updated_at": "2026-04-01T16:40:38Z",
+      "tce_lite": {
+        "WHAT": {},
+        "WHO": {},
+        "WHEN": {
+          "document_opened_at": "2026-04-01T16:40:38Z",
+          "workbench_updated_at": "2026-04-01T16:40:38Z",
+          "workbench_state_updated_at": "2026-04-01T16:40:38Z",
+          "document_selected_at": "",
+          "anchor_created_at": "",
+          "anchor_updated_at": "",
+          "region_linked_at": "",
+          "annotation_created_at": "",
+          "scratchpad_updated_at": "",
+          "cell_updated_at": "",
+          "block_merged_at": "",
+          "block_split_at": "",
+          "reconstruction_started_at": "2026-04-01T16:40:38Z"
+        },
+        "WHERE": {},
+        "HOW": {
+          "workbench_summary": {
+            "document_type": "passport",
+            "linked_entity": "crew",
+            "linked_entity_id": "crew_test_001",
+            "status": "STORED",
+            "tags": []
+          },
+          "workbench_layout_summary": {
+            "application_shell": "KICAD_STYLE",
+            "center_workspace_dominant": true,
+            "bottom_tabs": [
+              "ALERTS",
+              "AUDIT",
+              "RECONSTRUCTION",
+              "REVIEW",
+              "SCRATCHPAD",
+              "TCE"
+            ]
+          },
+          "editor_summary": {
+            "selected_document_id": "DOC_000016",
+            "active_tool_mode": "SELECT",
+            "anchor_count": 0,
+            "selected_anchor_id": ""
+          },
+          "anchor_summary": {},
+          "region_edit_summary": {
+            "selected_anchor_id": "",
+            "linked_annotation_id": "",
+            "linked_scratchpad_id": ""
+          },
+          "reconstruction_edit_summary": {
+            "selected_cell_id": "",
+            "selected_block_id": "",
+            "selected_anchor_id": "",
+            "selected_cell": false,
+            "selected_block": false
+          },
+          "block_summary": {
+            "block_id": "",
+            "label": "",
+            "member_cells": [],
+            "merged_state": ""
+          },
+          "annotation_summary": {
+            "annotation_count": 0,
+            "selected_annotation_id": "",
+            "active_annotations": 0
+          },
+          "scratchpad_summary": {
+            "scratchpad_count": 0,
+            "selected_scratchpad_id": "",
+            "reviewed_entries": 0
+          },
+          "reconstruction_summary": {
+            "grid_rows": 0,
+            "grid_cols": 0,
+            "region_count": 0,
+            "block_count": 0,
+            "editable_surface": false
+          }
+        },
+        "WHY": {
+          "workbench_reason": {
+            "manual_first_workspace": true,
+            "notes_present": false
+          },
+          "reconstruction_reason": {
+            "grid_backed_foundation": true,
+            "document_engineering_surface": true
+          },
+          "editor_reason": {
+            "manual_anchor_editing": true,
+            "selected_anchor": false
+          },
+          "anchor_reason": {
+            "manual_region_editing": true,
+            "linked_region_context": false
+          },
+          "block_reason": {
+            "manual_structural_editing": true,
+            "manual_block_structuring": true,
+            "selected_block": false
+          },
+          "annotation_reason": {
+            "manual_annotation_capture": true,
+            "selected_annotation": false,
+            "selected_scratchpad": false
+          }
+        }
+      },
+      "file_id": "FILE_000002"
     },
     {
       "document_id": "DOC_000017",
@@ -331,7 +589,134 @@
         "Could not normalize date for passport.expiry_date: 22 Jan 00",
         "Could not normalize date for passport.issue_date: 48 Jul 23"
       ],
-      "created_at": "2026-03-19T23:08:25.138340"
+      "created_at": "2026-03-19T23:08:25.138340",
+      "workbench_status": "IN_WORKBENCH",
+      "workbench_history": [
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T14:14:06Z"
+        },
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T19:28:18Z"
+        }
+      ],
+      "workbench_opened_at": "2026-04-01T19:28:18Z",
+      "workbench_updated_at": "2026-04-01T19:28:18Z",
+      "tce_lite": {
+        "WHAT": {},
+        "WHO": {},
+        "WHEN": {
+          "document_opened_at": "2026-04-01T19:28:18Z",
+          "workbench_updated_at": "2026-04-01T19:28:18Z",
+          "workbench_state_updated_at": "2026-04-01T19:28:18Z",
+          "document_selected_at": "2026-04-01T14:14:06Z",
+          "anchor_created_at": "",
+          "anchor_updated_at": "",
+          "region_linked_at": "",
+          "annotation_created_at": "",
+          "scratchpad_updated_at": "",
+          "cell_updated_at": "",
+          "block_merged_at": "",
+          "block_split_at": "",
+          "reconstruction_started_at": "2026-04-01T19:28:18Z"
+        },
+        "WHERE": {},
+        "HOW": {
+          "workbench_summary": {
+            "document_type": "passport",
+            "linked_entity": "crew",
+            "linked_entity_id": "crew_test_001",
+            "status": "IN_WORKBENCH",
+            "tags": []
+          },
+          "workbench_layout_summary": {
+            "application_shell": "KICAD_STYLE",
+            "center_workspace_dominant": true,
+            "bottom_tabs": [
+              "ALERTS",
+              "AUDIT",
+              "RECONSTRUCTION",
+              "REVIEW",
+              "SCRATCHPAD",
+              "TCE"
+            ]
+          },
+          "editor_summary": {
+            "selected_document_id": "DOC_000017",
+            "active_tool_mode": "SELECT",
+            "anchor_count": 0,
+            "selected_anchor_id": ""
+          },
+          "anchor_summary": {},
+          "region_edit_summary": {
+            "selected_anchor_id": "",
+            "linked_annotation_id": "",
+            "linked_scratchpad_id": ""
+          },
+          "reconstruction_edit_summary": {
+            "selected_cell_id": "",
+            "selected_block_id": "",
+            "selected_anchor_id": "",
+            "selected_cell": false,
+            "selected_block": false
+          },
+          "block_summary": {
+            "block_id": "",
+            "label": "",
+            "member_cells": [],
+            "merged_state": ""
+          },
+          "annotation_summary": {
+            "annotation_count": 0,
+            "selected_annotation_id": "",
+            "active_annotations": 0
+          },
+          "scratchpad_summary": {
+            "scratchpad_count": 0,
+            "selected_scratchpad_id": "",
+            "reviewed_entries": 0
+          },
+          "reconstruction_summary": {
+            "grid_rows": 0,
+            "grid_cols": 0,
+            "region_count": 0,
+            "block_count": 0,
+            "editable_surface": false
+          }
+        },
+        "WHY": {
+          "workbench_reason": {
+            "manual_first_workspace": true,
+            "notes_present": false
+          },
+          "reconstruction_reason": {
+            "grid_backed_foundation": true,
+            "document_engineering_surface": true
+          },
+          "editor_reason": {
+            "manual_anchor_editing": true,
+            "selected_anchor": false
+          },
+          "anchor_reason": {
+            "manual_region_editing": true,
+            "linked_region_context": false
+          },
+          "block_reason": {
+            "manual_structural_editing": true,
+            "manual_block_structuring": true,
+            "selected_block": false
+          },
+          "annotation_reason": {
+            "manual_annotation_capture": true,
+            "selected_annotation": false,
+            "selected_scratchpad": false
+          }
+        }
+      },
+      "file_id": "FILE_000002"
     },
     {
       "document_id": "DOC_000018",
@@ -363,7 +748,8 @@
         "Could not normalize date for passport.issue_date: 48 Jul 23",
         "Missing required field: passport_number"
       ],
-      "created_at": "2026-03-19T23:13:00.931696"
+      "created_at": "2026-03-19T23:13:00.931696",
+      "file_id": "FILE_000002"
     },
     {
       "document_id": "DOC_000019",
@@ -394,7 +780,8 @@
         "Could not normalize date for passport.expiry_date: 22 Jan 00",
         "Could not normalize date for passport.issue_date: 48 Jul 23"
       ],
-      "created_at": "2026-03-19T23:26:42.703295"
+      "created_at": "2026-03-19T23:26:42.703295",
+      "file_id": "FILE_000002"
     },
     {
       "document_id": "DOC_000020",
@@ -425,7 +812,134 @@
         "Could not normalize date for passport.expiry_date: 22 Jan 00",
         "Could not normalize date for passport.issue_date: 48 Jul 23"
       ],
-      "created_at": "2026-03-31T17:46:37.379912"
+      "created_at": "2026-03-31T17:46:37.379912",
+      "workbench_status": "IN_WORKBENCH",
+      "workbench_history": [
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T16:40:36Z"
+        },
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T19:28:15Z"
+        }
+      ],
+      "workbench_opened_at": "2026-04-01T19:28:15Z",
+      "workbench_updated_at": "2026-04-01T19:28:15Z",
+      "tce_lite": {
+        "WHAT": {},
+        "WHO": {},
+        "WHEN": {
+          "document_opened_at": "2026-04-01T19:28:15Z",
+          "workbench_updated_at": "2026-04-01T19:28:15Z",
+          "workbench_state_updated_at": "2026-04-01T19:28:15Z",
+          "document_selected_at": "2026-04-01T16:40:36Z",
+          "anchor_created_at": "",
+          "anchor_updated_at": "",
+          "region_linked_at": "",
+          "annotation_created_at": "",
+          "scratchpad_updated_at": "",
+          "cell_updated_at": "",
+          "block_merged_at": "",
+          "block_split_at": "",
+          "reconstruction_started_at": "2026-04-01T19:28:15Z"
+        },
+        "WHERE": {},
+        "HOW": {
+          "workbench_summary": {
+            "document_type": "passport",
+            "linked_entity": "crew",
+            "linked_entity_id": "crew_test_001",
+            "status": "IN_WORKBENCH",
+            "tags": []
+          },
+          "workbench_layout_summary": {
+            "application_shell": "KICAD_STYLE",
+            "center_workspace_dominant": true,
+            "bottom_tabs": [
+              "ALERTS",
+              "AUDIT",
+              "RECONSTRUCTION",
+              "REVIEW",
+              "SCRATCHPAD",
+              "TCE"
+            ]
+          },
+          "editor_summary": {
+            "selected_document_id": "DOC_000020",
+            "active_tool_mode": "SELECT",
+            "anchor_count": 0,
+            "selected_anchor_id": ""
+          },
+          "anchor_summary": {},
+          "region_edit_summary": {
+            "selected_anchor_id": "",
+            "linked_annotation_id": "",
+            "linked_scratchpad_id": ""
+          },
+          "reconstruction_edit_summary": {
+            "selected_cell_id": "",
+            "selected_block_id": "",
+            "selected_anchor_id": "",
+            "selected_cell": false,
+            "selected_block": false
+          },
+          "block_summary": {
+            "block_id": "",
+            "label": "",
+            "member_cells": [],
+            "merged_state": ""
+          },
+          "annotation_summary": {
+            "annotation_count": 0,
+            "selected_annotation_id": "",
+            "active_annotations": 0
+          },
+          "scratchpad_summary": {
+            "scratchpad_count": 0,
+            "selected_scratchpad_id": "",
+            "reviewed_entries": 0
+          },
+          "reconstruction_summary": {
+            "grid_rows": 0,
+            "grid_cols": 0,
+            "region_count": 0,
+            "block_count": 0,
+            "editable_surface": false
+          }
+        },
+        "WHY": {
+          "workbench_reason": {
+            "manual_first_workspace": true,
+            "notes_present": false
+          },
+          "reconstruction_reason": {
+            "grid_backed_foundation": true,
+            "document_engineering_surface": true
+          },
+          "editor_reason": {
+            "manual_anchor_editing": true,
+            "selected_anchor": false
+          },
+          "anchor_reason": {
+            "manual_region_editing": true,
+            "linked_region_context": false
+          },
+          "block_reason": {
+            "manual_structural_editing": true,
+            "manual_block_structuring": true,
+            "selected_block": false
+          },
+          "annotation_reason": {
+            "manual_annotation_capture": true,
+            "selected_annotation": false,
+            "selected_scratchpad": false
+          }
+        }
+      },
+      "file_id": "FILE_000002"
     },
     {
       "document_id": "DOC_000021",
@@ -480,14 +994,14 @@
           "imported_at": "2026-03-31T18:01:41Z",
           "issue_date": "48 Jul 23",
           "expiry_date": "22 Jan 00",
-          "escalated_at": "2026-04-01T00:13:17Z",
-          "triaged_at": "2026-04-01T00:13:17Z",
-          "assigned_at": "2026-04-01T00:13:17Z",
-          "routing_evaluated_at": "2026-04-01T00:13:17Z",
-          "watch_triggered_at": "2026-04-01T00:13:17Z",
-          "sla_evaluated_at": "2026-04-01T00:13:17Z",
+          "escalated_at": "2026-04-01T23:48:34Z",
+          "triaged_at": "2026-04-01T23:48:34Z",
+          "assigned_at": "2026-04-01T23:48:34Z",
+          "routing_evaluated_at": "2026-04-01T23:48:34Z",
+          "watch_triggered_at": "2026-04-01T23:48:34Z",
+          "sla_evaluated_at": "2026-04-01T23:48:34Z",
           "reminder_due_at": {},
-          "reminder_staged_at": "2026-04-01T00:13:17Z",
+          "reminder_staged_at": "2026-04-01T23:48:34Z",
           "reminder_sent_at": {},
           "snoozed_until": {},
           "notification_created_at": {},
@@ -504,7 +1018,11 @@
           "export_staged_at": {},
           "export_completed_at": {},
           "intake_received_at": {},
-          "intake_acknowledged_at": {}
+          "intake_acknowledged_at": {},
+          "dropzone_staged_at": {},
+          "receipt_received_at": {},
+          "reconciled_at": {},
+          "recovery_marked_at": {}
         },
         "WHERE": {
           "source_file": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
@@ -597,7 +1115,19 @@
             "INTAKE_INVALID": 0,
             "INTAKE_SKIPPED": 0
           },
-          "intake_validation_summary": {}
+          "intake_validation_summary": {},
+          "handshake_summary": {
+            "DROPZONE_STAGED": 0,
+            "DROPZONE_WRITTEN": 0,
+            "RECEIPT_PENDING": 0,
+            "RECEIPT_ACCEPTED": 0,
+            "RECEIPT_REJECTED": 0,
+            "RECEIPT_FAILED": 0,
+            "RECEIPT_MISSING": 0
+          },
+          "dropzone_summary": {},
+          "reconciliation_summary": {},
+          "recovery_summary": {}
         },
         "WHY": {
           "operational_reason": "Portalis import for Crew Passport",
@@ -618,7 +1148,11 @@
           "export_reason": {},
           "bridge_reason": {},
           "intake_reason": {},
-          "intake_rejection_reason": {}
+          "intake_rejection_reason": {},
+          "handshake_reason": {},
+          "receipt_reason": {},
+          "recovery_reason": {},
+          "restage_reason": {}
         }
       },
       "operational_reason": "Portalis declared import for Crew Passport",
@@ -650,7 +1184,133 @@
       "external_bridge_actions": [],
       "intake_contracts": {},
       "intake_acks": {},
-      "intake_actions": []
+      "intake_actions": [],
+      "workbench_status": "IN_WORKBENCH",
+      "workbench_history": [
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T00:22:08Z"
+        },
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T16:39:59Z"
+        },
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T19:26:12Z"
+        },
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T19:28:12Z"
+        },
+        {
+          "action": "OPEN_DOCUMENT",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T23:15:28Z"
+        },
+        {
+          "action": "UPDATE_WORKBENCH",
+          "operator_name": "operator",
+          "acted_at": "2026-04-01T23:15:36Z",
+          "status": "IN_WORKBENCH",
+          "tags": []
+        }
+      ],
+      "workbench_opened_at": "2026-04-01T23:15:28Z",
+      "workbench_updated_at": "2026-04-01T23:15:36Z",
+      "dropzone_handshakes": {},
+      "dropzone_receipts": {},
+      "dropzone_actions": [],
+      "dropzone_receipt_history": {},
+      "dropzone_reconciliation": {},
+      "dropzone_recovery": {},
+      "workbench_notes": "",
+      "workbench_tags": [],
+      "file_id": "FILE_000002"
+    },
+    {
+      "document_id": "DOC_000022",
+      "doc_type": "workspace_note",
+      "owner_entity": "workspace",
+      "owner_id": "STUDIO",
+      "source_file": "D:\\NAVSYS_USB\\data\\PORTALIS\\documents\\workspace_note\\new_workspace_file.txt",
+      "parsed_fields": {},
+      "final_fields": {},
+      "accepted_fields": {},
+      "field_evidence": {},
+      "field_validation": {},
+      "field_conflicts": {},
+      "field_confidence": {},
+      "candidate_bundles": {},
+      "compare_ledger": [],
+      "accepted_candidate_refs": {},
+      "operator_overrides": {},
+      "field_statuses": {},
+      "unresolved_fields": {},
+      "field_policy": {},
+      "prioritized_field_queue": [],
+      "escalation_policy": {},
+      "triage_actions": [],
+      "triage_state": {},
+      "routing_hints": {},
+      "assignment_actions": [],
+      "assignment_state": {},
+      "sla_policy": {},
+      "watch_actions": [],
+      "watch_state": {},
+      "reminder_stage": {},
+      "reminder_actions": [],
+      "notification_prep": {},
+      "notification_ledger": {},
+      "delivery_attempts": {},
+      "notification_actions": [],
+      "transport_requests": {},
+      "transport_results": {},
+      "transport_actions": [],
+      "local_alerts": {},
+      "alert_actions": [],
+      "incident_threads": {},
+      "incident_actions": [],
+      "external_bridge_exports": {},
+      "external_bridge_results": {},
+      "external_bridge_actions": [],
+      "intake_contracts": {},
+      "intake_acks": {},
+      "intake_actions": [],
+      "dropzone_handshakes": {},
+      "dropzone_receipts": {},
+      "dropzone_receipt_history": {},
+      "dropzone_reconciliation": {},
+      "dropzone_recovery": {},
+      "dropzone_actions": [],
+      "workbench_notes": "",
+      "workbench_status": "DRAFT",
+      "workbench_tags": [],
+      "workbench_history": [],
+      "workbench_anchors": [],
+      "workbench_anchor_history": [],
+      "workbench_annotations": [],
+      "workbench_annotation_history": [],
+      "workbench_scratchpad": [],
+      "workbench_scratchpad_history": [],
+      "workbench_reconstruction_cells": [],
+      "workbench_reconstruction_blocks": [],
+      "workbench_reconstruction_history": [],
+      "workbench_opened_at": "",
+      "workbench_updated_at": "",
+      "confidence": 1.0,
+      "review_required": false,
+      "review_status": "ACCEPTED",
+      "review_reasons": [],
+      "warnings": [],
+      "tce_lite": {},
+      "operational_reason": "Created from file lifecycle workstation shell.",
+      "created_at": "2026-04-01T23:20:13.266316+00:00",
+      "file_id": "FILE_000003"
     }
   ]
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -82,6 +83,23 @@ INTAKE_ACTION_STATUS = {
     "RETRY_INTAKE": "INTAKE_PENDING",
     "REQUEUE_INTAKE": "INTAKE_PENDING",
 }
+DROPZONE_ACTION_STATUS = {
+    "STAGE_TO_DROPZONE": "DROPZONE_STAGED",
+    "CHECK_FOR_RECEIPT": "RECEIPT_PENDING",
+    "MARK_RECEIPT_ACCEPTED": "RECEIPT_ACCEPTED",
+    "MARK_RECEIPT_REJECTED": "RECEIPT_REJECTED",
+    "MARK_RECEIPT_FAILED": "RECEIPT_FAILED",
+    "CLEAR_HANDSHAKE_STATE": "RECEIPT_MISSING",
+    "RESTAGE_TO_DROPZONE": "DROPZONE_STAGED",
+    "ARCHIVE_HANDSHAKE": "DROPZONE_WRITTEN",
+    "MARK_HANDSHAKE_STALE": "HANDSHAKE_STALE",
+    "MARK_RECOVERY_NEEDED": "HANDSHAKE_RECOVERY_NEEDED",
+    "RESTAGE_STALE_HANDSHAKE": "HANDSHAKE_RESTAGE_RECOMMENDED",
+    "ACK_RECOVERY": "HANDSHAKE_NORMAL",
+    "CLEAR_RECOVERY_STATE": "HANDSHAKE_NORMAL",
+    "IGNORE_DUPLICATE_RECEIPT": "HANDSHAKE_NORMAL",
+    "MARK_RECEIPT_SUPERSEDED": "HANDSHAKE_NORMAL",
+}
 
 # Portalis Control Room policy defaults.
 SLA_TIMER_DEFAULTS = {
@@ -115,6 +133,12 @@ REMINDER_STAGE_DEFAULTS = {
         "SNOOZE_2H": 120,
         "SNOOZE_1D": 1440,
     },
+}
+
+HANDSHAKE_RECOVERY_DEFAULTS = {
+    "stale_written_hours": 4,
+    "stale_pending_hours": 2,
+    "restage_count_recovery": 2,
 }
 
 
@@ -495,6 +519,84 @@ class IntakeActionPacket:
 
 
 @dataclass(slots=True)
+class DropZoneHandshakePacket:
+    handshake_id: str
+    export_id: str
+    intake_id: str = ""
+    target_hint: str = "COUPLER_DROP"
+    dropzone_path: str = ""
+    payload_filename: str = ""
+    handshake_state: str = "DROPZONE_STAGED"
+    staged_at: str = ""
+    last_checked_at: str = ""
+    archive_path: str = ""
+
+
+@dataclass(slots=True)
+class DropZoneReceiptPacket:
+    handshake_id: str
+    export_id: str
+    receipt_state: str
+    receipt_reason: str = ""
+    receipt_filename: str = ""
+    received_at: str = ""
+    receiver_name: str = "PORTALIS_DROPZONE"
+    receiver_status: str = ""
+    receipt_path: str = ""
+    archived_path: str = ""
+
+
+@dataclass(slots=True)
+class DropZoneActionPacket:
+    document_id: str
+    field_name: str
+    handshake_action: str
+    operator_name: str = "operator"
+    handshake_note: str = ""
+    handshake_status: str = ""
+    acted_at: str = ""
+
+
+@dataclass(slots=True)
+class ReceiptReconciliationPacket:
+    handshake_id: str
+    export_id: str
+    latest_receipt_state: str
+    receipt_count: int = 0
+    duplicate_detected: bool = False
+    conflicting_receipts: bool = False
+    duplicate_receipt_count: int = 0
+    latest_receipt_filename: str = ""
+    recovery_state: str = "HANDSHAKE_NORMAL"
+    recovery_reason: List[str] = field(default_factory=list)
+    restage_recommended: bool = False
+    reconciled_at: str = ""
+
+
+@dataclass(slots=True)
+class HandshakeRecoveryPacket:
+    handshake_id: str
+    export_id: str
+    recovery_state: str
+    recovery_reason: List[str] = field(default_factory=list)
+    restage_recommended: bool = False
+    stale_detected: bool = False
+    receipt_count: int = 0
+    marked_at: str = ""
+
+
+@dataclass(slots=True)
+class RecoveryActionPacket:
+    document_id: str
+    field_name: str
+    recovery_action: str
+    operator_name: str = "operator"
+    recovery_note: str = ""
+    recovery_status: str = ""
+    acted_at: str = ""
+
+
+@dataclass(slots=True)
 class GlobalReviewQueuePacket:
     document_id: str
     review_item_id: str
@@ -574,6 +676,14 @@ class DashboardSummaryPacket:
     total_intake_accepted_items: int = 0
     total_intake_rejected_items: int = 0
     total_intake_invalid_items: int = 0
+    total_dropzone_staged_items: int = 0
+    total_receipt_pending_items: int = 0
+    total_receipt_accepted_items: int = 0
+    total_receipt_rejected_items: int = 0
+    total_receipt_failed_items: int = 0
+    total_stale_handshake_items: int = 0
+    total_recovery_needed_items: int = 0
+    total_duplicate_receipt_items: int = 0
     highest_priority_items: List[Dict[str, Any]] = field(default_factory=list)
     oldest_pending_documents: List[Dict[str, Any]] = field(default_factory=list)
     escalated_items: List[Dict[str, Any]] = field(default_factory=list)
@@ -586,6 +696,7 @@ class DashboardSummaryPacket:
     incident_items: List[Dict[str, Any]] = field(default_factory=list)
     export_items: List[Dict[str, Any]] = field(default_factory=list)
     intake_items: List[Dict[str, Any]] = field(default_factory=list)
+    dropzone_items: List[Dict[str, Any]] = field(default_factory=list)
 
 
 def apply_triage_action(portalis_root: str | Path, *, document_id: str, field_name: str, triage_action: str, operator_name: str = "operator", triage_note: str = "") -> Dict[str, Any]:
@@ -1141,6 +1252,187 @@ def apply_intake_action(portalis_root: str | Path, *, document_id: str, field_na
     return _control_room_action_result(latest, document_id, field_name, "intake_packet", packet)
 
 
+def apply_dropzone_action(portalis_root: str | Path, *, document_id: str, field_name: str, handshake_action: str, operator_name: str = "operator", handshake_note: str = "") -> Dict[str, Any]:
+    root = Path(portalis_root)
+    action = str(handshake_action or "").strip().upper()
+    if action not in DROPZONE_ACTION_STATUS:
+        raise ValueError(f"Unsupported dropzone action: {handshake_action}")
+    refreshed = refresh_control_room_state(root)
+    review_items = refreshed["review_items"]
+    export_by_document = refreshed["export_by_document"]
+    intake_by_document = refreshed["intake_by_document"]
+    handshake_by_document = refreshed["dropzone_by_document"]
+    matched_item = _find_review_item(review_items, document_id)
+    handshakes = dict(matched_item.dropzone_handshakes or {})
+    receipts = dict(matched_item.dropzone_receipts or {})
+    receipt_history = dict(matched_item.dropzone_receipt_history or {})
+    reconciliation_state = dict(matched_item.dropzone_reconciliation or {})
+    recovery_state = dict(matched_item.dropzone_recovery or {})
+    current_handshake = dict((handshake_by_document.get(document_id, {}) or {}).get(field_name, {}) or handshakes.get(field_name, {}))
+    export_payload = dict((export_by_document.get(document_id, {}) or {}).get(field_name, {}) or {})
+    intake_payload = dict((intake_by_document.get(document_id, {}) or {}).get(field_name, {}) or {})
+    field_history = list(receipt_history.get(field_name, []) or [])
+    acted_at = utc_now_iso()
+    packet = asdict(
+        DropZoneActionPacket(
+            document_id=document_id,
+            field_name=field_name,
+            handshake_action=action,
+            operator_name=operator_name or "operator",
+            handshake_note=handshake_note or "",
+            handshake_status=DROPZONE_ACTION_STATUS[action],
+            acted_at=acted_at,
+        )
+    )
+    matched_item.dropzone_actions = list(matched_item.dropzone_actions or []) + [packet]
+
+    if action == "CLEAR_HANDSHAKE_STATE":
+        handshakes.pop(field_name, None)
+        receipts.pop(field_name, None)
+        receipt_history.pop(field_name, None)
+        reconciliation_state.pop(field_name, None)
+        recovery_state.pop(field_name, None)
+    else:
+        if not current_handshake and export_payload:
+            current_handshake = _build_dropzone_handshake_payload(
+                export_payload=export_payload,
+                intake_payload=intake_payload,
+                existing_payload={},
+                root=root,
+                staged_at=acted_at,
+            )
+        elif current_handshake:
+            current_handshake["last_checked_at"] = acted_at
+
+        if action in {"STAGE_TO_DROPZONE", "RESTAGE_TO_DROPZONE"}:
+            current_handshake = _build_dropzone_handshake_payload(
+                export_payload=export_payload or current_handshake,
+                intake_payload=intake_payload,
+                existing_payload=current_handshake,
+                root=root,
+                staged_at=acted_at,
+            )
+            if action == "RESTAGE_TO_DROPZONE":
+                current_handshake["restage_count"] = int(current_handshake.get("restage_count") or 0) + 1
+            staged_path = _write_dropzone_handshake(root, current_handshake, export_payload, intake_payload)
+            current_handshake["payload_filename"] = staged_path.name
+            current_handshake["dropzone_path"] = str(staged_path)
+            current_handshake["handshake_state"] = "DROPZONE_WRITTEN"
+            receipts[field_name] = asdict(
+                DropZoneReceiptPacket(
+                    handshake_id=str(current_handshake.get("handshake_id") or ""),
+                    export_id=str(current_handshake.get("export_id") or ""),
+                    receipt_state="RECEIPT_PENDING",
+                    receipt_reason=handshake_note or "waiting for drop-zone receipt",
+                    receipt_filename="",
+                    received_at="",
+                    receiver_name="PORTALIS_DROPZONE",
+                    receiver_status="PENDING",
+                )
+            )
+            field_history.append(dict(receipts[field_name], action_source=action))
+        elif action == "CHECK_FOR_RECEIPT":
+            receipt_payloads = _load_dropzone_receipts(root, current_handshake)
+            if receipt_payloads:
+                field_history.extend(receipt_payloads)
+                reconciled = _reconcile_receipt_history(
+                    handshake_payload=current_handshake,
+                    receipt_history=field_history,
+                    now=acted_at,
+                )
+                latest_effective = dict(reconciled.get("latest_effective_receipt", {}) or {})
+                if latest_effective:
+                    receipts[field_name] = latest_effective
+                    current_handshake["handshake_state"] = str(latest_effective.get("receipt_state") or "RECEIPT_ACCEPTED")
+                reconciliation_state[field_name] = dict(reconciled.get("reconciliation", {}) or {})
+                recovery_state[field_name] = dict(reconciled.get("recovery", {}) or {})
+            else:
+                existing_receipt = dict(receipts.get(field_name, {}) or {})
+                receipts[field_name] = asdict(
+                    DropZoneReceiptPacket(
+                        handshake_id=str(current_handshake.get("handshake_id") or _dropzone_handshake_id(document_id, field_name)),
+                        export_id=str(current_handshake.get("export_id") or export_payload.get("export_id") or _external_export_id(document_id, field_name)),
+                        receipt_state="RECEIPT_MISSING",
+                        receipt_reason=handshake_note or "no receipt file found in drop-zone",
+                        receipt_filename=str(existing_receipt.get("receipt_filename") or ""),
+                        received_at=str(existing_receipt.get("received_at") or ""),
+                        receiver_name=str(existing_receipt.get("receiver_name") or "PORTALIS_DROPZONE"),
+                        receiver_status="MISSING",
+                        receipt_path=str(existing_receipt.get("receipt_path") or ""),
+                        archived_path=str(existing_receipt.get("archived_path") or ""),
+                    )
+                )
+                current_handshake["handshake_state"] = "RECEIPT_MISSING"
+                field_history.append(dict(receipts[field_name], action_source=action))
+        elif action == "ARCHIVE_HANDSHAKE":
+            archive_path = _archive_dropzone_outgoing(root, current_handshake)
+            current_handshake["archive_path"] = str(archive_path or current_handshake.get("archive_path") or "")
+            current_handshake["handshake_state"] = "DROPZONE_WRITTEN"
+        else:
+            recovery_actions = {"MARK_HANDSHAKE_STALE", "MARK_RECOVERY_NEEDED", "RESTAGE_STALE_HANDSHAKE", "ACK_RECOVERY", "CLEAR_RECOVERY_STATE", "IGNORE_DUPLICATE_RECEIPT", "MARK_RECEIPT_SUPERSEDED"}
+            if action in recovery_actions:
+                recovery_packet = asdict(
+                    HandshakeRecoveryPacket(
+                        handshake_id=str(current_handshake.get("handshake_id") or _dropzone_handshake_id(document_id, field_name)),
+                        export_id=str(current_handshake.get("export_id") or export_payload.get("export_id") or _external_export_id(document_id, field_name)),
+                        recovery_state=DROPZONE_ACTION_STATUS[action],
+                        recovery_reason=[handshake_note or _dropzone_result_reason(action)],
+                        restage_recommended=action in {"RESTAGE_STALE_HANDSHAKE", "MARK_RECOVERY_NEEDED"},
+                        stale_detected=action in {"MARK_HANDSHAKE_STALE", "MARK_RECOVERY_NEEDED", "RESTAGE_STALE_HANDSHAKE"},
+                        receipt_count=len(field_history),
+                        marked_at=acted_at,
+                    )
+                )
+                recovery_state[field_name] = recovery_packet
+                if action == "RESTAGE_STALE_HANDSHAKE":
+                    current_handshake["handshake_state"] = "HANDSHAKE_RESTAGE_RECOMMENDED"
+                    current_handshake["restage_count"] = int(current_handshake.get("restage_count") or 0) + 1
+                elif action in {"ACK_RECOVERY", "CLEAR_RECOVERY_STATE", "IGNORE_DUPLICATE_RECEIPT", "MARK_RECEIPT_SUPERSEDED"}:
+                    current_handshake["handshake_state"] = str((receipts.get(field_name) or {}).get("receipt_state") or current_handshake.get("handshake_state") or "DROPZONE_WRITTEN")
+                else:
+                    current_handshake["handshake_state"] = DROPZONE_ACTION_STATUS[action]
+            else:
+                receipt_state = DROPZONE_ACTION_STATUS[action]
+                receipts[field_name] = asdict(
+                    DropZoneReceiptPacket(
+                        handshake_id=str(current_handshake.get("handshake_id") or _dropzone_handshake_id(document_id, field_name)),
+                        export_id=str(current_handshake.get("export_id") or export_payload.get("export_id") or _external_export_id(document_id, field_name)),
+                        receipt_state=receipt_state,
+                        receipt_reason=handshake_note or _dropzone_result_reason(action),
+                        receipt_filename=str((receipts.get(field_name) or {}).get("receipt_filename") or ""),
+                        received_at=acted_at,
+                        receiver_name=operator_name or "PORTALIS_DROPZONE",
+                        receiver_status="ACTIVE" if receipt_state in {"RECEIPT_ACCEPTED", "RECEIPT_PENDING"} else "ATTENTION",
+                        receipt_path=str((receipts.get(field_name) or {}).get("receipt_path") or ""),
+                        archived_path=str((receipts.get(field_name) or {}).get("archived_path") or ""),
+                    )
+                )
+                field_history.append(dict(receipts[field_name], action_source=action))
+                current_handshake["handshake_state"] = receipt_state
+
+        current_handshake["last_checked_at"] = acted_at
+        handshakes[field_name] = current_handshake
+        receipt_history[field_name] = field_history
+        if field_name not in reconciliation_state:
+            reconciled = _reconcile_receipt_history(
+                handshake_payload=current_handshake,
+                receipt_history=field_history,
+                now=acted_at,
+            )
+            reconciliation_state[field_name] = dict(reconciled.get("reconciliation", {}) or {})
+            recovery_state[field_name] = dict(reconciled.get("recovery", recovery_state.get(field_name, {})) or {})
+
+    matched_item.dropzone_handshakes = handshakes
+    matched_item.dropzone_receipts = receipts
+    matched_item.dropzone_receipt_history = receipt_history
+    matched_item.dropzone_reconciliation = reconciliation_state
+    matched_item.dropzone_recovery = recovery_state
+    matched_item.updated_at = acted_at
+    save_review_queue(root, review_items)
+    latest = refresh_control_room_state(root)
+    return _control_room_action_result(latest, document_id, field_name, "dropzone_packet", packet)
+
+
 def refresh_control_room_state(portalis_root: str | Path, now: datetime | None = None) -> Dict[str, Any]:
     root = Path(portalis_root)
     now = now or datetime.now(timezone.utc)
@@ -1181,6 +1473,14 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         export_by_document=export_by_document,
         now=now,
     )
+    dropzone_by_document = build_dropzone_handshakes(
+        review_items,
+        export_by_document=export_by_document,
+        intake_by_document=intake_by_document,
+        root=root,
+        now=now,
+    )
+    reconciliation_by_document = build_dropzone_reconciliation(review_items, dropzone_by_document=dropzone_by_document, now=now)
     refreshed_at = utc_now_iso()
 
     for item in review_items:
@@ -1195,6 +1495,9 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         incident_threads = dict(incident_by_document.get(item.document_id, {}))
         external_bridge_exports = dict(export_by_document.get(item.document_id, {}))
         intake_contracts = dict(intake_by_document.get(item.document_id, {}))
+        dropzone_handshakes = dict(dropzone_by_document.get(item.document_id, {}))
+        dropzone_reconciliation = dict(reconciliation_by_document.get(item.document_id, {}).get("reconciliation", {}))
+        dropzone_recovery = dict(reconciliation_by_document.get(item.document_id, {}).get("recovery", {}))
         item.escalation_policy = escalation_policy
         item.routing_hints = routing_hints
         item.assignment_state = assignment_state
@@ -1206,6 +1509,9 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         item.incident_threads = incident_threads
         item.external_bridge_exports = external_bridge_exports
         item.intake_contracts = intake_contracts
+        item.dropzone_handshakes = dropzone_handshakes
+        item.dropzone_reconciliation = dropzone_reconciliation
+        item.dropzone_recovery = dropzone_recovery
         item.tce = _merge_tce(
             item.tce,
             build_control_room_tce_delta(
@@ -1227,6 +1533,10 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
                 external_bridge_results=dict(item.external_bridge_results or {}),
                 intake_contracts=intake_contracts,
                 intake_acks=dict(item.intake_acks or {}),
+                dropzone_handshakes=dropzone_handshakes,
+                dropzone_receipts=dict(item.dropzone_receipts or {}),
+                dropzone_reconciliation=dropzone_reconciliation,
+                dropzone_recovery=dropzone_recovery,
                 evaluated_at=refreshed_at,
             ),
         )
@@ -1261,6 +1571,12 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
                 intake_contracts=intake_contracts,
                 intake_acks=dict(item.intake_acks or {}),
                 intake_actions=list(item.intake_actions or []),
+                dropzone_handshakes=dropzone_handshakes,
+                dropzone_receipts=dict(item.dropzone_receipts or {}),
+                dropzone_receipt_history=dict(item.dropzone_receipt_history or {}),
+                dropzone_reconciliation=dropzone_reconciliation,
+                dropzone_recovery=dropzone_recovery,
+                dropzone_actions=list(item.dropzone_actions or []),
                 tce_lite={
                     "WHAT": dict(item.tce.WHAT),
                     "WHO": dict(item.tce.WHO),
@@ -1283,7 +1599,8 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
     incident_feed = build_incident_feed(review_items, now=now, incident_by_document=incident_by_document)
     export_queue = build_external_bridge_queue(review_items, now=now, export_by_document=export_by_document)
     intake_queue = build_intake_queue(review_items, now=now, intake_by_document=intake_by_document)
-    dashboard_summary = build_dashboard_summary(review_items, global_queue, watch_queue, reminder_queue, notification_queue, transport_queue, alert_feed, incident_feed, export_queue, intake_queue, now=now)
+    dropzone_queue = build_dropzone_queue(review_items, now=now, dropzone_by_document=dropzone_by_document)
+    dashboard_summary = build_dashboard_summary(review_items, global_queue, watch_queue, reminder_queue, notification_queue, transport_queue, alert_feed, incident_feed, export_queue, intake_queue, dropzone_queue, now=now)
     dashboard_tce_delta = build_dashboard_tce_delta(global_queue, dashboard_summary, refreshed_at=refreshed_at)
     return {
         "review_items": review_items,
@@ -1296,6 +1613,7 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         "incident_feed": incident_feed,
         "export_queue": export_queue,
         "intake_queue": intake_queue,
+        "dropzone_queue": dropzone_queue,
         "dashboard_summary": dashboard_summary,
         "dashboard_tce_delta": dashboard_tce_delta,
         "escalation_by_document": escalation_by_document,
@@ -1308,6 +1626,8 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         "incident_by_document": incident_by_document,
         "export_by_document": export_by_document,
         "intake_by_document": intake_by_document,
+        "dropzone_by_document": dropzone_by_document,
+        "reconciliation_by_document": reconciliation_by_document,
     }
 
 
@@ -2107,6 +2427,106 @@ def build_intake_queue(review_items: List[ReviewQueueItem], now: datetime | None
     return rows
 
 
+def build_dropzone_handshakes(
+    review_items: List[ReviewQueueItem],
+    *,
+    export_by_document: Dict[str, Dict[str, Any]],
+    intake_by_document: Dict[str, Dict[str, Any]],
+    root: Path,
+    now: datetime | None = None,
+) -> Dict[str, Dict[str, Any]]:
+    now = now or datetime.now(timezone.utc)
+    now_iso = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    packets: Dict[str, Dict[str, Any]] = {}
+    for item in review_items:
+        existing_handshakes = dict(item.dropzone_handshakes or {})
+        existing_receipts = dict(item.dropzone_receipts or {})
+        doc_packets: Dict[str, Any] = {}
+        for field_name, export_payload in dict(export_by_document.get(item.document_id, {}) or {}).items():
+            export_row = dict(export_payload or {})
+            if not export_row:
+                continue
+            existing_payload = dict(existing_handshakes.get(field_name, {}) or {})
+            intake_payload = dict((intake_by_document.get(item.document_id, {}) or {}).get(field_name, {}) or {})
+            handshake = _build_dropzone_handshake_payload(
+                export_payload=export_row,
+                intake_payload=intake_payload,
+                existing_payload=existing_payload,
+                root=root,
+                staged_at=str(existing_payload.get("staged_at") or now_iso),
+            )
+            latest_receipt = dict(existing_receipts.get(field_name, {}) or {})
+            if latest_receipt:
+                handshake["handshake_state"] = str(latest_receipt.get("receipt_state") or handshake.get("handshake_state") or "DROPZONE_STAGED")
+            doc_packets[field_name] = handshake
+        packets[item.document_id] = doc_packets
+    return packets
+
+
+def build_dropzone_queue(review_items: List[ReviewQueueItem], now: datetime | None = None, dropzone_by_document: Dict[str, Dict[str, Any]] | None = None) -> List[Dict[str, Any]]:
+    now = now or datetime.now(timezone.utc)
+    dropzone_by_document = dropzone_by_document or {}
+    rows: List[Dict[str, Any]] = []
+    for item in review_items:
+        receipt_map = dict(item.dropzone_receipts or {})
+        reconciliation_map = dict(item.dropzone_reconciliation or {})
+        recovery_map = dict(item.dropzone_recovery or {})
+        for field_name, payload in dict(dropzone_by_document.get(item.document_id, {}) or {}).items():
+            row = dict(payload or {})
+            receipt_payload = dict(receipt_map.get(field_name, {}) or {})
+            reconciliation_payload = dict(reconciliation_map.get(field_name, {}) or {})
+            recovery_payload = dict(recovery_map.get(field_name, {}) or {})
+            row["field_name"] = field_name
+            row["latest_receipt_state"] = str(receipt_payload.get("receipt_state") or row.get("handshake_state") or "DROPZONE_STAGED")
+            row["latest_receipt_reason"] = str(receipt_payload.get("receipt_reason") or "")
+            row["receipt_filename"] = str(receipt_payload.get("receipt_filename") or "")
+            row["received_at"] = str(receipt_payload.get("received_at") or "")
+            row["receipt_path"] = str(receipt_payload.get("receipt_path") or "")
+            row["archived_path"] = str(receipt_payload.get("archived_path") or row.get("archive_path") or "")
+            row["reconciliation"] = reconciliation_payload
+            row["recovery"] = recovery_payload
+            rows.append(row)
+    rows.sort(
+        key=lambda row: (
+            -_dropzone_rank(str(row.get("latest_receipt_state") or "DROPZONE_STAGED")),
+            _parse_iso(str(row.get("received_at") or row.get("last_checked_at") or row.get("staged_at") or "")) or now,
+            row.get("document_id") or "",
+            row.get("field_name") or "",
+        )
+    )
+    return rows
+
+
+def build_dropzone_reconciliation(review_items: List[ReviewQueueItem], *, dropzone_by_document: Dict[str, Dict[str, Any]], now: datetime | None = None) -> Dict[str, Dict[str, Any]]:
+    now = now or datetime.now(timezone.utc)
+    now_iso = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    packets: Dict[str, Dict[str, Any]] = {}
+    for item in review_items:
+        doc_packets: Dict[str, Dict[str, Any]] = {"reconciliation": {}, "recovery": {}}
+        receipt_history_map = dict(item.dropzone_receipt_history or {})
+        existing_recovery = dict(item.dropzone_recovery or {})
+        for field_name, handshake_payload in dict(dropzone_by_document.get(item.document_id, {}) or {}).items():
+            history = list(receipt_history_map.get(field_name, []) or [])
+            reconciled = _reconcile_receipt_history(
+                handshake_payload=dict(handshake_payload or {}),
+                receipt_history=history,
+                now=now_iso,
+            )
+            recovery_payload = dict(reconciled.get("recovery", {}) or {})
+            existing_recovery_payload = dict(existing_recovery.get(field_name, {}) or {})
+            if existing_recovery_payload:
+                derived_state = str(recovery_payload.get("recovery_state") or "HANDSHAKE_NORMAL")
+                existing_state = str(existing_recovery_payload.get("recovery_state") or "HANDSHAKE_NORMAL")
+                if derived_state == "HANDSHAKE_NORMAL" and existing_state != "HANDSHAKE_NORMAL":
+                    recovery_payload = dict(recovery_payload, **existing_recovery_payload)
+                else:
+                    recovery_payload = dict(existing_recovery_payload, **recovery_payload)
+            doc_packets["reconciliation"][field_name] = dict(reconciled.get("reconciliation", {}) or {})
+            doc_packets["recovery"][field_name] = recovery_payload
+        packets[item.document_id] = doc_packets
+    return packets
+
+
 def _validate_intake_contract(export_row: Dict[str, Any]) -> Dict[str, Any]:
     messages: List[str] = []
     if not str(export_row.get("export_id") or "").strip():
@@ -2207,11 +2627,12 @@ def build_cross_document_review_queue(review_items: List[ReviewQueueItem], now: 
     return queue_rows
 
 
-def build_dashboard_summary(review_items: List[ReviewQueueItem], global_queue: List[Dict[str, Any]], watch_queue: List[Dict[str, Any]], reminder_queue: List[Dict[str, Any]], notification_queue: List[Dict[str, Any]], transport_queue: List[Dict[str, Any]], alert_feed: List[Dict[str, Any]], incident_feed: List[Dict[str, Any]] | None = None, export_queue: List[Dict[str, Any]] | None = None, intake_queue: List[Dict[str, Any]] | None = None, now: datetime | None = None) -> Dict[str, Any]:
+def build_dashboard_summary(review_items: List[ReviewQueueItem], global_queue: List[Dict[str, Any]], watch_queue: List[Dict[str, Any]], reminder_queue: List[Dict[str, Any]], notification_queue: List[Dict[str, Any]], transport_queue: List[Dict[str, Any]], alert_feed: List[Dict[str, Any]], incident_feed: List[Dict[str, Any]] | None = None, export_queue: List[Dict[str, Any]] | None = None, intake_queue: List[Dict[str, Any]] | None = None, dropzone_queue: List[Dict[str, Any]] | None = None, now: datetime | None = None) -> Dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     incident_feed = incident_feed or []
     export_queue = export_queue or []
     intake_queue = intake_queue or []
+    dropzone_queue = dropzone_queue or []
     pending_docs = [item for item in review_items if str((item.tce.WHAT or {}).get("document_type") or "passport") == "passport" and str(item.status or "") != "REJECTED"]
     oldest_pending_documents = []
     for item in pending_docs:
@@ -2258,6 +2679,14 @@ def build_dashboard_summary(review_items: List[ReviewQueueItem], global_queue: L
         total_intake_accepted_items=len([row for row in intake_queue if row.get("latest_ack_state") == "INTAKE_ACCEPTED"]),
         total_intake_rejected_items=len([row for row in intake_queue if row.get("latest_ack_state") == "INTAKE_REJECTED"]),
         total_intake_invalid_items=len([row for row in intake_queue if row.get("latest_ack_state") == "INTAKE_INVALID"]),
+        total_dropzone_staged_items=len([row for row in dropzone_queue if row.get("handshake_state") in {"DROPZONE_STAGED", "DROPZONE_WRITTEN"}]),
+        total_receipt_pending_items=len([row for row in dropzone_queue if row.get("latest_receipt_state") == "RECEIPT_PENDING"]),
+        total_receipt_accepted_items=len([row for row in dropzone_queue if row.get("latest_receipt_state") == "RECEIPT_ACCEPTED"]),
+        total_receipt_rejected_items=len([row for row in dropzone_queue if row.get("latest_receipt_state") == "RECEIPT_REJECTED"]),
+        total_receipt_failed_items=len([row for row in dropzone_queue if row.get("latest_receipt_state") in {"RECEIPT_FAILED", "RECEIPT_MISSING"}]),
+        total_stale_handshake_items=len([row for row in dropzone_queue if str((row.get("recovery") or {}).get("recovery_state") or "") == "HANDSHAKE_STALE"]),
+        total_recovery_needed_items=len([row for row in dropzone_queue if str((row.get("recovery") or {}).get("recovery_state") or "") in {"HANDSHAKE_RECOVERY_NEEDED", "HANDSHAKE_RESTAGE_RECOMMENDED"}]),
+        total_duplicate_receipt_items=len([row for row in dropzone_queue if bool((row.get("reconciliation") or {}).get("duplicate_detected"))]),
         highest_priority_items=list(global_queue[:5]),
         oldest_pending_documents=oldest_pending_documents[:5],
         escalated_items=[row for row in global_queue if str(row.get("escalation_level") or "NONE") in {"HIGH", "CRITICAL"}][:5],
@@ -2270,6 +2699,7 @@ def build_dashboard_summary(review_items: List[ReviewQueueItem], global_queue: L
         incident_items=list(incident_feed[:5]),
         export_items=list(export_queue[:5]),
         intake_items=list(intake_queue[:5]),
+        dropzone_items=list(dropzone_queue[:5]),
     ))
 
 
@@ -2321,6 +2751,14 @@ def build_dashboard_tce_delta(global_queue: List[Dict[str, Any]], dashboard_summ
                 "total_intake_accepted_items": dashboard_summary.get("total_intake_accepted_items", 0),
                 "total_intake_rejected_items": dashboard_summary.get("total_intake_rejected_items", 0),
                 "total_intake_invalid_items": dashboard_summary.get("total_intake_invalid_items", 0),
+                "total_dropzone_staged_items": dashboard_summary.get("total_dropzone_staged_items", 0),
+                "total_receipt_pending_items": dashboard_summary.get("total_receipt_pending_items", 0),
+                "total_receipt_accepted_items": dashboard_summary.get("total_receipt_accepted_items", 0),
+                "total_receipt_rejected_items": dashboard_summary.get("total_receipt_rejected_items", 0),
+                "total_receipt_failed_items": dashboard_summary.get("total_receipt_failed_items", 0),
+                "total_stale_handshake_items": dashboard_summary.get("total_stale_handshake_items", 0),
+                "total_recovery_needed_items": dashboard_summary.get("total_recovery_needed_items", 0),
+                "total_duplicate_receipt_items": dashboard_summary.get("total_duplicate_receipt_items", 0),
             },
         },
         "WHY": {"dashboard_priority_reason": [f"{row.get('document_id')}:{row.get('field_name')}:{row.get('priority_band')}:{row.get('escalation_level')}:{row.get('routing_bucket')}" for row in global_queue[:5]]},
@@ -2328,7 +2766,7 @@ def build_dashboard_tce_delta(global_queue: List[Dict[str, Any]], dashboard_summ
     }
 
 
-def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_state: Dict[str, Any], routing_hints: Dict[str, Any], assignment_state: Dict[str, Any], sla_policy: Dict[str, Any], watch_state: Dict[str, Any], reminder_stage: Dict[str, Any], notification_prep: Dict[str, Any], notification_ledger: Dict[str, Any], delivery_attempts: Dict[str, Any], transport_requests: Dict[str, Any], transport_results: Dict[str, Any], local_alerts: Dict[str, Any], incident_threads: Dict[str, Any], external_bridge_exports: Dict[str, Any], external_bridge_results: Dict[str, Any], intake_contracts: Dict[str, Any], intake_acks: Dict[str, Any], evaluated_at: str) -> Dict[str, Any]:
+def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_state: Dict[str, Any], routing_hints: Dict[str, Any], assignment_state: Dict[str, Any], sla_policy: Dict[str, Any], watch_state: Dict[str, Any], reminder_stage: Dict[str, Any], notification_prep: Dict[str, Any], notification_ledger: Dict[str, Any], delivery_attempts: Dict[str, Any], transport_requests: Dict[str, Any], transport_results: Dict[str, Any], local_alerts: Dict[str, Any], incident_threads: Dict[str, Any], external_bridge_exports: Dict[str, Any], external_bridge_results: Dict[str, Any], intake_contracts: Dict[str, Any], intake_acks: Dict[str, Any], dropzone_handshakes: Dict[str, Any], dropzone_receipts: Dict[str, Any], dropzone_reconciliation: Dict[str, Any], dropzone_recovery: Dict[str, Any], evaluated_at: str) -> Dict[str, Any]:
     escalation_summary = {"NONE": 0, "LOW": 0, "HIGH": 0, "CRITICAL": 0}
     escalation_reason = {}
     for field_name, payload in (escalation_policy or {}).items():
@@ -2388,6 +2826,15 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
     intake_rejection_reason = {}
     intake_received_at = {}
     intake_acknowledged_at = {}
+    handshake_summary = {"DROPZONE_STAGED": 0, "DROPZONE_WRITTEN": 0, "RECEIPT_PENDING": 0, "RECEIPT_ACCEPTED": 0, "RECEIPT_REJECTED": 0, "RECEIPT_FAILED": 0, "RECEIPT_MISSING": 0}
+    dropzone_summary = {}
+    handshake_reason = {}
+    receipt_reason = {}
+    dropzone_staged_at = {}
+    receipt_received_at = {}
+    reconciliation_summary = {}
+    recovery_summary = {}
+    recovery_marked_at = {}
     for field_name, payload in (notification_ledger or {}).items():
         state = str((payload or {}).get("prep_state") or "CANCELED")
         notification_ledger_summary[state] = notification_ledger_summary.get(state, 0) + 1
@@ -2468,6 +2915,30 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
             intake_rejection_reason[field_name] = [str(latest_ack.get("ack_reason") or "")]
         if latest_ack.get("acknowledged_at"):
             intake_acknowledged_at[field_name] = str(latest_ack.get("acknowledged_at") or "")
+    for field_name, payload in (dropzone_handshakes or {}).items():
+        latest_receipt = dict((dropzone_receipts or {}).get(field_name, {}) or {})
+        reconciliation_payload = dict((dropzone_reconciliation or {}).get(field_name, {}) or {})
+        recovery_payload = dict((dropzone_recovery or {}).get(field_name, {}) or {})
+        state = str(latest_receipt.get("receipt_state") or (payload or {}).get("handshake_state") or "DROPZONE_STAGED")
+        handshake_summary[state] = handshake_summary.get(state, 0) + 1
+        dropzone_summary[field_name] = {
+            "target_hint": str((payload or {}).get("target_hint") or ""),
+            "handshake_state": str((payload or {}).get("handshake_state") or ""),
+            "receipt_state": state,
+            "payload_filename": str((payload or {}).get("payload_filename") or ""),
+        }
+        handshake_reason[field_name] = [str((payload or {}).get("dropzone_path") or "")]
+        if latest_receipt.get("receipt_reason"):
+            receipt_reason[field_name] = [str(latest_receipt.get("receipt_reason") or "")]
+        dropzone_staged_at[field_name] = str((payload or {}).get("staged_at") or "")
+        if latest_receipt.get("received_at"):
+            receipt_received_at[field_name] = str(latest_receipt.get("received_at") or "")
+        if reconciliation_payload:
+            reconciliation_summary[field_name] = reconciliation_payload
+        if recovery_payload:
+            recovery_summary[field_name] = recovery_payload
+            if recovery_payload.get("marked_at"):
+                recovery_marked_at[field_name] = str(recovery_payload.get("marked_at") or "")
     return {
         "HOW": {
             "escalation_summary": escalation_summary,
@@ -2488,6 +2959,10 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
             "bridge_summary": bridge_summary,
             "intake_summary": intake_summary,
             "intake_validation_summary": intake_validation_summary,
+            "handshake_summary": handshake_summary,
+            "dropzone_summary": dropzone_summary,
+            "reconciliation_summary": reconciliation_summary,
+            "recovery_summary": recovery_summary,
         },
         "WHY": {
             "escalation_reason": escalation_reason,
@@ -2507,6 +2982,10 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
             "bridge_reason": bridge_reason,
             "intake_reason": intake_reason,
             "intake_rejection_reason": intake_rejection_reason,
+            "handshake_reason": handshake_reason,
+            "receipt_reason": receipt_reason,
+            "recovery_reason": {field_name: list((payload or {}).get("recovery_reason", [])) for field_name, payload in (dropzone_recovery or {}).items()},
+            "restage_reason": {field_name: list((payload or {}).get("recovery_reason", [])) for field_name, payload in (dropzone_recovery or {}).items() if bool((payload or {}).get("restage_recommended"))},
         },
         "WHEN": {
             "escalated_at": evaluated_at,
@@ -2534,6 +3013,10 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
             "export_completed_at": export_completed_at,
             "intake_received_at": intake_received_at,
             "intake_acknowledged_at": intake_acknowledged_at,
+            "dropzone_staged_at": dropzone_staged_at,
+            "receipt_received_at": receipt_received_at,
+            "reconciled_at": {field_name: str((payload or {}).get("reconciled_at") or "") for field_name, payload in (dropzone_reconciliation or {}).items()},
+            "recovery_marked_at": recovery_marked_at,
         },
     }
 
@@ -3002,6 +3485,224 @@ def _intake_rank(state: str) -> int:
         "INTAKE_ACCEPTED": 2,
         "INTAKE_SKIPPED": 1,
     }.get(str(state or "INTAKE_PENDING"), 0)
+
+
+def _dropzone_handshake_id(document_id: str, field_name: str) -> str:
+    safe_field = str(field_name or "").replace(".", "_")
+    return f"HANDSHAKE::{document_id}::{safe_field}"
+
+
+def _dropzone_result_reason(action: str) -> str:
+    return {
+        "STAGE_TO_DROPZONE": "staged to local drop-zone",
+        "CHECK_FOR_RECEIPT": "checked drop-zone receipts",
+        "MARK_RECEIPT_ACCEPTED": "receipt accepted",
+        "MARK_RECEIPT_REJECTED": "receipt rejected",
+        "MARK_RECEIPT_FAILED": "receipt failed",
+        "CLEAR_HANDSHAKE_STATE": "handshake state cleared",
+        "RESTAGE_TO_DROPZONE": "restaged to local drop-zone",
+        "ARCHIVE_HANDSHAKE": "drop-zone payload archived",
+    }.get(str(action or ""), "drop-zone action recorded")
+
+
+def _dropzone_rank(state: str) -> int:
+    return {
+        "RECEIPT_FAILED": 6,
+        "RECEIPT_MISSING": 5,
+        "RECEIPT_REJECTED": 4,
+        "RECEIPT_PENDING": 3,
+        "DROPZONE_WRITTEN": 2,
+        "DROPZONE_STAGED": 1,
+        "RECEIPT_ACCEPTED": 1,
+    }.get(str(state or "DROPZONE_STAGED"), 0)
+
+
+def _dropzone_dirs(root: Path) -> tuple[Path, Path, Path]:
+    base = root / "exports" / "dropzone"
+    outgoing = base / "outgoing"
+    receipts = base / "receipts"
+    archive = base / "archive"
+    outgoing.mkdir(parents=True, exist_ok=True)
+    receipts.mkdir(parents=True, exist_ok=True)
+    archive.mkdir(parents=True, exist_ok=True)
+    return outgoing, receipts, archive
+
+
+def _reconcile_receipt_history(*, handshake_payload: Dict[str, Any], receipt_history: List[Dict[str, Any]], now: str) -> Dict[str, Any]:
+    normalized_history = [dict(item or {}) for item in receipt_history if dict(item or {})]
+    state_counts: Dict[str, int] = {}
+    filename_counts: Dict[str, int] = {}
+    for payload in normalized_history:
+        state = str(payload.get("receipt_state") or "")
+        filename = str(payload.get("receipt_filename") or "")
+        if state:
+            state_counts[state] = state_counts.get(state, 0) + 1
+        if filename:
+            filename_counts[filename] = filename_counts.get(filename, 0) + 1
+    latest_effective = dict(normalized_history[-1] if normalized_history else {})
+    unique_states = {state for state in state_counts if state}
+    duplicate_detected = len(normalized_history) > 1 or any(count > 1 for count in filename_counts.values()) or len(normalized_history) > len(filename_counts)
+    conflicting_receipts = len(unique_states) > 1
+
+    stale_state, recovery_reasons, restage_recommended = _derive_handshake_recovery(
+        handshake_payload=handshake_payload,
+        latest_receipt=latest_effective,
+        receipt_count=len(normalized_history),
+        conflicting_receipts=conflicting_receipts,
+        duplicate_detected=duplicate_detected,
+        now=now,
+    )
+    reconciliation = asdict(
+        ReceiptReconciliationPacket(
+            handshake_id=str(handshake_payload.get("handshake_id") or ""),
+            export_id=str(handshake_payload.get("export_id") or ""),
+            latest_receipt_state=str(latest_effective.get("receipt_state") or "RECEIPT_PENDING"),
+            receipt_count=len(normalized_history),
+            duplicate_detected=duplicate_detected,
+            conflicting_receipts=conflicting_receipts,
+            duplicate_receipt_count=max(sum(count - 1 for count in filename_counts.values() if count > 1), 0),
+            latest_receipt_filename=str(latest_effective.get("receipt_filename") or ""),
+            recovery_state=stale_state,
+            recovery_reason=recovery_reasons,
+            restage_recommended=restage_recommended,
+            reconciled_at=now,
+        )
+    )
+    recovery = asdict(
+        HandshakeRecoveryPacket(
+            handshake_id=str(handshake_payload.get("handshake_id") or ""),
+            export_id=str(handshake_payload.get("export_id") or ""),
+            recovery_state=stale_state,
+            recovery_reason=recovery_reasons,
+            restage_recommended=restage_recommended,
+            stale_detected=stale_state in {"HANDSHAKE_STALE", "HANDSHAKE_RECOVERY_NEEDED", "HANDSHAKE_RESTAGE_RECOMMENDED"},
+            receipt_count=len(normalized_history),
+            marked_at=now,
+        )
+    )
+    return {
+        "latest_effective_receipt": latest_effective,
+        "reconciliation": reconciliation,
+        "recovery": recovery,
+    }
+
+
+def _derive_handshake_recovery(*, handshake_payload: Dict[str, Any], latest_receipt: Dict[str, Any], receipt_count: int, conflicting_receipts: bool, duplicate_detected: bool, now: str) -> tuple[str, List[str], bool]:
+    reasons: List[str] = []
+    handshake_state = str(handshake_payload.get("handshake_state") or "DROPZONE_STAGED")
+    latest_receipt_state = str(latest_receipt.get("receipt_state") or "")
+    last_seen = str(latest_receipt.get("received_at") or handshake_payload.get("last_checked_at") or handshake_payload.get("staged_at") or "")
+    age_hours = _age_hours(last_seen, _parse_iso(now) or datetime.now(timezone.utc))
+    restage_count = int(handshake_payload.get("restage_count") or 0)
+
+    if conflicting_receipts:
+        reasons.append("conflicting repeated receipts detected")
+    if duplicate_detected:
+        reasons.append("duplicate receipt detected")
+    if handshake_state in {"DROPZONE_WRITTEN", "DROPZONE_STAGED"} and not latest_receipt_state and age_hours >= HANDSHAKE_RECOVERY_DEFAULTS["stale_written_hours"]:
+        reasons.append("drop-zone payload stale without receipt")
+        return "HANDSHAKE_STALE", reasons, False
+    if latest_receipt_state in {"RECEIPT_PENDING", "RECEIPT_MISSING"} and age_hours >= HANDSHAKE_RECOVERY_DEFAULTS["stale_pending_hours"]:
+        reasons.append("receipt pending beyond threshold")
+        state = "HANDSHAKE_RESTAGE_RECOMMENDED" if restage_count < HANDSHAKE_RECOVERY_DEFAULTS["restage_count_recovery"] else "HANDSHAKE_RECOVERY_NEEDED"
+        if state == "HANDSHAKE_RECOVERY_NEEDED":
+            reasons.append("restage threshold exhausted")
+        return state, reasons, state == "HANDSHAKE_RESTAGE_RECOMMENDED"
+    if conflicting_receipts:
+        return "HANDSHAKE_RECOVERY_NEEDED", reasons, False
+    return "HANDSHAKE_NORMAL", reasons or ["handshake within normal bounds"], False
+
+
+def _build_dropzone_handshake_payload(*, export_payload: Dict[str, Any], intake_payload: Dict[str, Any], existing_payload: Dict[str, Any], root: Path, staged_at: str) -> Dict[str, Any]:
+    outgoing_dir, _, archive_dir = _dropzone_dirs(root)
+    handshake_id = str(existing_payload.get("handshake_id") or _dropzone_handshake_id(str(export_payload.get("document_id") or ""), str(export_payload.get("field_name") or "")))
+    payload_filename = str(existing_payload.get("payload_filename") or f"{handshake_id.replace(':', '_')}.json")
+    payload_path = outgoing_dir / payload_filename
+    payload = asdict(
+        DropZoneHandshakePacket(
+            handshake_id=handshake_id,
+            export_id=str(existing_payload.get("export_id") or export_payload.get("export_id") or ""),
+            intake_id=str(existing_payload.get("intake_id") or intake_payload.get("intake_id") or ""),
+            target_hint=str(existing_payload.get("target_hint") or export_payload.get("target_hint") or "COUPLER_DROP"),
+            dropzone_path=str(existing_payload.get("dropzone_path") or payload_path),
+            payload_filename=payload_filename,
+            handshake_state=str(existing_payload.get("handshake_state") or "DROPZONE_STAGED"),
+            staged_at=str(existing_payload.get("staged_at") or staged_at),
+            last_checked_at=str(existing_payload.get("last_checked_at") or ""),
+            archive_path=str(existing_payload.get("archive_path") or (archive_dir / payload_filename)),
+        )
+    )
+    payload["restage_count"] = int(existing_payload.get("restage_count") or 0)
+    return payload
+
+
+def _write_dropzone_handshake(root: Path, handshake_payload: Dict[str, Any], export_payload: Dict[str, Any], intake_payload: Dict[str, Any]) -> Path:
+    outgoing_dir, _, _ = _dropzone_dirs(root)
+    payload_filename = str(handshake_payload.get("payload_filename") or f"{str(handshake_payload.get('handshake_id') or 'handshake').replace(':', '_')}.json")
+    output_path = outgoing_dir / payload_filename
+    payload = {
+        "handshake_packet": handshake_payload,
+        "export_packet": export_payload,
+        "intake_packet": intake_payload,
+        "written_at": utc_now_iso(),
+    }
+    output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    return output_path
+
+
+def _load_dropzone_receipts(root: Path, handshake_payload: Dict[str, Any]) -> List[Dict[str, Any]]:
+    _, receipts_dir, archive_dir = _dropzone_dirs(root)
+    handshake_id = str(handshake_payload.get("handshake_id") or "")
+    export_id = str(handshake_payload.get("export_id") or "")
+    if not handshake_id and not export_id:
+        return []
+    matched: List[Dict[str, Any]] = []
+    for receipt_file in sorted(receipts_dir.glob("*.json")):
+        try:
+            payload = json.loads(receipt_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        payload_handshake_id = str(payload.get("handshake_id") or "")
+        payload_export_id = str(payload.get("export_id") or "")
+        if payload_handshake_id not in {"", handshake_id} and payload_export_id not in {"", export_id}:
+            continue
+        original_path = str(receipt_file)
+        archived_path = archive_dir / receipt_file.name
+        try:
+            shutil.move(str(receipt_file), str(archived_path))
+        except OSError:
+            archived_path = receipt_file
+        matched.append(asdict(
+            DropZoneReceiptPacket(
+                handshake_id=payload_handshake_id or handshake_id,
+                export_id=payload_export_id or export_id,
+                receipt_state=str(payload.get("receipt_state") or "RECEIPT_ACCEPTED"),
+                receipt_reason=str(payload.get("receipt_reason") or "receipt file processed"),
+                receipt_filename=receipt_file.name,
+                received_at=str(payload.get("received_at") or utc_now_iso()),
+                receiver_name=str(payload.get("receiver_name") or "EXTERNAL_COUPLER"),
+                receiver_status=str(payload.get("receiver_status") or "ACTIVE"),
+                receipt_path=original_path,
+                archived_path=str(archived_path),
+            )
+        ))
+    return matched
+
+
+def _archive_dropzone_outgoing(root: Path, handshake_payload: Dict[str, Any]) -> Path | None:
+    outgoing_dir, _, archive_dir = _dropzone_dirs(root)
+    payload_filename = str(handshake_payload.get("payload_filename") or "")
+    if not payload_filename:
+        return None
+    source_path = outgoing_dir / payload_filename
+    target_path = archive_dir / payload_filename
+    if not source_path.exists():
+        return target_path if target_path.exists() else None
+    try:
+        shutil.move(str(source_path), str(target_path))
+    except OSError:
+        return None
+    return target_path
 
 
 def _write_external_bridge_export(root: Path, export_packet: Dict[str, Any], *, target_hint: str) -> Path:

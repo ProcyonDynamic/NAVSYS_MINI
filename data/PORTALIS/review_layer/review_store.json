@@ -1,0 +1,130 @@
+{
+  "annotations": {},
+  "approval_actions": {},
+  "audit_entries": {
+    "audit_1": {
+      "entry_id": "audit_1",
+      "kind": "REVIEW_SESSION_CREATED",
+      "message": "Review session created for DOCUMENT:DOC_000001.",
+      "related_document_id": "",
+      "related_review_item_id": "",
+      "related_review_session_id": "review_session_document_doc_000001",
+      "related_task_workspace_id": "",
+      "source": "REVIEW_LAYER",
+      "timestamp": "2026-04-01T22:44:12Z"
+    },
+    "audit_2": {
+      "entry_id": "audit_2",
+      "kind": "REVIEW_SESSION_CREATED",
+      "message": "Review session created for COMPARE_SESSION:DOC_000001.",
+      "related_document_id": "",
+      "related_review_item_id": "",
+      "related_review_session_id": "review_session_compare_session_doc_000001",
+      "related_task_workspace_id": "",
+      "source": "REVIEW_LAYER",
+      "timestamp": "2026-04-01T22:44:12Z"
+    },
+    "audit_3": {
+      "entry_id": "audit_3",
+      "kind": "REVIEW_SESSION_CREATED",
+      "message": "Review session created for DOCUMENT:GLOBAL.",
+      "related_document_id": "",
+      "related_review_item_id": "",
+      "related_review_session_id": "review_session_document_global",
+      "related_task_workspace_id": "",
+      "source": "REVIEW_LAYER",
+      "timestamp": "2026-04-01T22:52:01Z"
+    },
+    "audit_4": {
+      "entry_id": "audit_4",
+      "kind": "REVIEW_SESSION_CREATED",
+      "message": "Review session created for DOCUMENT:DOC_000021.",
+      "related_document_id": "",
+      "related_review_item_id": "",
+      "related_review_session_id": "review_session_document_doc_000021",
+      "related_task_workspace_id": "",
+      "source": "REVIEW_LAYER",
+      "timestamp": "2026-04-01T23:15:28Z"
+    },
+    "audit_5": {
+      "entry_id": "audit_5",
+      "kind": "REVIEW_SESSION_CREATED",
+      "message": "Review session created for DOCUMENT:DOC_000022.",
+      "related_document_id": "",
+      "related_review_item_id": "",
+      "related_review_session_id": "review_session_document_doc_000022",
+      "related_task_workspace_id": "",
+      "source": "REVIEW_LAYER",
+      "timestamp": "2026-04-01T23:20:13Z"
+    }
+  },
+  "comments": {},
+  "review_items": {},
+  "review_sessions": {
+    "review_session_compare_session_doc_000001": {
+      "approved_count": 0,
+      "pending_count": 0,
+      "rejected_count": 0,
+      "review_session_id": "review_session_compare_session_doc_000001",
+      "scope_id": "DOC_000001",
+      "scope_type": "COMPARE_SESSION",
+      "signed_off": false,
+      "signed_off_at": "",
+      "status": "ACTIVE",
+      "task_workspace_id": "",
+      "updated_at": "2026-04-01T22:44:12Z"
+    },
+    "review_session_document_doc_000001": {
+      "approved_count": 0,
+      "pending_count": 0,
+      "rejected_count": 0,
+      "review_session_id": "review_session_document_doc_000001",
+      "scope_id": "DOC_000001",
+      "scope_type": "DOCUMENT",
+      "signed_off": false,
+      "signed_off_at": "",
+      "status": "ACTIVE",
+      "task_workspace_id": "",
+      "updated_at": "2026-04-01T22:44:11Z"
+    },
+    "review_session_document_doc_000021": {
+      "approved_count": 0,
+      "pending_count": 0,
+      "rejected_count": 0,
+      "review_session_id": "review_session_document_doc_000021",
+      "scope_id": "DOC_000021",
+      "scope_type": "DOCUMENT",
+      "signed_off": false,
+      "signed_off_at": "",
+      "status": "ACTIVE",
+      "task_workspace_id": "",
+      "updated_at": "2026-04-01T23:15:28Z"
+    },
+    "review_session_document_doc_000022": {
+      "approved_count": 0,
+      "pending_count": 0,
+      "rejected_count": 0,
+      "review_session_id": "review_session_document_doc_000022",
+      "scope_id": "DOC_000022",
+      "scope_type": "DOCUMENT",
+      "signed_off": false,
+      "signed_off_at": "",
+      "status": "ACTIVE",
+      "task_workspace_id": "",
+      "updated_at": "2026-04-01T23:20:13Z"
+    },
+    "review_session_document_global": {
+      "approved_count": 0,
+      "pending_count": 0,
+      "rejected_count": 0,
+      "review_session_id": "review_session_document_global",
+      "scope_id": "GLOBAL",
+      "scope_type": "DOCUMENT",
+      "signed_off": false,
+      "signed_off_at": "",
+      "status": "ACTIVE",
+      "task_workspace_id": "",
+      "updated_at": "2026-04-01T22:52:00Z"
+    }
+  }
+}
