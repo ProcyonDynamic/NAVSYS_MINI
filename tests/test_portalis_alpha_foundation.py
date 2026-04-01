@@ -21,6 +21,7 @@ from modules.portalis_mini.review_dashboard_service import (
     apply_assignment_action,
     apply_external_bridge_action,
     apply_incident_action,
+    apply_intake_action,
     apply_notification_action,
     apply_reminder_action,
     apply_transport_action,
@@ -41,6 +42,11 @@ from modules.portalis_mini.review_dashboard_service import (
     build_transport_requests,
     build_watch_queue,
     refresh_control_room_state,
+)
+from modules.portalis_mini.studio_workbench_service import (
+    build_document_workbench,
+    open_document_in_workbench,
+    update_document_workbench,
 )
 from modules.portalis_mini.passport_review_service import (
     build_compare_ledger_entries,
@@ -2106,3 +2112,207 @@ def test_external_bridge_export_queue_and_file_export_are_persisted(tmp_path):
     assert "export_summary" in updated_doc["tce_lite"]["HOW"]
     assert "bridge_summary" in updated_doc["tce_lite"]["HOW"]
     assert "export_reason" in updated_doc["tce_lite"]["WHY"]
+
+
+def test_intake_contract_validation_and_ack_history_are_persisted(tmp_path):
+    portalis_root = tmp_path / "PORTALIS"
+    portalis_root.mkdir(parents=True, exist_ok=True)
+
+    source_file = portalis_root / "documents" / "CREW_PASSPORT" / "passport.pdf"
+    source_file.parent.mkdir(parents=True, exist_ok=True)
+    source_file.write_bytes(b"fake pdf bytes")
+
+    registry = DocumentRegistry(portalis_root)
+    document_id = registry.register_document(
+        doc_type="passport",
+        owner_entity="crew",
+        owner_id="crew_test_001",
+        source_file=source_file,
+        parsed_fields={"passport.number": "B7654321"},
+        confidence=0.88,
+        review_required=True,
+        field_policy={"passport.number": {"criticality": "CRITICAL"}},
+        field_conflicts={"passport.number": {"conflict_level": "HIGH"}},
+        field_confidence={"passport.number": {"confidence_band": "LOW"}},
+        field_evidence={"passport.number": {"warnings": []}},
+        prioritized_field_queue=[
+            {
+                "document_id": "DOC_PENDING",
+                "field_name": "passport.number",
+                "queue_rank": 1,
+                "priority_score": 180,
+                "priority_band": "CRITICAL",
+                "current_status": "UNRESOLVED",
+                "conflict_level": "HIGH",
+                "confidence_band": "LOW",
+                "recommended_action": "HIGH_ATTENTION",
+                "attention_state": "UNRESOLVED",
+            }
+        ],
+        unresolved_fields={
+            "passport.number": {
+                "document_id": "DOC_PENDING",
+                "field_name": "passport.number",
+                "unresolved_reason": "Critical passport mismatch",
+                "conflict_level": "HIGH",
+                "confidence_band": "LOW",
+                "recommended_action": "HIGH_ATTENTION",
+                "candidate_bundle_ref": "passport.number",
+                "last_updated": "2026-03-31T00:00:00Z",
+                "status": "UNRESOLVED",
+            }
+        },
+        tce_lite={"WHAT": {"document_type": "passport"}},
+    )
+    save_review_queue(
+        portalis_root,
+        [
+            ReviewQueueItem(
+                document_id=document_id,
+                review_required=True,
+                status="PENDING",
+                created_at="2026-03-25T00:00:00Z",
+                updated_at="2026-03-31T00:00:00Z",
+                tce=TCELiteEnvelope(WHAT={"document_type": "passport"}),
+                field_policy={"passport.number": {"criticality": "CRITICAL"}},
+                field_conflicts={"passport.number": {"conflict_level": "HIGH"}},
+                field_confidence={"passport.number": {"confidence_band": "LOW"}},
+                field_evidence={"passport.number": {"warnings": []}},
+                prioritized_field_queue=[
+                    {
+                        "document_id": document_id,
+                        "field_name": "passport.number",
+                        "queue_rank": 1,
+                        "priority_score": 180,
+                        "priority_band": "CRITICAL",
+                        "current_status": "UNRESOLVED",
+                        "conflict_level": "HIGH",
+                        "confidence_band": "LOW",
+                        "recommended_action": "HIGH_ATTENTION",
+                        "attention_state": "UNRESOLVED",
+                    }
+                ],
+                unresolved_fields={
+                    "passport.number": {
+                        "document_id": document_id,
+                        "field_name": "passport.number",
+                        "unresolved_reason": "Critical passport mismatch",
+                        "conflict_level": "HIGH",
+                        "confidence_band": "LOW",
+                        "recommended_action": "HIGH_ATTENTION",
+                        "candidate_bundle_ref": "passport.number",
+                        "last_updated": "2026-03-31T00:00:00Z",
+                        "status": "UNRESOLVED",
+                    }
+                },
+            )
+        ],
+    )
+
+    apply_external_bridge_action(
+        portalis_root,
+        document_id=document_id,
+        field_name="passport.number",
+        bridge_action="STAGE_EXPORT",
+        operator_name="control_room",
+        bridge_note="Stage for intake",
+        target_hint="LOCAL_EXPORT_FILE",
+    )
+
+    refreshed = refresh_control_room_state(portalis_root)
+    assert refreshed["intake_queue"]
+    assert refreshed["intake_queue"][0]["latest_ack_state"] == "INTAKE_PENDING"
+    assert refreshed["intake_queue"][0]["validation"]["validation_state"] == "VALID"
+
+    accepted = apply_intake_action(
+        portalis_root,
+        document_id=document_id,
+        field_name="passport.number",
+        intake_action="MARK_INTAKE_ACCEPTED",
+        operator_name="admin_bridge",
+        intake_note="Accepted by simulated intake",
+    )
+    assert accepted["intake_packet"]["intake_status"] == "INTAKE_ACCEPTED"
+
+    invalid = apply_intake_action(
+        portalis_root,
+        document_id=document_id,
+        field_name="passport.number",
+        intake_action="MARK_INTAKE_INVALID",
+        operator_name="admin_bridge",
+        intake_note="Contract mismatch on retest",
+    )
+    assert invalid["intake_packet"]["intake_status"] == "INTAKE_INVALID"
+
+    refreshed = refresh_control_room_state(portalis_root)
+    item = load_review_queue(portalis_root)[0]
+    updated_doc = registry.get_document(document_id)
+
+    assert item.intake_contracts["passport.number"]["contract_version"] == "portalis-intake-v1"
+    assert item.intake_acks["passport.number"]["ack_state"] == "INTAKE_INVALID"
+    assert refreshed["intake_queue"][0]["latest_ack_state"] == "INTAKE_INVALID"
+    assert updated_doc["intake_acks"]["passport.number"]["ack_reason"] == "Contract mismatch on retest"
+    assert "intake_summary" in updated_doc["tce_lite"]["HOW"]
+    assert "intake_validation_summary" in updated_doc["tce_lite"]["HOW"]
+    assert "intake_reason" in updated_doc["tce_lite"]["WHY"]
+
+
+def test_document_workbench_lists_opens_and_persists_notes(tmp_path):
+    portalis_root = tmp_path / "PORTALIS"
+    portalis_root.mkdir(parents=True, exist_ok=True)
+
+    source_file = portalis_root / "documents" / "CREW_PASSPORT" / "passport.txt"
+    source_file.parent.mkdir(parents=True, exist_ok=True)
+    source_file.write_text("passport preview text\nmanual workbench line", encoding="utf-8")
+
+    registry = DocumentRegistry(portalis_root)
+    document_id = registry.register_document(
+        doc_type="passport",
+        owner_entity="crew",
+        owner_id="crew_test_001",
+        source_file=source_file,
+        parsed_fields={"passport.number": "A1234567"},
+        confidence=0.9,
+        review_required=True,
+        tce_lite={"WHAT": {"document_type": "passport"}},
+    )
+
+    workbench = build_document_workbench(portalis_root, search_text="crew_test_001")
+    assert workbench["document_count"] == 1
+    assert workbench["documents"][0]["document_id"] == document_id
+    assert workbench["documents"][0]["preview_kind"] == "text"
+    assert workbench["documents"][0]["preview_available"] is True
+
+    opened = open_document_in_workbench(
+        portalis_root,
+        document_id=document_id,
+        operator_name="studio_operator",
+    )
+    assert opened["document_id"] == document_id
+    assert opened["status"] == "IN_WORKBENCH"
+
+    updated = update_document_workbench(
+        portalis_root,
+        document_id=document_id,
+        workbench_notes="Manual inspection started",
+        workbench_status="IN_WORKBENCH",
+        workbench_tags="passport, manual-check",
+        operator_name="studio_operator",
+    )
+    assert updated["status"] == "IN_WORKBENCH"
+    assert updated["notes"] == "Manual inspection started"
+    assert updated["manual_tags"] == ["passport", "manual-check"]
+
+    refreshed_doc = registry.get_document(document_id)
+    assert refreshed_doc["workbench_notes"] == "Manual inspection started"
+    assert refreshed_doc["workbench_status"] == "IN_WORKBENCH"
+    assert refreshed_doc["workbench_tags"] == ["passport", "manual-check"]
+    assert refreshed_doc["workbench_history"][-1]["action"] == "UPDATE_WORKBENCH"
+    assert refreshed_doc["tce_lite"]["HOW"]["workbench_summary"]["status"] == "IN_WORKBENCH"
+    assert refreshed_doc["tce_lite"]["WHY"]["workbench_reason"]["manual_first_workspace"] is True
+    assert refreshed_doc["tce_lite"]["WHEN"]["document_opened_at"]
+    assert refreshed_doc["tce_lite"]["WHEN"]["workbench_updated_at"]
+
+    selected = build_document_workbench(portalis_root, selected_document_id=document_id)
+    assert selected["selected_document"]["notes"] == "Manual inspection started"
+    assert "manual workbench line" in selected["selected_document"]["preview_text"]

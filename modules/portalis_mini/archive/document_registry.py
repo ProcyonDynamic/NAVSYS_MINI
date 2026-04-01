@@ -66,6 +66,15 @@ class DocumentRegistry:
         external_bridge_exports: Dict[str, Any] | None = None,
         external_bridge_results: Dict[str, Any] | None = None,
         external_bridge_actions: list[Dict[str, Any]] | None = None,
+        intake_contracts: Dict[str, Any] | None = None,
+        intake_acks: Dict[str, Any] | None = None,
+        intake_actions: list[Dict[str, Any]] | None = None,
+        workbench_notes: str | None = None,
+        workbench_status: str | None = None,
+        workbench_tags: list[str] | None = None,
+        workbench_history: list[Dict[str, Any]] | None = None,
+        workbench_opened_at: str | None = None,
+        workbench_updated_at: str | None = None,
         tce_lite: Dict[str, Any] | None = None,
         operational_reason: str | None = None,
     ) -> str:
@@ -120,6 +129,15 @@ class DocumentRegistry:
             "external_bridge_exports": external_bridge_exports or {},
             "external_bridge_results": external_bridge_results or {},
             "external_bridge_actions": external_bridge_actions or [],
+            "intake_contracts": intake_contracts or {},
+            "intake_acks": intake_acks or {},
+            "intake_actions": intake_actions or [],
+            "workbench_notes": workbench_notes or "",
+            "workbench_status": workbench_status or "STORED",
+            "workbench_tags": workbench_tags or [],
+            "workbench_history": workbench_history or [],
+            "workbench_opened_at": workbench_opened_at or "",
+            "workbench_updated_at": workbench_updated_at or "",
             "confidence": confidence,
             "review_required": review_required,
             "review_status": "PENDING" if review_required else "ACCEPTED",
@@ -214,6 +232,9 @@ class DocumentRegistry:
         external_bridge_exports: Dict[str, Any] | None = None,
         external_bridge_results: Dict[str, Any] | None = None,
         external_bridge_actions: list[Dict[str, Any]] | None = None,
+        intake_contracts: Dict[str, Any] | None = None,
+        intake_acks: Dict[str, Any] | None = None,
+        intake_actions: list[Dict[str, Any]] | None = None,
         resolved_by: str,
         resolved_at: str,
         resolution_reason: str,
@@ -292,6 +313,12 @@ class DocumentRegistry:
                 entry["external_bridge_results"] = external_bridge_results
             if external_bridge_actions is not None:
                 entry["external_bridge_actions"] = external_bridge_actions
+            if intake_contracts is not None:
+                entry["intake_contracts"] = intake_contracts
+            if intake_acks is not None:
+                entry["intake_acks"] = intake_acks
+            if intake_actions is not None:
+                entry["intake_actions"] = intake_actions
             entry["resolved_by"] = resolved_by
             entry["resolved_at"] = resolved_at
             entry["resolution_reason"] = resolution_reason
@@ -340,6 +367,9 @@ class DocumentRegistry:
         external_bridge_exports: Dict[str, Any] | None = None,
         external_bridge_results: Dict[str, Any] | None = None,
         external_bridge_actions: list[Dict[str, Any]] | None = None,
+        intake_contracts: Dict[str, Any] | None = None,
+        intake_acks: Dict[str, Any] | None = None,
+        intake_actions: list[Dict[str, Any]] | None = None,
         tce_lite: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
         registry = self._load_registry()
@@ -410,6 +440,12 @@ class DocumentRegistry:
                 entry["external_bridge_results"] = external_bridge_results
             if external_bridge_actions is not None:
                 entry["external_bridge_actions"] = external_bridge_actions
+            if intake_contracts is not None:
+                entry["intake_contracts"] = intake_contracts
+            if intake_acks is not None:
+                entry["intake_acks"] = intake_acks
+            if intake_actions is not None:
+                entry["intake_actions"] = intake_actions
             if tce_lite is not None:
                 entry["tce_lite"] = tce_lite
 
@@ -447,6 +483,9 @@ class DocumentRegistry:
         external_bridge_exports: Dict[str, Any] | None = None,
         external_bridge_results: Dict[str, Any] | None = None,
         external_bridge_actions: list[Dict[str, Any]] | None = None,
+        intake_contracts: Dict[str, Any] | None = None,
+        intake_acks: Dict[str, Any] | None = None,
+        intake_actions: list[Dict[str, Any]] | None = None,
         tce_lite: Dict[str, Any] | None = None,
     ) -> Dict[str, Any]:
         registry = self._load_registry()
@@ -502,6 +541,50 @@ class DocumentRegistry:
                 entry["external_bridge_results"] = external_bridge_results
             if external_bridge_actions is not None:
                 entry["external_bridge_actions"] = external_bridge_actions
+            if intake_contracts is not None:
+                entry["intake_contracts"] = intake_contracts
+            if intake_acks is not None:
+                entry["intake_acks"] = intake_acks
+            if intake_actions is not None:
+                entry["intake_actions"] = intake_actions
+            if tce_lite is not None:
+                entry["tce_lite"] = tce_lite
+
+            self._save_registry(registry)
+            return entry
+
+        raise KeyError(f"Document not found: {document_id}")
+
+    def update_document_workbench(
+        self,
+        document_id: str,
+        *,
+        workbench_notes: str | None = None,
+        workbench_status: str | None = None,
+        workbench_tags: list[str] | None = None,
+        workbench_history: list[Dict[str, Any]] | None = None,
+        workbench_opened_at: str | None = None,
+        workbench_updated_at: str | None = None,
+        tce_lite: Dict[str, Any] | None = None,
+    ) -> Dict[str, Any]:
+        registry = self._load_registry()
+
+        for entry in registry.get("documents", []):
+            if entry.get("document_id") != document_id:
+                continue
+
+            if workbench_notes is not None:
+                entry["workbench_notes"] = workbench_notes
+            if workbench_status is not None:
+                entry["workbench_status"] = workbench_status
+            if workbench_tags is not None:
+                entry["workbench_tags"] = workbench_tags
+            if workbench_history is not None:
+                entry["workbench_history"] = workbench_history
+            if workbench_opened_at is not None:
+                entry["workbench_opened_at"] = workbench_opened_at
+            if workbench_updated_at is not None:
+                entry["workbench_updated_at"] = workbench_updated_at
             if tce_lite is not None:
                 entry["tce_lite"] = tce_lite
 

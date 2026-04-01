@@ -100,6 +100,9 @@ def load_review_queue(portalis_root: str | Path) -> List[ReviewQueueItem]:
                 external_bridge_exports=dict(item.get("external_bridge_exports", {})),
                 external_bridge_results=dict(item.get("external_bridge_results", {})),
                 external_bridge_actions=list(item.get("external_bridge_actions", [])),
+                intake_contracts=dict(item.get("intake_contracts", {})),
+                intake_acks=dict(item.get("intake_acks", {})),
+                intake_actions=list(item.get("intake_actions", [])),
                 status=item.get("status", "PENDING"),
                 tce=TCELiteEnvelope(
                     WHAT=dict(tce_payload.get("WHAT", {})),

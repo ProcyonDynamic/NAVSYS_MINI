@@ -74,6 +74,14 @@ EXTERNAL_BRIDGE_ACTION_STATUS = {
     "RETRY_EXPORT": "EXPORT_READY",
     "REQUEUE_EXPORT": "EXPORT_READY",
 }
+INTAKE_ACTION_STATUS = {
+    "MARK_INTAKE_ACCEPTED": "INTAKE_ACCEPTED",
+    "MARK_INTAKE_REJECTED": "INTAKE_REJECTED",
+    "MARK_INTAKE_INVALID": "INTAKE_INVALID",
+    "CLEAR_INTAKE_STATE": "INTAKE_SKIPPED",
+    "RETRY_INTAKE": "INTAKE_PENDING",
+    "REQUEUE_INTAKE": "INTAKE_PENDING",
+}
 
 # Portalis Control Room policy defaults.
 SLA_TIMER_DEFAULTS = {
@@ -439,6 +447,54 @@ class ExternalBridgeActionPacket:
 
 
 @dataclass(slots=True)
+class IntakeValidationPacket:
+    intake_id: str
+    export_id: str
+    validation_state: str
+    validation_messages: List[str] = field(default_factory=list)
+    validated_at: str = ""
+    contract_version: str = "portalis-intake-v1"
+
+
+@dataclass(slots=True)
+class IntakeContractPacket:
+    intake_id: str
+    export_id: str
+    export_type: str
+    target_hint: str
+    document_id: str
+    review_item_id: str
+    field_name: str
+    incident_id: str = ""
+    received_at: str = ""
+    source_summary: Dict[str, Any] = field(default_factory=dict)
+    contract_version: str = "portalis-intake-v1"
+    validation: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class IntakeAckPacket:
+    intake_id: str
+    export_id: str
+    ack_state: str
+    ack_reason: str = ""
+    acknowledged_at: str = ""
+    receiver_name: str = "PORTALIS_INTAKE"
+    receiver_status: str = ""
+
+
+@dataclass(slots=True)
+class IntakeActionPacket:
+    document_id: str
+    field_name: str
+    intake_action: str
+    operator_name: str = "operator"
+    intake_note: str = ""
+    intake_status: str = ""
+    acted_at: str = ""
+
+
+@dataclass(slots=True)
 class GlobalReviewQueuePacket:
     document_id: str
     review_item_id: str
@@ -514,6 +570,10 @@ class DashboardSummaryPacket:
     total_export_accepted_items: int = 0
     total_export_failed_items: int = 0
     total_export_rejected_items: int = 0
+    total_intake_pending_items: int = 0
+    total_intake_accepted_items: int = 0
+    total_intake_rejected_items: int = 0
+    total_intake_invalid_items: int = 0
     highest_priority_items: List[Dict[str, Any]] = field(default_factory=list)
     oldest_pending_documents: List[Dict[str, Any]] = field(default_factory=list)
     escalated_items: List[Dict[str, Any]] = field(default_factory=list)
@@ -525,6 +585,7 @@ class DashboardSummaryPacket:
     alert_items: List[Dict[str, Any]] = field(default_factory=list)
     incident_items: List[Dict[str, Any]] = field(default_factory=list)
     export_items: List[Dict[str, Any]] = field(default_factory=list)
+    intake_items: List[Dict[str, Any]] = field(default_factory=list)
 
 
 def apply_triage_action(portalis_root: str | Path, *, document_id: str, field_name: str, triage_action: str, operator_name: str = "operator", triage_note: str = "") -> Dict[str, Any]:
@@ -1030,6 +1091,56 @@ def apply_external_bridge_action(portalis_root: str | Path, *, document_id: str,
     return _control_room_action_result(latest, document_id, field_name, "external_bridge_packet", packet)
 
 
+def apply_intake_action(portalis_root: str | Path, *, document_id: str, field_name: str, intake_action: str, operator_name: str = "operator", intake_note: str = "") -> Dict[str, Any]:
+    root = Path(portalis_root)
+    action = str(intake_action or "").strip().upper()
+    if action not in INTAKE_ACTION_STATUS:
+        raise ValueError(f"Unsupported intake action: {intake_action}")
+    refreshed = refresh_control_room_state(root)
+    review_items = refreshed["review_items"]
+    intake_by_document = refreshed["intake_by_document"]
+    matched_item = _find_review_item(review_items, document_id)
+    intake_contracts = dict(matched_item.intake_contracts or {})
+    intake_acks = dict(matched_item.intake_acks or {})
+    current_intake = dict((intake_by_document.get(document_id, {}) or {}).get(field_name, {}) or intake_contracts.get(field_name, {}))
+    acted_at = utc_now_iso()
+    packet = asdict(
+        IntakeActionPacket(
+            document_id=document_id,
+            field_name=field_name,
+            intake_action=action,
+            operator_name=operator_name or "operator",
+            intake_note=intake_note or "",
+            intake_status=INTAKE_ACTION_STATUS[action],
+            acted_at=acted_at,
+        )
+    )
+    matched_item.intake_actions = list(matched_item.intake_actions or []) + [packet]
+    if action == "CLEAR_INTAKE_STATE":
+        intake_contracts.pop(field_name, None)
+    elif current_intake:
+        intake_contracts[field_name] = current_intake
+    export_id = str((current_intake.get("export_id") or ""))
+    if current_intake or action == "CLEAR_INTAKE_STATE":
+        intake_acks[field_name] = asdict(
+            IntakeAckPacket(
+                intake_id=str(current_intake.get("intake_id") or _intake_id(document_id, field_name)),
+                export_id=export_id,
+                ack_state=INTAKE_ACTION_STATUS[action],
+                ack_reason=intake_note or _intake_result_reason(action),
+                acknowledged_at=acted_at,
+                receiver_name=operator_name or "PORTALIS_INTAKE",
+                receiver_status="ACTIVE" if INTAKE_ACTION_STATUS[action] in {"INTAKE_PENDING", "INTAKE_ACCEPTED"} else "ATTENTION",
+            )
+        )
+    matched_item.intake_contracts = intake_contracts
+    matched_item.intake_acks = intake_acks
+    matched_item.updated_at = acted_at
+    save_review_queue(root, review_items)
+    latest = refresh_control_room_state(root)
+    return _control_room_action_result(latest, document_id, field_name, "intake_packet", packet)
+
+
 def refresh_control_room_state(portalis_root: str | Path, now: datetime | None = None) -> Dict[str, Any]:
     root = Path(portalis_root)
     now = now or datetime.now(timezone.utc)
@@ -1065,6 +1176,11 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         notification_by_document=notification_by_document,
         now=now,
     )
+    intake_by_document = build_intake_contracts(
+        review_items,
+        export_by_document=export_by_document,
+        now=now,
+    )
     refreshed_at = utc_now_iso()
 
     for item in review_items:
@@ -1078,6 +1194,7 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         local_alerts = dict(alert_by_document.get(item.document_id, {}))
         incident_threads = dict(incident_by_document.get(item.document_id, {}))
         external_bridge_exports = dict(export_by_document.get(item.document_id, {}))
+        intake_contracts = dict(intake_by_document.get(item.document_id, {}))
         item.escalation_policy = escalation_policy
         item.routing_hints = routing_hints
         item.assignment_state = assignment_state
@@ -1088,6 +1205,7 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         item.local_alerts = local_alerts
         item.incident_threads = incident_threads
         item.external_bridge_exports = external_bridge_exports
+        item.intake_contracts = intake_contracts
         item.tce = _merge_tce(
             item.tce,
             build_control_room_tce_delta(
@@ -1107,6 +1225,8 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
                 incident_threads=incident_threads,
                 external_bridge_exports=external_bridge_exports,
                 external_bridge_results=dict(item.external_bridge_results or {}),
+                intake_contracts=intake_contracts,
+                intake_acks=dict(item.intake_acks or {}),
                 evaluated_at=refreshed_at,
             ),
         )
@@ -1138,6 +1258,9 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
                 external_bridge_exports=external_bridge_exports,
                 external_bridge_results=dict(item.external_bridge_results or {}),
                 external_bridge_actions=list(item.external_bridge_actions or []),
+                intake_contracts=intake_contracts,
+                intake_acks=dict(item.intake_acks or {}),
+                intake_actions=list(item.intake_actions or []),
                 tce_lite={
                     "WHAT": dict(item.tce.WHAT),
                     "WHO": dict(item.tce.WHO),
@@ -1159,7 +1282,8 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
     alert_feed = build_alert_queue(review_items, now=now, alert_by_document=alert_by_document)
     incident_feed = build_incident_feed(review_items, now=now, incident_by_document=incident_by_document)
     export_queue = build_external_bridge_queue(review_items, now=now, export_by_document=export_by_document)
-    dashboard_summary = build_dashboard_summary(review_items, global_queue, watch_queue, reminder_queue, notification_queue, transport_queue, alert_feed, incident_feed, export_queue, now=now)
+    intake_queue = build_intake_queue(review_items, now=now, intake_by_document=intake_by_document)
+    dashboard_summary = build_dashboard_summary(review_items, global_queue, watch_queue, reminder_queue, notification_queue, transport_queue, alert_feed, incident_feed, export_queue, intake_queue, now=now)
     dashboard_tce_delta = build_dashboard_tce_delta(global_queue, dashboard_summary, refreshed_at=refreshed_at)
     return {
         "review_items": review_items,
@@ -1171,6 +1295,7 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         "alert_feed": alert_feed,
         "incident_feed": incident_feed,
         "export_queue": export_queue,
+        "intake_queue": intake_queue,
         "dashboard_summary": dashboard_summary,
         "dashboard_tce_delta": dashboard_tce_delta,
         "escalation_by_document": escalation_by_document,
@@ -1182,6 +1307,7 @@ def refresh_control_room_state(portalis_root: str | Path, now: datetime | None =
         "alert_by_document": alert_by_document,
         "incident_by_document": incident_by_document,
         "export_by_document": export_by_document,
+        "intake_by_document": intake_by_document,
     }
 
 
@@ -1913,6 +2039,101 @@ def build_external_bridge_queue(review_items: List[ReviewQueueItem], now: dateti
     return rows
 
 
+def build_intake_contracts(review_items: List[ReviewQueueItem], *, export_by_document: Dict[str, Dict[str, Any]], now: datetime | None = None) -> Dict[str, Dict[str, Any]]:
+    now = now or datetime.now(timezone.utc)
+    now_iso = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    packets: Dict[str, Dict[str, Any]] = {}
+    for item in review_items:
+        existing_contracts = dict(item.intake_contracts or {})
+        existing_acks = dict(item.intake_acks or {})
+        doc_packets: Dict[str, Any] = {}
+        for field_name, export_payload in dict(export_by_document.get(item.document_id, {}) or {}).items():
+            export_row = dict(export_payload or {})
+            if not export_row:
+                continue
+            existing_contract = dict(existing_contracts.get(field_name, {}) or {})
+            validation = _validate_intake_contract(export_row)
+            ack_payload = dict(existing_acks.get(field_name, {}) or {})
+            result_state = str((ack_payload.get("ack_state") or "") or "INTAKE_PENDING")
+            if result_state == "":
+                result_state = "INTAKE_PENDING"
+            doc_packets[field_name] = asdict(
+                IntakeContractPacket(
+                    intake_id=str(existing_contract.get("intake_id") or _intake_id(item.document_id, field_name)),
+                    export_id=str(export_row.get("export_id") or export_row.get("export_id") or _external_export_id(item.document_id, field_name)),
+                    export_type=str(export_row.get("export_type") or "INCIDENT_CONTROL_ROOM_EXPORT"),
+                    target_hint=str(export_row.get("target_hint") or "LOCAL_EXPORT_FILE"),
+                    document_id=item.document_id,
+                    review_item_id=item.document_id,
+                    field_name=field_name,
+                    incident_id=str(export_row.get("incident_id") or ""),
+                    received_at=str(existing_contract.get("received_at") or now_iso),
+                    source_summary=dict(export_row.get("source_summary", {}) or {}),
+                    contract_version=str(existing_contract.get("contract_version") or "portalis-intake-v1"),
+                    validation=validation,
+                )
+            )
+            doc_packets[field_name]["latest_ack_state"] = result_state
+            if validation.get("validation_state") != "VALID":
+                doc_packets[field_name]["latest_ack_state"] = "INTAKE_INVALID"
+        packets[item.document_id] = doc_packets
+    return packets
+
+
+def build_intake_queue(review_items: List[ReviewQueueItem], now: datetime | None = None, intake_by_document: Dict[str, Dict[str, Any]] | None = None) -> List[Dict[str, Any]]:
+    now = now or datetime.now(timezone.utc)
+    intake_by_document = intake_by_document or {}
+    rows: List[Dict[str, Any]] = []
+    for item in review_items:
+        ack_map = dict(item.intake_acks or {})
+        for field_name, payload in dict(intake_by_document.get(item.document_id, {}) or {}).items():
+            row = dict(payload or {})
+            ack_payload = dict(ack_map.get(field_name, {}) or {})
+            row["field_name"] = field_name
+            row["latest_ack_state"] = str(ack_payload.get("ack_state") or row.get("latest_ack_state") or "INTAKE_PENDING")
+            row["latest_ack_reason"] = str(ack_payload.get("ack_reason") or "")
+            row["acknowledged_at"] = str(ack_payload.get("acknowledged_at") or "")
+            row["receiver_name"] = str(ack_payload.get("receiver_name") or "PORTALIS_INTAKE")
+            rows.append(row)
+    rows.sort(
+        key=lambda row: (
+            -_intake_rank(str(row.get("latest_ack_state") or "INTAKE_PENDING")),
+            -_external_bridge_rank(str(row.get("latest_ack_state") or "INTAKE_PENDING")),
+            _parse_iso(str(row.get("acknowledged_at") or row.get("received_at") or "")) or now,
+            row.get("document_id") or "",
+            row.get("field_name") or "",
+        )
+    )
+    return rows
+
+
+def _validate_intake_contract(export_row: Dict[str, Any]) -> Dict[str, Any]:
+    messages: List[str] = []
+    if not str(export_row.get("export_id") or "").strip():
+        messages.append("missing export_id")
+    if not str(export_row.get("target_hint") or "").strip():
+        messages.append("missing target_hint")
+    if not str(export_row.get("export_type") or "").strip():
+        messages.append("missing export_type")
+    if not str(export_row.get("document_id") or "").strip():
+        messages.append("missing document_id")
+    if not str(export_row.get("field_name") or "").strip():
+        messages.append("missing field_name")
+    if not dict(export_row.get("source_summary", {}) or {}):
+        messages.append("missing source_summary")
+    validation_state = "VALID" if not messages else "INVALID"
+    return asdict(
+        IntakeValidationPacket(
+            intake_id=str(export_row.get("intake_id") or _intake_id(str(export_row.get("document_id") or ""), str(export_row.get("field_name") or ""))),
+            export_id=str(export_row.get("export_id") or ""),
+            validation_state=validation_state,
+            validation_messages=messages or ["intake contract shape valid"],
+            validated_at=utc_now_iso(),
+            contract_version=str(export_row.get("contract_version") or "portalis-intake-v1"),
+        )
+    )
+
+
 def build_cross_document_review_queue(review_items: List[ReviewQueueItem], now: datetime | None = None, escalation_by_document: Dict[str, Dict[str, Any]] | None = None, routing_by_document: Dict[str, Dict[str, Any]] | None = None, sla_by_document: Dict[str, Dict[str, Any]] | None = None) -> List[Dict[str, Any]]:
     now = now or datetime.now(timezone.utc)
     queue_rows: List[Dict[str, Any]] = []
@@ -1986,10 +2207,11 @@ def build_cross_document_review_queue(review_items: List[ReviewQueueItem], now: 
     return queue_rows
 
 
-def build_dashboard_summary(review_items: List[ReviewQueueItem], global_queue: List[Dict[str, Any]], watch_queue: List[Dict[str, Any]], reminder_queue: List[Dict[str, Any]], notification_queue: List[Dict[str, Any]], transport_queue: List[Dict[str, Any]], alert_feed: List[Dict[str, Any]], incident_feed: List[Dict[str, Any]] | None = None, export_queue: List[Dict[str, Any]] | None = None, now: datetime | None = None) -> Dict[str, Any]:
+def build_dashboard_summary(review_items: List[ReviewQueueItem], global_queue: List[Dict[str, Any]], watch_queue: List[Dict[str, Any]], reminder_queue: List[Dict[str, Any]], notification_queue: List[Dict[str, Any]], transport_queue: List[Dict[str, Any]], alert_feed: List[Dict[str, Any]], incident_feed: List[Dict[str, Any]] | None = None, export_queue: List[Dict[str, Any]] | None = None, intake_queue: List[Dict[str, Any]] | None = None, now: datetime | None = None) -> Dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     incident_feed = incident_feed or []
     export_queue = export_queue or []
+    intake_queue = intake_queue or []
     pending_docs = [item for item in review_items if str((item.tce.WHAT or {}).get("document_type") or "passport") == "passport" and str(item.status or "") != "REJECTED"]
     oldest_pending_documents = []
     for item in pending_docs:
@@ -2032,6 +2254,10 @@ def build_dashboard_summary(review_items: List[ReviewQueueItem], global_queue: L
         total_export_accepted_items=len([row for row in export_queue if row.get("latest_result_state") == "EXPORT_ACCEPTED"]),
         total_export_failed_items=len([row for row in export_queue if row.get("latest_result_state") == "EXPORT_FAILED"]),
         total_export_rejected_items=len([row for row in export_queue if row.get("latest_result_state") == "EXPORT_REJECTED"]),
+        total_intake_pending_items=len([row for row in intake_queue if row.get("latest_ack_state") == "INTAKE_PENDING"]),
+        total_intake_accepted_items=len([row for row in intake_queue if row.get("latest_ack_state") == "INTAKE_ACCEPTED"]),
+        total_intake_rejected_items=len([row for row in intake_queue if row.get("latest_ack_state") == "INTAKE_REJECTED"]),
+        total_intake_invalid_items=len([row for row in intake_queue if row.get("latest_ack_state") == "INTAKE_INVALID"]),
         highest_priority_items=list(global_queue[:5]),
         oldest_pending_documents=oldest_pending_documents[:5],
         escalated_items=[row for row in global_queue if str(row.get("escalation_level") or "NONE") in {"HIGH", "CRITICAL"}][:5],
@@ -2043,6 +2269,7 @@ def build_dashboard_summary(review_items: List[ReviewQueueItem], global_queue: L
         alert_items=list(alert_feed[:5]),
         incident_items=list(incident_feed[:5]),
         export_items=list(export_queue[:5]),
+        intake_items=list(intake_queue[:5]),
     ))
 
 
@@ -2090,6 +2317,10 @@ def build_dashboard_tce_delta(global_queue: List[Dict[str, Any]], dashboard_summ
                 "total_export_accepted_items": dashboard_summary.get("total_export_accepted_items", 0),
                 "total_export_failed_items": dashboard_summary.get("total_export_failed_items", 0),
                 "total_export_rejected_items": dashboard_summary.get("total_export_rejected_items", 0),
+                "total_intake_pending_items": dashboard_summary.get("total_intake_pending_items", 0),
+                "total_intake_accepted_items": dashboard_summary.get("total_intake_accepted_items", 0),
+                "total_intake_rejected_items": dashboard_summary.get("total_intake_rejected_items", 0),
+                "total_intake_invalid_items": dashboard_summary.get("total_intake_invalid_items", 0),
             },
         },
         "WHY": {"dashboard_priority_reason": [f"{row.get('document_id')}:{row.get('field_name')}:{row.get('priority_band')}:{row.get('escalation_level')}:{row.get('routing_bucket')}" for row in global_queue[:5]]},
@@ -2097,7 +2328,7 @@ def build_dashboard_tce_delta(global_queue: List[Dict[str, Any]], dashboard_summ
     }
 
 
-def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_state: Dict[str, Any], routing_hints: Dict[str, Any], assignment_state: Dict[str, Any], sla_policy: Dict[str, Any], watch_state: Dict[str, Any], reminder_stage: Dict[str, Any], notification_prep: Dict[str, Any], notification_ledger: Dict[str, Any], delivery_attempts: Dict[str, Any], transport_requests: Dict[str, Any], transport_results: Dict[str, Any], local_alerts: Dict[str, Any], incident_threads: Dict[str, Any], external_bridge_exports: Dict[str, Any], external_bridge_results: Dict[str, Any], evaluated_at: str) -> Dict[str, Any]:
+def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_state: Dict[str, Any], routing_hints: Dict[str, Any], assignment_state: Dict[str, Any], sla_policy: Dict[str, Any], watch_state: Dict[str, Any], reminder_stage: Dict[str, Any], notification_prep: Dict[str, Any], notification_ledger: Dict[str, Any], delivery_attempts: Dict[str, Any], transport_requests: Dict[str, Any], transport_results: Dict[str, Any], local_alerts: Dict[str, Any], incident_threads: Dict[str, Any], external_bridge_exports: Dict[str, Any], external_bridge_results: Dict[str, Any], intake_contracts: Dict[str, Any], intake_acks: Dict[str, Any], evaluated_at: str) -> Dict[str, Any]:
     escalation_summary = {"NONE": 0, "LOW": 0, "HIGH": 0, "CRITICAL": 0}
     escalation_reason = {}
     for field_name, payload in (escalation_policy or {}).items():
@@ -2151,6 +2382,12 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
     bridge_reason = {}
     export_staged_at = {}
     export_completed_at = {}
+    intake_summary = {"INTAKE_PENDING": 0, "INTAKE_ACCEPTED": 0, "INTAKE_REJECTED": 0, "INTAKE_INVALID": 0, "INTAKE_SKIPPED": 0}
+    intake_validation_summary = {}
+    intake_reason = {}
+    intake_rejection_reason = {}
+    intake_received_at = {}
+    intake_acknowledged_at = {}
     for field_name, payload in (notification_ledger or {}).items():
         state = str((payload or {}).get("prep_state") or "CANCELED")
         notification_ledger_summary[state] = notification_ledger_summary.get(state, 0) + 1
@@ -2220,6 +2457,17 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
         export_staged_at[field_name] = str((payload or {}).get("created_at") or "")
         if latest_result.get("exported_at"):
             export_completed_at[field_name] = str(latest_result.get("exported_at") or "")
+    for field_name, payload in (intake_contracts or {}).items():
+        latest_ack = dict((intake_acks or {}).get(field_name, {}) or {})
+        state = str(latest_ack.get("ack_state") or (payload or {}).get("latest_ack_state") or "INTAKE_PENDING")
+        intake_summary[state] = intake_summary.get(state, 0) + 1
+        intake_validation_summary[field_name] = dict((payload or {}).get("validation", {}) or {})
+        intake_reason[field_name] = list(((payload or {}).get("validation", {}) or {}).get("validation_messages", []) or [])
+        intake_received_at[field_name] = str((payload or {}).get("received_at") or "")
+        if latest_ack.get("ack_reason"):
+            intake_rejection_reason[field_name] = [str(latest_ack.get("ack_reason") or "")]
+        if latest_ack.get("acknowledged_at"):
+            intake_acknowledged_at[field_name] = str(latest_ack.get("acknowledged_at") or "")
     return {
         "HOW": {
             "escalation_summary": escalation_summary,
@@ -2238,6 +2486,8 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
             "incident_summary": incident_summary,
             "export_summary": export_summary,
             "bridge_summary": bridge_summary,
+            "intake_summary": intake_summary,
+            "intake_validation_summary": intake_validation_summary,
         },
         "WHY": {
             "escalation_reason": escalation_reason,
@@ -2255,6 +2505,8 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
             "incident_reason": incident_reason,
             "export_reason": export_reason,
             "bridge_reason": bridge_reason,
+            "intake_reason": intake_reason,
+            "intake_rejection_reason": intake_rejection_reason,
         },
         "WHEN": {
             "escalated_at": evaluated_at,
@@ -2280,6 +2532,8 @@ def build_control_room_tce_delta(*, escalation_policy: Dict[str, Any], triage_st
             "incident_closed_at": incident_closed_at,
             "export_staged_at": export_staged_at,
             "export_completed_at": export_completed_at,
+            "intake_received_at": intake_received_at,
+            "intake_acknowledged_at": intake_acknowledged_at,
         },
     }
 
@@ -2722,6 +2976,32 @@ def _external_bridge_rank(state: str) -> int:
         "EXPORT_ACCEPTED": 2,
         "EXPORT_SKIPPED": 1,
     }.get(str(state or "EXPORT_READY"), 0)
+
+
+def _intake_id(document_id: str, field_name: str) -> str:
+    safe_field = str(field_name or "").replace(".", "_")
+    return f"INTAKE::{document_id}::{safe_field}"
+
+
+def _intake_result_reason(action: str) -> str:
+    return {
+        "MARK_INTAKE_ACCEPTED": "intake accepted",
+        "MARK_INTAKE_REJECTED": "intake rejected",
+        "MARK_INTAKE_INVALID": "intake invalid",
+        "CLEAR_INTAKE_STATE": "intake state cleared",
+        "RETRY_INTAKE": "intake retried",
+        "REQUEUE_INTAKE": "intake requeued",
+    }.get(str(action or ""), "intake action recorded")
+
+
+def _intake_rank(state: str) -> int:
+    return {
+        "INTAKE_INVALID": 5,
+        "INTAKE_REJECTED": 4,
+        "INTAKE_PENDING": 3,
+        "INTAKE_ACCEPTED": 2,
+        "INTAKE_SKIPPED": 1,
+    }.get(str(state or "INTAKE_PENDING"), 0)
 
 
 def _write_external_bridge_export(root: Path, export_packet: Dict[str, Any], *, target_hint: str) -> Path:

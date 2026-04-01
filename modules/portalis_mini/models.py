@@ -145,6 +145,9 @@ class ReviewQueueItem:
     external_bridge_exports: Dict[str, Any] = field(default_factory=dict)
     external_bridge_results: Dict[str, Any] = field(default_factory=dict)
     external_bridge_actions: List[Dict[str, Any]] = field(default_factory=list)
+    intake_contracts: Dict[str, Any] = field(default_factory=dict)
+    intake_acks: Dict[str, Any] = field(default_factory=dict)
+    intake_actions: List[Dict[str, Any]] = field(default_factory=list)
     status: ReviewStatus = "PENDING"
     tce: TCELiteEnvelope = field(default_factory=TCELiteEnvelope)
     resolution_reason: str = ""

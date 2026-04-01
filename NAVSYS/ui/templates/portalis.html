@@ -348,6 +348,108 @@
         {% endif %}
       </div>
 
+      <h2>Document Workbench</h2>
+      <div class="statusbox">
+        Workbench Documents: {{ workbench_summary.document_count }}<br>
+        Refreshed: {{ workbench_summary.updated_at }}<br><br>
+
+        <form method="get">
+          {% if selected_crew_id %}<input type="hidden" name="crew_id" value="{{ selected_crew_id }}">{% endif %}
+          {% if selected_port_name %}<input type="hidden" name="port_name" value="{{ selected_port_name }}">{% endif %}
+          {% if selected_review_document_id %}<input type="hidden" name="review_document_id" value="{{ selected_review_document_id }}">{% endif %}
+          {% if review_filter_mode %}<input type="hidden" name="review_filter" value="{{ review_filter_mode }}">{% endif %}
+          <label>Document Type Filter</label>
+          <input type="text" name="workbench_document_type" value="{{ workbench_filter_document_type }}" placeholder="passport">
+          <label>Workbench Status Filter</label>
+          <input type="text" name="workbench_status" value="{{ workbench_filter_status }}" placeholder="IN_WORKBENCH">
+          <label>Search</label>
+          <input type="text" name="workbench_search" value="{{ workbench_search_text }}" placeholder="DOC_000001 / crew_test_001">
+          <div class="row">
+            <button type="submit">Filter Workbench</button>
+          </div>
+        </form>
+
+        {% if workbench_documents %}
+          <br>
+          {% for item in workbench_documents %}
+          <strong>
+            <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}{% if selected_review_document_id %}review_document_id={{ selected_review_document_id }}&{% endif %}{% if review_filter_mode %}review_filter={{ review_filter_mode }}&{% endif %}workbench_document_id={{ item.document_id }}{% if workbench_filter_document_type %}&workbench_document_type={{ workbench_filter_document_type }}{% endif %}{% if workbench_filter_status %}&workbench_status={{ workbench_filter_status }}{% endif %}{% if workbench_search_text %}&workbench_search={{ workbench_search_text }}{% endif %}">{{ item.document_id }}</a>
+          </strong>
+          - {{ item.document_type }} - {{ item.status }}<br>
+          File: {{ item.display_name }}<br>
+          Linked: {{ item.linked_entity or "n/a" }} / {{ item.linked_entity_id or "n/a" }}<br>
+          Preview: {{ "yes" if item.preview_available else "no" }} | Source Exists: {{ "yes" if item.source_exists else "no" }}<br>
+          {% if item.manual_tags %}Tags: {{ item.manual_tags|join(", ") }}<br>{% endif %}
+          <form method="post">
+            <input type="hidden" name="workbench_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="workbench_filter_document_type" value="{{ workbench_filter_document_type }}">
+            <input type="hidden" name="workbench_filter_status" value="{{ workbench_filter_status }}">
+            <input type="hidden" name="workbench_search_text" value="{{ workbench_search_text }}">
+            <input type="hidden" name="workbench_operator_name" value="operator">
+            <button type="submit" name="action" value="open_workbench_document">Open In Workbench</button>
+          </form>
+          <hr>
+          {% endfor %}
+        {% else %}
+          No workbench documents match the current filter.
+        {% endif %}
+      </div>
+
+      {% if selected_workbench_document %}
+      <div class="statusbox">
+        <strong>Workbench Detail</strong><br>
+        Document: {{ selected_workbench_document.document_id }} - {{ selected_workbench_document.document_type }}<br>
+        Display: {{ selected_workbench_document.display_name }}<br>
+        Linked Entity: {{ selected_workbench_document.linked_entity or "n/a" }} / {{ selected_workbench_document.linked_entity_id or "n/a" }}<br>
+        Status: {{ selected_workbench_document.status }}<br>
+        Created: {{ selected_workbench_document.created_at or "n/a" }}<br>
+        Updated: {{ selected_workbench_document.updated_at or "n/a" }}<br>
+        Source Path: <code>{{ selected_workbench_document.source_path }}</code><br>
+        {% if selected_workbench_document.open_url %}
+        Source Access: <a href="{{ selected_workbench_document.open_url }}" target="_blank">Open Source File</a><br>
+        {% endif %}
+        {% if selected_workbench_document.manual_tags %}
+        Tags: {{ selected_workbench_document.manual_tags|join(", ") }}<br>
+        {% endif %}
+        <br>
+
+        {% if selected_workbench_document.preview_kind == "pdf" and selected_workbench_document.open_url %}
+        <iframe src="{{ selected_workbench_document.open_url }}" title="Document Preview" style="width:100%;height:420px;"></iframe>
+        {% elif selected_workbench_document.preview_kind == "image" and selected_workbench_document.open_url %}
+        <img src="{{ selected_workbench_document.open_url }}" alt="Document Preview" style="max-width:100%;height:auto;">
+        {% elif selected_workbench_document.preview_kind == "text" %}
+        <strong>Preview</strong>
+        <pre>{{ selected_workbench_document.preview_text }}</pre>
+        {% else %}
+        Basic preview is not available for this file type. Use the source-file link above.
+        {% endif %}
+
+        <br><br>
+        <form method="post">
+          <input type="hidden" name="workbench_document_id" value="{{ selected_workbench_document.document_id }}">
+          <input type="hidden" name="workbench_filter_document_type" value="{{ workbench_filter_document_type }}">
+          <input type="hidden" name="workbench_filter_status" value="{{ workbench_filter_status }}">
+          <input type="hidden" name="workbench_search_text" value="{{ workbench_search_text }}">
+          <input type="hidden" name="workbench_operator_name" value="operator">
+          <label>Workbench Status</label>
+          <select name="workbench_status_value">
+            <option value="STORED" {% if selected_workbench_document.status == "STORED" %}selected{% endif %}>STORED</option>
+            <option value="IN_WORKBENCH" {% if selected_workbench_document.status == "IN_WORKBENCH" %}selected{% endif %}>IN_WORKBENCH</option>
+            <option value="READY_FOR_REVIEW" {% if selected_workbench_document.status == "READY_FOR_REVIEW" %}selected{% endif %}>READY_FOR_REVIEW</option>
+            <option value="MANUAL_HOLD" {% if selected_workbench_document.status == "MANUAL_HOLD" %}selected{% endif %}>MANUAL_HOLD</option>
+            <option value="COMPLETE" {% if selected_workbench_document.status == "COMPLETE" %}selected{% endif %}>COMPLETE</option>
+          </select>
+          <label>Manual Tags</label>
+          <input type="text" name="workbench_tags_value" value="{{ selected_workbench_document.manual_tags|join(', ') }}" placeholder="passport, manual-check">
+          <label>Workbench Notes</label>
+          <textarea name="workbench_notes" rows="5" placeholder="Manual workbench notes">{{ selected_workbench_document.notes }}</textarea>
+          <div class="row">
+            <button type="submit" name="action" value="update_workbench_document">Save Workbench Notes</button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+
       <h2>Review Queue</h2>
       <div class="statusbox">
         {% if review_items %}
@@ -404,6 +506,10 @@
         Export Accepted Items: {{ dashboard_summary.total_export_accepted_items }}<br>
         Export Failed Items: {{ dashboard_summary.total_export_failed_items }}<br>
         Export Rejected Items: {{ dashboard_summary.total_export_rejected_items }}<br>
+        Intake Pending Items: {{ dashboard_summary.total_intake_pending_items }}<br>
+        Intake Accepted Items: {{ dashboard_summary.total_intake_accepted_items }}<br>
+        Intake Rejected Items: {{ dashboard_summary.total_intake_rejected_items }}<br>
+        Intake Invalid Items: {{ dashboard_summary.total_intake_invalid_items }}<br>
         {% if dashboard_summary.highest_priority_items %}
         <br>
         <strong>Top Priority Items</strong><br>
@@ -469,6 +575,14 @@
         {% for item in dashboard_summary.export_items %}
         <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a>
         | {{ item.field_name }} | {{ item.target_hint }} | {{ item.latest_result_state }}<br>
+        {% endfor %}
+        {% endif %}
+        {% if dashboard_summary.intake_items %}
+        <br>
+        <strong>Intake Highlights</strong><br>
+        {% for item in dashboard_summary.intake_items %}
+        <a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a>
+        | {{ item.field_name }} | {{ item.target_hint }} | {{ item.latest_ack_state }}<br>
         {% endfor %}
         {% endif %}
       </div>
@@ -819,6 +933,41 @@
         {% endif %}
       </div>
 
+      <h2>Intake Contract Queue</h2>
+      <div class="statusbox">
+        {% if intake_queue %}
+          {% for item in intake_queue %}
+          <strong><a href="/portalis?{% if selected_crew_id %}crew_id={{ selected_crew_id }}&{% endif %}{% if selected_port_name %}port_name={{ selected_port_name }}&{% endif %}review_document_id={{ item.document_id }}">{{ item.document_id }}</a></strong>
+          | {{ item.field_name }} | {{ item.target_hint }} | {{ item.latest_ack_state }}<br>
+          Contract: {{ item.contract_version }} | Export: {{ item.export_type }}<br>
+          {% if item.validation.validation_state %}Validation: {{ item.validation.validation_state }}{% endif %}
+          {% if item.latest_ack_reason %}<br>Ack: {{ item.latest_ack_reason }}{% endif %}
+          <form method="post">
+            <input type="hidden" name="review_document_id" value="{{ item.document_id }}">
+            <input type="hidden" name="queue_field_name" value="{{ item.field_name }}">
+            <input type="hidden" name="review_filter_mode" value="{{ review_filter_mode }}">
+            <label>Operator</label>
+            <input name="queue_operator_name" value="operator">
+            <label>Intake Action</label>
+            <select name="queue_intake_action">
+              <option value="MARK_INTAKE_ACCEPTED">Mark Intake Accepted</option>
+              <option value="MARK_INTAKE_REJECTED">Mark Intake Rejected</option>
+              <option value="MARK_INTAKE_INVALID">Mark Intake Invalid</option>
+              <option value="CLEAR_INTAKE_STATE">Clear Intake State</option>
+              <option value="RETRY_INTAKE">Retry Intake</option>
+              <option value="REQUEUE_INTAKE">Requeue Intake</option>
+            </select>
+            <label>Intake Note</label>
+            <input name="queue_intake_note" value="" placeholder="Intake note">
+            <button type="submit" name="action" value="apply_intake_action">Apply Intake Action</button>
+          </form>
+          <br>
+          {% endfor %}
+        {% else %}
+          No intake contracts staged.
+        {% endif %}
+      </div>
+
       {% if selected_review_item %}
       <h2>Review Detail</h2>
       <div class="statusbox">
@@ -958,6 +1107,18 @@
           {% if row.external_bridge_result.target_hint %}| {{ row.external_bridge_result.target_hint }}{% endif %}
           {% if row.external_bridge_result.result_reason %}| {{ row.external_bridge_result.result_reason }}{% endif %}
           {% if row.external_bridge_result.export_file_path %}<br>Export File: <code>{{ row.external_bridge_result.export_file_path }}</code>{% endif %}
+          <br>
+          {% endif %}
+          {% if row.intake_contract %}
+          Intake Contract: {{ row.intake_contract.contract_version or "portalis-intake-v1" }} | {{ row.intake_contract.latest_ack_state or "INTAKE_PENDING" }}
+          {% if row.intake_contract.validation and row.intake_contract.validation.validation_state %}| validation={{ row.intake_contract.validation.validation_state }}{% endif %}
+          {% if row.intake_contract.validation and row.intake_contract.validation.validation_messages %}<br>Intake Validation: {{ row.intake_contract.validation.validation_messages|join(", ") }}{% endif %}
+          <br>
+          {% endif %}
+          {% if row.intake_ack %}
+          Intake Ack: {{ row.intake_ack.ack_state or "INTAKE_PENDING" }}
+          {% if row.intake_ack.ack_reason %}| {{ row.intake_ack.ack_reason }}{% endif %}
+          {% if row.intake_ack.acknowledged_at %}| {{ row.intake_ack.acknowledged_at }}{% endif %}
           <br>
           {% endif %}
           <label>Field Action</label>

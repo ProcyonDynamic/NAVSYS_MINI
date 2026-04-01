@@ -77,7 +77,7 @@ def log_startup_paths():
 import webbrowser
 from datetime import datetime, timezone
 
-from flask import Flask, render_template, request
+from flask import Flask, abort, render_template, request, send_file
 
 from modules.portalis_mini.crew_service import (
     list_crew,
@@ -115,12 +115,19 @@ from modules.portalis_mini.review_dashboard_service import (
     apply_assignment_action,
     apply_external_bridge_action,
     apply_incident_action,
+    apply_intake_action,
     apply_notification_action,
     apply_reminder_action,
     apply_transport_action,
     apply_triage_action,
     apply_watch_action,
     refresh_control_room_state,
+)
+from modules.portalis_mini.studio_workbench_service import (
+    build_document_workbench,
+    open_document_in_workbench,
+    resolve_document_source_path,
+    update_document_workbench,
 )
 try:
     from NAVSYS.app.portalis_import_routes import portalis_import_bp
@@ -223,6 +230,8 @@ def _build_review_field_rows(review_item, document_entry):
     incident_threads = dict(getattr(review_item, "incident_threads", {}) or (document_entry or {}).get("incident_threads", {}))
     external_bridge_exports = dict(getattr(review_item, "external_bridge_exports", {}) or (document_entry or {}).get("external_bridge_exports", {}))
     external_bridge_results = dict(getattr(review_item, "external_bridge_results", {}) or (document_entry or {}).get("external_bridge_results", {}))
+    intake_contracts = dict(getattr(review_item, "intake_contracts", {}) or (document_entry or {}).get("intake_contracts", {}))
+    intake_acks = dict(getattr(review_item, "intake_acks", {}) or (document_entry or {}).get("intake_acks", {}))
 
     queue_map = {item.get("field_name"): item for item in prioritized_field_queue if item.get("field_name")}
     ordered_field_names = [item.get("field_name") for item in prioritized_field_queue if item.get("field_name")]
@@ -287,6 +296,8 @@ def _build_review_field_rows(review_item, document_entry):
                 "incident_thread": dict(incident_threads.get(field_name, {}) or {}),
                 "external_bridge_export": dict(external_bridge_exports.get(field_name, {}) or {}),
                 "external_bridge_result": dict(external_bridge_results.get(field_name, {}) or {}),
+                "intake_contract": dict(intake_contracts.get(field_name, {}) or {}),
+                "intake_ack": dict(intake_acks.get(field_name, {}) or {}),
                 "warnings": warnings,
             }
         )
@@ -436,6 +447,19 @@ def _decorate_overview_rows(ids: list[str], status: str) -> list[dict]:
 @app.route("/")
 def home():
     return render_template("home.html", usb_root=str(USB_ROOT), utc_now=utc_now_iso())
+
+
+@app.route("/portalis/document/<document_id>/source")
+def portalis_document_source(document_id: str):
+    portalis_root = USB_ROOT / "data" / "PORTALIS"
+    registry = DocumentRegistry(portalis_root)
+    document_entry = registry.get_document(document_id)
+    if not document_entry:
+        abort(404)
+    source_path = resolve_document_source_path(portalis_root, document_entry)
+    if source_path is None or not source_path.exists():
+        abort(404)
+    return send_file(source_path)
 
 
 @app.route("/navwarn", methods=["GET", "POST"])
@@ -963,13 +987,31 @@ def portalis():
     registry = DocumentRegistry(portalis_root)
     review_service = ReviewResolutionService(portalis_root)
 
-    def build_ctx(state_obj, *, selected_crew_id_value="", selected_port_name_value="", selected_review_document_id_value="", review_filter_mode_value="all"):
+    def build_ctx(
+        state_obj,
+        *,
+        selected_crew_id_value="",
+        selected_port_name_value="",
+        selected_review_document_id_value="",
+        review_filter_mode_value="all",
+        selected_workbench_document_id_value="",
+        workbench_filter_document_type_value="",
+        workbench_filter_status_value="",
+        workbench_search_text_value="",
+    ):
         crew_items = list_crew(portalis_root)
         certificate_items = list_certificates(portalis_root)
         port_items = list_ports(portalis_root)
         control_room = refresh_control_room_state(portalis_root)
         review_items = control_room["review_items"]
         document_entries = registry.list_documents()
+        workbench_packet = build_document_workbench(
+            portalis_root,
+            selected_document_id=selected_workbench_document_id_value,
+            filter_document_type=workbench_filter_document_type_value,
+            filter_status=workbench_filter_status_value,
+            search_text=workbench_search_text_value,
+        )
 
         state_obj.crew_registry.selected_crew_id = selected_crew_id_value or None
         state_obj.port_requirements.selected_port_name = selected_port_name_value or None
@@ -1025,6 +1067,7 @@ def portalis():
         alert_feed_value = control_room.get("alert_feed", [])
         incident_feed_value = control_room.get("incident_feed", [])
         export_queue_value = control_room.get("export_queue", [])
+        intake_queue_value = control_room.get("intake_queue", [])
         dashboard_summary_value = control_room["dashboard_summary"]
         dashboard_tce_delta_value = control_room["dashboard_tce_delta"]
 
@@ -1053,6 +1096,16 @@ def portalis():
                 "notes": selected_port_value["notes"] if selected_port_value else "",
             },
             "document_entries": list(reversed(document_entries[-10:])),
+            "workbench_documents": workbench_packet.get("documents", []),
+            "selected_workbench_document_id": selected_workbench_document_id_value,
+            "selected_workbench_document": workbench_packet.get("selected_document"),
+            "workbench_filter_document_type": workbench_filter_document_type_value,
+            "workbench_filter_status": workbench_filter_status_value,
+            "workbench_search_text": workbench_search_text_value,
+            "workbench_summary": {
+                "document_count": workbench_packet.get("document_count", 0),
+                "updated_at": workbench_packet.get("updated_at", ""),
+            },
             "review_items": review_items,
             "selected_review_document_id": selected_review_document_id_value,
             "selected_review_item": selected_review_item_value,
@@ -1069,6 +1122,7 @@ def portalis():
             "alert_feed": alert_feed_value,
             "incident_feed": incident_feed_value,
             "export_queue": export_queue_value,
+            "intake_queue": intake_queue_value,
             "dashboard_summary": dashboard_summary_value,
             "dashboard_tce_delta": dashboard_tce_delta_value,
             "last_import_document_id": state_obj.document_registry.last_import_document_id,
@@ -1079,20 +1133,92 @@ def portalis():
     selected_crew_id = request.args.get("crew_id", "").strip() or (state.crew_registry.selected_crew_id or "")
     selected_port_name = request.args.get("port_name", "").strip() or (state.port_requirements.selected_port_name or state.voyage.arrival_port or "")
     selected_review_document_id = request.args.get("review_document_id", "").strip() or (state.review_queue.last_document_id or "")
+    selected_workbench_document_id = request.args.get("workbench_document_id", "").strip()
     review_filter_mode = request.args.get("review_filter", "").strip() or "all"
+    workbench_filter_document_type = request.args.get("workbench_document_type", "").strip()
+    workbench_filter_status = request.args.get("workbench_status", "").strip().upper()
+    workbench_search_text = request.args.get("workbench_search", "").strip()
     ctx = build_ctx(
         state,
         selected_crew_id_value=selected_crew_id,
         selected_port_name_value=selected_port_name,
         selected_review_document_id_value=selected_review_document_id,
         review_filter_mode_value=review_filter_mode,
+        selected_workbench_document_id_value=selected_workbench_document_id,
+        workbench_filter_document_type_value=workbench_filter_document_type,
+        workbench_filter_status_value=workbench_filter_status,
+        workbench_search_text_value=workbench_search_text,
     )
 
     if request.method == "POST":
         try:
             action = request.form.get("action", "").strip()
 
-            if action == "save_portalis":
+            if action == "open_workbench_document":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+
+                if not workbench_document_id:
+                    raise ValueError("workbench_document_id is required")
+
+                open_document_in_workbench(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "update_workbench_document":
+                workbench_document_id = request.form.get("workbench_document_id", "").strip()
+                workbench_notes = request.form.get("workbench_notes", "").strip()
+                workbench_status_value = request.form.get("workbench_status_value", "").strip().upper()
+                workbench_tags_value = request.form.get("workbench_tags_value", "").strip()
+                queue_operator_name = request.form.get("workbench_operator_name", "").strip() or "operator"
+                workbench_filter_document_type = request.form.get("workbench_filter_document_type", "").strip()
+                workbench_filter_status = request.form.get("workbench_filter_status", "").strip().upper()
+                workbench_search_text = request.form.get("workbench_search_text", "").strip()
+
+                if not workbench_document_id:
+                    raise ValueError("workbench_document_id is required")
+
+                update_document_workbench(
+                    portalis_root,
+                    document_id=workbench_document_id,
+                    workbench_notes=workbench_notes,
+                    workbench_status=workbench_status_value,
+                    workbench_tags=workbench_tags_value,
+                    operator_name=queue_operator_name,
+                )
+                selected_workbench_document_id = workbench_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                    selected_workbench_document_id_value=selected_workbench_document_id,
+                    workbench_filter_document_type_value=workbench_filter_document_type,
+                    workbench_filter_status_value=workbench_filter_status,
+                    workbench_search_text_value=workbench_search_text,
+                )
+                ctx["saved"] = True
+
+            elif action == "save_portalis":
                 form = request.form.to_dict(flat=True)
                 state = update_vessel_from_form(state, form)
                 state = update_voyage_from_form(state, form)
@@ -1618,6 +1744,42 @@ def portalis():
                     operator_name=queue_operator_name,
                     bridge_note=bridge_note,
                     target_hint=bridge_target,
+                )
+
+                state.review_queue.last_document_id = review_document_id
+                save_portalis_state(state, str(state_path))
+                selected_review_document_id = review_document_id
+                ctx = build_ctx(
+                    state,
+                    selected_crew_id_value=selected_crew_id,
+                    selected_port_name_value=selected_port_name,
+                    selected_review_document_id_value=selected_review_document_id,
+                    review_filter_mode_value=review_filter_mode,
+                )
+                ctx["saved"] = True
+
+            elif action == "apply_intake_action":
+                review_document_id = request.form.get("review_document_id", "").strip()
+                field_name = request.form.get("queue_field_name", "").strip()
+                intake_action = request.form.get("queue_intake_action", "").strip().upper()
+                intake_note = request.form.get("queue_intake_note", "").strip()
+                queue_operator_name = request.form.get("queue_operator_name", "").strip() or "operator"
+                review_filter_mode = request.form.get("review_filter_mode", "").strip() or review_filter_mode
+
+                if not review_document_id:
+                    raise ValueError("review_document_id is required")
+                if not field_name:
+                    raise ValueError("queue_field_name is required")
+                if not intake_action:
+                    raise ValueError("queue_intake_action is required")
+
+                apply_intake_action(
+                    portalis_root,
+                    document_id=review_document_id,
+                    field_name=field_name,
+                    intake_action=intake_action,
+                    operator_name=queue_operator_name,
+                    intake_note=intake_note,
                 )
 
                 state.review_queue.last_document_id = review_document_id

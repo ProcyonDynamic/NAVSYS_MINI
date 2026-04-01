@@ -480,14 +480,14 @@
           "imported_at": "2026-03-31T18:01:41Z",
           "issue_date": "48 Jul 23",
           "expiry_date": "22 Jan 00",
-          "escalated_at": "2026-03-31T23:50:11Z",
-          "triaged_at": "2026-03-31T23:50:11Z",
-          "assigned_at": "2026-03-31T23:50:11Z",
-          "routing_evaluated_at": "2026-03-31T23:50:11Z",
-          "watch_triggered_at": "2026-03-31T23:50:11Z",
-          "sla_evaluated_at": "2026-03-31T23:50:11Z",
+          "escalated_at": "2026-04-01T00:13:17Z",
+          "triaged_at": "2026-04-01T00:13:17Z",
+          "assigned_at": "2026-04-01T00:13:17Z",
+          "routing_evaluated_at": "2026-04-01T00:13:17Z",
+          "watch_triggered_at": "2026-04-01T00:13:17Z",
+          "sla_evaluated_at": "2026-04-01T00:13:17Z",
           "reminder_due_at": {},
-          "reminder_staged_at": "2026-03-31T23:50:11Z",
+          "reminder_staged_at": "2026-04-01T00:13:17Z",
           "reminder_sent_at": {},
           "snoozed_until": {},
           "notification_created_at": {},
@@ -502,7 +502,9 @@
           "incident_last_seen_at": {},
           "incident_closed_at": {},
           "export_staged_at": {},
-          "export_completed_at": {}
+          "export_completed_at": {},
+          "intake_received_at": {},
+          "intake_acknowledged_at": {}
         },
         "WHERE": {
           "source_file": "d:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT\\sample_passport.pdf",
@@ -587,7 +589,15 @@
             "EXPORT_FAILED": 0,
             "EXPORT_SKIPPED": 0
           },
-          "bridge_summary": {}
+          "bridge_summary": {},
+          "intake_summary": {
+            "INTAKE_PENDING": 0,
+            "INTAKE_ACCEPTED": 0,
+            "INTAKE_REJECTED": 0,
+            "INTAKE_INVALID": 0,
+            "INTAKE_SKIPPED": 0
+          },
+          "intake_validation_summary": {}
         },
         "WHY": {
           "operational_reason": "Portalis import for Crew Passport",
@@ -606,7 +616,9 @@
           "alert_reason": {},
           "incident_reason": {},
           "export_reason": {},
-          "bridge_reason": {}
+          "bridge_reason": {},
+          "intake_reason": {},
+          "intake_rejection_reason": {}
         }
       },
       "operational_reason": "Portalis declared import for Crew Passport",
@@ -635,7 +647,10 @@
       "incident_actions": [],
       "external_bridge_exports": {},
       "external_bridge_results": {},
-      "external_bridge_actions": []
+      "external_bridge_actions": [],
+      "intake_contracts": {},
+      "intake_acks": {},
+      "intake_actions": []
     }
   ]
 }
