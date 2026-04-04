@@ -7,6 +7,7 @@ from .active_warning_table import ActiveWarningRecord, upsert_warning_record
 from .ns01_daily import regenerate_daily_ns01_txt
 from .register_ns01 import next_seq_for_register, make_ns01_row, append_ns01_row
 from .voyage_userchart_service import create_or_update_voyage_userchart
+from .warning_plot_export_service import ChartExportBackend
 
 
 @dataclass
@@ -37,6 +38,7 @@ def persist_operational_warning_output(
     plotted: str,
     route_id: str,
     chart_mode: str,
+    export_backend: ChartExportBackend = "csv",
 ) -> OutputResult:
     print("[OUTPUT DEBUG]", {
         "plot_object_count": len(plot_objects),
@@ -52,6 +54,7 @@ def persist_operational_warning_output(
         warning_id=warning_id,
         plot_objects=plot_objects,
         mode=chart_mode,
+        backend=export_backend,
     )
 
     plot_was_written = chart_result.ok

@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 from .line_aggregate_symbol_constructor import build_symbol_vertices
 from .warning_plot_builder_service import PlotObject
+
+ChartExportBackend = Literal["csv", "uchm"]
 
 
 @dataclass
@@ -185,7 +187,7 @@ def _line_aggregate_block_lines(
     return lines
 
 
-def export_plot_objects_to_csv(
+def _export_plot_objects_to_csv(
     *,
     plot_objects: list[PlotObject],
     plot_csv_path: str | Path,
@@ -312,3 +314,66 @@ def export_plot_objects_to_csv(
             exported_object_count=0,
             errors=errors,
         )
+
+
+def _export_plot_objects_to_uchm(
+    *,
+    plot_objects: list[PlotObject],
+    plot_path: str | Path,
+) -> PlotExportResult:
+    from .uchm import export_plot_objects_to_uchm
+
+    uchm_result = export_plot_objects_to_uchm(
+        plot_objects=plot_objects,
+        plot_path=plot_path,
+    )
+    return PlotExportResult(
+        ok=uchm_result.ok,
+        plot_csv_path=uchm_result.output_path,
+        exported_row_count=0,
+        exported_object_count=uchm_result.exported_object_count,
+        errors=list(uchm_result.errors)
+        + ([f"unsupported_reason={uchm_result.unsupported_reason}"] if uchm_result.unsupported_reason else [])
+        + ([f"object_kind_handled={uchm_result.object_kind_handled}"] if uchm_result.object_kind_handled else []),
+    )
+
+
+def export_chart(
+    *,
+    plot_objects: list[PlotObject],
+    plot_path: str | Path,
+    backend: ChartExportBackend = "csv",
+) -> PlotExportResult:
+    normalized_backend = (backend or "csv").strip().lower()
+
+    if normalized_backend == "csv":
+        return _export_plot_objects_to_csv(
+            plot_objects=plot_objects,
+            plot_csv_path=plot_path,
+        )
+
+    if normalized_backend == "uchm":
+        return _export_plot_objects_to_uchm(
+            plot_objects=plot_objects,
+            plot_path=plot_path,
+        )
+
+    return PlotExportResult(
+        ok=False,
+        plot_csv_path=None,
+        exported_row_count=0,
+        exported_object_count=0,
+        errors=[f"Unsupported chart export backend: {backend}"],
+    )
+
+
+def export_plot_objects_to_csv(
+    *,
+    plot_objects: list[PlotObject],
+    plot_csv_path: str | Path,
+) -> PlotExportResult:
+    return export_chart(
+        plot_objects=plot_objects,
+        plot_path=plot_csv_path,
+        backend="csv",
+    )

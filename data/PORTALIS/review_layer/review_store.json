@@ -56,6 +56,28 @@
       "related_task_workspace_id": "",
       "source": "REVIEW_LAYER",
       "timestamp": "2026-04-01T23:20:13Z"
+    },
+    "audit_6": {
+      "entry_id": "audit_6",
+      "kind": "REVIEW_SESSION_CREATED",
+      "message": "Review session created for DOCUMENT:DOC_000016.",
+      "related_document_id": "",
+      "related_review_item_id": "",
+      "related_review_session_id": "review_session_document_doc_000016",
+      "related_task_workspace_id": "",
+      "source": "REVIEW_LAYER",
+      "timestamp": "2026-04-02T00:20:34Z"
+    },
+    "audit_7": {
+      "entry_id": "audit_7",
+      "kind": "REVIEW_SESSION_CREATED",
+      "message": "Review session created for DOCUMENT:DOC_000019.",
+      "related_document_id": "",
+      "related_review_item_id": "",
+      "related_review_session_id": "review_session_document_doc_000019",
+      "related_task_workspace_id": "",
+      "source": "REVIEW_LAYER",
+      "timestamp": "2026-04-02T03:21:51Z"
     }
   },
   "comments": {},
@@ -86,6 +108,32 @@
       "status": "ACTIVE",
       "task_workspace_id": "",
       "updated_at": "2026-04-01T22:44:11Z"
+    },
+    "review_session_document_doc_000016": {
+      "approved_count": 0,
+      "pending_count": 0,
+      "rejected_count": 0,
+      "review_session_id": "review_session_document_doc_000016",
+      "scope_id": "DOC_000016",
+      "scope_type": "DOCUMENT",
+      "signed_off": false,
+      "signed_off_at": "",
+      "status": "ACTIVE",
+      "task_workspace_id": "",
+      "updated_at": "2026-04-02T00:20:34Z"
+    },
+    "review_session_document_doc_000019": {
+      "approved_count": 0,
+      "pending_count": 0,
+      "rejected_count": 0,
+      "review_session_id": "review_session_document_doc_000019",
+      "scope_id": "DOC_000019",
+      "scope_type": "DOCUMENT",
+      "signed_off": false,
+      "signed_off_at": "",
+      "status": "ACTIVE",
+      "task_workspace_id": "",
+      "updated_at": "2026-04-02T03:21:51Z"
     },
     "review_session_document_doc_000021": {
       "approved_count": 0,

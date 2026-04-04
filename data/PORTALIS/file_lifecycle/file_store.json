@@ -355,13 +355,15 @@
   },
   "archive_records": [],
   "last_action_result": {
-    "action_id": "FILE_ADDED::DOC_000022",
-    "success": true,
-    "result_file_id": "DOC_000022",
-    "message": "Created a new workspace file record.",
-    "warnings": [],
+    "action_id": "FILE_IMPORT_FAILED",
+    "success": false,
+    "result_file_id": "",
+    "message": "External file path does not exist.",
+    "warnings": [
+      "E:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT"
+    ],
     "updated_refs": {},
-    "completed_at": "2026-04-01T23:20:13Z"
+    "completed_at": "2026-04-02T00:21:32Z"
   },
   "action_history": [
     {
@@ -384,6 +386,60 @@
         "warnings": [],
         "updated_refs": {},
         "completed_at": "2026-04-01T23:20:13Z"
+      }
+    },
+    {
+      "action": {
+        "action_id": "FILE_IMPORT_FAILED",
+        "action_type": "IMPORT_EXTERNAL_FILE",
+        "target_file_id": "",
+        "target_workspace_id": "STUDIO",
+        "target_task_workspace_id": "",
+        "requested_name": "",
+        "requested_at": "2026-04-02T00:20:43Z",
+        "requested_by": "operator",
+        "options": {
+          "file_path": ".",
+          "import_mode": "IMPORT"
+        }
+      },
+      "result": {
+        "action_id": "FILE_IMPORT_FAILED",
+        "success": false,
+        "result_file_id": "",
+        "message": "External file path does not exist.",
+        "warnings": [
+          "."
+        ],
+        "updated_refs": {},
+        "completed_at": "2026-04-02T00:20:43Z"
+      }
+    },
+    {
+      "action": {
+        "action_id": "FILE_IMPORT_FAILED",
+        "action_type": "IMPORT_EXTERNAL_FILE",
+        "target_file_id": "",
+        "target_workspace_id": "STUDIO",
+        "target_task_workspace_id": "",
+        "requested_name": "",
+        "requested_at": "2026-04-02T00:21:32Z",
+        "requested_by": "operator",
+        "options": {
+          "file_path": "E:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT",
+          "import_mode": "IMPORT"
+        }
+      },
+      "result": {
+        "action_id": "FILE_IMPORT_FAILED",
+        "success": false,
+        "result_file_id": "",
+        "message": "External file path does not exist.",
+        "warnings": [
+          "E:\\NAVSYS_USB\\data\\PORTALIS\\documents\\CREW_PASSPORT"
+        ],
+        "updated_refs": {},
+        "completed_at": "2026-04-02T00:21:32Z"
       }
     }
   ],

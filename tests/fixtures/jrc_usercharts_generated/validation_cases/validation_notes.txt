@@ -1,0 +1,13 @@
+UCHM validation harness output
+
+Purpose:
+- Generate deterministic native .uchm files for manual JRC import/resave testing.
+- Preserve generated-side metadata in validation_manifest.json.
+- Support byte-diff comparison against a JRC-resaved file.
+
+Important current assumptions:
+- Single LINE uses LINE_BASIC donor mutation.
+- Single POINT uses POINT_BASIC donor mutation.
+- LINE+LINE package uses LINE_REPEATED family constant.
+- LINE+POINT and POINT+POINT package family selection remains provisional.
+- Point symbol controls currently supported: 0x08 (X/default) and 0x09 (X_ALT09 alias).

@@ -1,0 +1,289 @@
+{
+  "output_dir": "D:\\NAVSYS_USB\\tests\\fixtures\\jrc_usercharts_generated\\validation_cases",
+  "case_count": 6,
+  "cases": [
+    {
+      "filename": "generated_LINE_LINE.uchm",
+      "output_path": "D:\\NAVSYS_USB\\tests\\fixtures\\jrc_usercharts_generated\\validation_cases\\generated_LINE_LINE.uchm",
+      "object_count": 2,
+      "object_kinds": [
+        "LINE",
+        "LINE"
+      ],
+      "descriptor_families": [
+        "LINE_BASIC",
+        "LINE_BASIC"
+      ],
+      "expected_package_family": "LINE_REPEATED",
+      "backend_path_used": "modules.navwarn_mini.uchm.uchm_export_service.export_plot_objects_to_uchm",
+      "objects": [
+        {
+          "object_kind": "LINE",
+          "vertices": [
+            [
+              24.25,
+              -58.75
+            ],
+            [
+              24.9,
+              -57.95
+            ]
+          ],
+          "scale_values": {
+            "scamin": 100000000,
+            "scamax": 1000
+          },
+          "descriptor_family": "LINE_BASIC",
+          "line_type": 1,
+          "line_width": 3,
+          "color_no": 5
+        },
+        {
+          "object_kind": "LINE",
+          "vertices": [
+            [
+              25.15,
+              -57.1
+            ],
+            [
+              25.85,
+              -56.25
+            ]
+          ],
+          "scale_values": {
+            "scamin": 100000000,
+            "scamax": 1000
+          },
+          "descriptor_family": "LINE_BASIC",
+          "line_type": 1,
+          "line_width": 3,
+          "color_no": 5
+        }
+      ],
+      "provisional_assumptions": [
+        "Package uses current multi-object assembly path.",
+        "All-LINE package currently uses LINE_REPEATED family constant."
+      ]
+    },
+    {
+      "filename": "generated_POINT_POINT.uchm",
+      "output_path": "D:\\NAVSYS_USB\\tests\\fixtures\\jrc_usercharts_generated\\validation_cases\\generated_POINT_POINT.uchm",
+      "object_count": 2,
+      "object_kinds": [
+        "POINT",
+        "POINT"
+      ],
+      "descriptor_families": [
+        "POINT_BASIC",
+        "POINT_BASIC"
+      ],
+      "expected_package_family": "POINT_BASIC",
+      "backend_path_used": "modules.navwarn_mini.uchm.uchm_export_service.export_plot_objects_to_uchm",
+      "objects": [
+        {
+          "object_kind": "POINT",
+          "vertices": [
+            [
+              23.307348307291665,
+              -56.46746354166667
+            ]
+          ],
+          "scale_values": {
+            "scamin": 100000000,
+            "scamax": 1000
+          },
+          "descriptor_family": "POINT_BASIC",
+          "symbol_kind": "X",
+          "symbol_control": 8
+        },
+        {
+          "object_kind": "POINT",
+          "vertices": [
+            [
+              19.659824869791667,
+              -84.14971354166667
+            ]
+          ],
+          "scale_values": {
+            "scamin": 100000000,
+            "scamax": 1000
+          },
+          "descriptor_family": "POINT_BASIC",
+          "symbol_kind": "X_ALT09",
+          "symbol_control": 9
+        }
+      ],
+      "provisional_assumptions": [
+        "POINT+POINT package uses current provisional package family selection.",
+        "Point controls map X->0x08 and X_ALT09->0x09."
+      ]
+    },
+    {
+      "filename": "generated_LINE_POINT.uchm",
+      "output_path": "D:\\NAVSYS_USB\\tests\\fixtures\\jrc_usercharts_generated\\validation_cases\\generated_LINE_POINT.uchm",
+      "object_count": 2,
+      "object_kinds": [
+        "LINE",
+        "POINT"
+      ],
+      "descriptor_families": [
+        "LINE_BASIC",
+        "POINT_BASIC"
+      ],
+      "expected_package_family": "LINE_BASIC",
+      "backend_path_used": "modules.navwarn_mini.uchm.uchm_export_service.export_plot_objects_to_uchm",
+      "objects": [
+        {
+          "object_kind": "LINE",
+          "vertices": [
+            [
+              26.0,
+              -60.0
+            ],
+            [
+              26.45,
+              -59.2
+            ]
+          ],
+          "scale_values": {
+            "scamin": 100000000,
+            "scamax": 1000
+          },
+          "descriptor_family": "LINE_BASIC",
+          "line_type": 1,
+          "line_width": 2,
+          "color_no": 9
+        },
+        {
+          "object_kind": "POINT",
+          "vertices": [
+            [
+              26.9,
+              -58.65
+            ]
+          ],
+          "scale_values": {
+            "scamin": 100000000,
+            "scamax": 1000
+          },
+          "descriptor_family": "POINT_BASIC",
+          "symbol_kind": "X_ALT09",
+          "symbol_control": 9
+        }
+      ],
+      "provisional_assumptions": [
+        "LINE+POINT package uses current provisional package family selection.",
+        "Mixed-family package acceptance is not yet JRC-validated."
+      ]
+    },
+    {
+      "filename": "generated_LINE_SINGLE.uchm",
+      "output_path": "D:\\NAVSYS_USB\\tests\\fixtures\\jrc_usercharts_generated\\validation_cases\\generated_LINE_SINGLE.uchm",
+      "object_count": 1,
+      "object_kinds": [
+        "LINE"
+      ],
+      "descriptor_families": [
+        "LINE_BASIC"
+      ],
+      "expected_package_family": "LINE_BASIC",
+      "backend_path_used": "modules.navwarn_mini.uchm.uchm_export_service.export_plot_objects_to_uchm",
+      "objects": [
+        {
+          "object_kind": "LINE",
+          "vertices": [
+            [
+              21.25,
+              -54.5
+            ],
+            [
+              22.1,
+              -53.65
+            ]
+          ],
+          "scale_values": {
+            "scamin": 100000000,
+            "scamax": 1000
+          },
+          "descriptor_family": "LINE_BASIC",
+          "line_type": 1,
+          "line_width": 4,
+          "color_no": 4
+        }
+      ],
+      "provisional_assumptions": [
+        "Single-object native line path uses LINE_BASIC donor mutation."
+      ]
+    },
+    {
+      "filename": "generated_POINT_SINGLE_08.uchm",
+      "output_path": "D:\\NAVSYS_USB\\tests\\fixtures\\jrc_usercharts_generated\\validation_cases\\generated_POINT_SINGLE_08.uchm",
+      "object_count": 1,
+      "object_kinds": [
+        "POINT"
+      ],
+      "descriptor_families": [
+        "POINT_BASIC"
+      ],
+      "expected_package_family": "POINT_BASIC",
+      "backend_path_used": "modules.navwarn_mini.uchm.uchm_export_service.export_plot_objects_to_uchm",
+      "objects": [
+        {
+          "object_kind": "POINT",
+          "vertices": [
+            [
+              23.307348307291665,
+              -56.46746354166667
+            ]
+          ],
+          "scale_values": {
+            "scamin": 100000000,
+            "scamax": 1000
+          },
+          "descriptor_family": "POINT_BASIC",
+          "symbol_kind": "X",
+          "symbol_control": 8
+        }
+      ],
+      "provisional_assumptions": [
+        "Single-object native point path uses POINT_BASIC donor mutation.",
+        "Symbol control lane 0x08 is grounded to X/default."
+      ]
+    },
+    {
+      "filename": "generated_POINT_SINGLE_09.uchm",
+      "output_path": "D:\\NAVSYS_USB\\tests\\fixtures\\jrc_usercharts_generated\\validation_cases\\generated_POINT_SINGLE_09.uchm",
+      "object_count": 1,
+      "object_kinds": [
+        "POINT"
+      ],
+      "descriptor_families": [
+        "POINT_BASIC"
+      ],
+      "expected_package_family": "POINT_BASIC",
+      "backend_path_used": "modules.navwarn_mini.uchm.uchm_export_service.export_plot_objects_to_uchm",
+      "objects": [
+        {
+          "object_kind": "POINT",
+          "vertices": [
+            [
+              19.659824869791667,
+              -84.14971354166667
+            ]
+          ],
+          "scale_values": {
+            "scamin": 100000000,
+            "scamax": 1000
+          },
+          "descriptor_family": "POINT_BASIC",
+          "symbol_kind": "X_ALT09",
+          "symbol_control": 9
+        }
+      ],
+      "provisional_assumptions": [
+        "Single-object native point path uses POINT_BASIC donor mutation.",
+        "X_ALT09 is a cautious alias for the proven 0x09 control lane."
+      ]
+    }
+  ]
+}

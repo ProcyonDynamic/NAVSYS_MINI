@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .warning_plot_export_service import export_plot_objects_to_csv
+from .warning_plot_export_service import ChartExportBackend, export_chart
 from .warning_section_archive_service import archive_warning_section
 
 
@@ -157,6 +157,7 @@ def create_or_update_voyage_userchart(
     warning_id: str,
     plot_objects: list,
     mode: str,
+    backend: ChartExportBackend = "csv",
 ) -> VoyageUserchartResult:
     chart_csv_path = build_voyage_userchart_path(
         output_root=output_root,
@@ -169,9 +170,10 @@ def create_or_update_voyage_userchart(
 
     temp_warning_csv = temp_dir / f"{_safe_token(warning_id)}.csv"
 
-    export_result = export_plot_objects_to_csv(
+    export_result = export_chart(
         plot_objects=plot_objects,
-        plot_csv_path=temp_warning_csv,
+        plot_path=temp_warning_csv,
+        backend=backend,
     )
 
     if not export_result.ok or not temp_warning_csv.exists():
